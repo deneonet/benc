@@ -46,7 +46,7 @@ func main() {
 	s := bstd.SizeString(str)
 	// Encode the string
 	n, buf := bstd.Marshal(s)
-	n, buf = bstd.MarshalString(n, buf, "Hello!")
+	n = bstd.MarshalString(n, buf, "Hello!")
 	// Verify the marshal process
 	err := bstd.VerifyMarshal(n, buf)
 	if err != nil {
@@ -93,9 +93,9 @@ func MarshalTestData(t TestData) []byte {
 
 	// Encode the struct into a byte slice
 	n, buf := bstd.Marshal(s)
-	n, buf = bstd.MarshalString(n, buf, t.str)
-	n, buf = bstd.MarshalUInt64(n, buf, t.id)
-	n, buf = bstd.MarshalBool(n, buf, t.cool)
+	n = bstd.MarshalString(n, buf, t.str)
+	n = bstd.MarshalUInt64(n, buf, t.id)
+	n = bstd.MarshalBool(n, buf, t.cool)
 	// And return the byte slice
 	return buf
 }
