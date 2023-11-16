@@ -88,8 +88,8 @@ type TestData struct {
 func MarshalTestData(t TestData) []byte {
 	// Calculate the size of the struct
 	s := bstd.SizeString(t.str)
-	s += bstd.SizeUInt64()
-	s += bstd.SizeBool()
+	s += bstd.SizeUInt64(t.id)
+	s += bstd.SizeBool(t.cool)
 
 	// Encode the struct into a byte slice
 	n, buf := bstd.Marshal(s)
