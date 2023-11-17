@@ -43,7 +43,7 @@ Basic encoding and decoding of a string:
 package main
 
 import (
-	"github.com/deneonet/benc/bstd"
+	bstd "github.com/deneonet/benc"
 )
 
 func main() {
@@ -82,7 +82,7 @@ Basic encoding and decoding of a struct:
 package main
 
 import (
-	"github.com/deneonet/benc/bstd"
+	bstd "github.com/deneonet/benc"
 )
 
 type TestData struct {
