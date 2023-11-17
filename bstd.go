@@ -72,9 +72,10 @@ func UnmarshalSlice[T any](n int, b []byte, unmarshal UnmarshalFunc[T]) (int, []
 		return n, nil, errors.New("insufficient data for decoding Slice")
 	}
 	ts := make([]T, ui)
+	var t T
+	var err error
 	for i := 0; i < int(ui); i++ {
-		var t T
-		n, t, err := unmarshal(n, b)
+		n, t, err = unmarshal(n, b)
 		if err != nil {
 			return n, nil, errors.New("unmarshal slice: " + err.Error())
 		}
