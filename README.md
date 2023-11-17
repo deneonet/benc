@@ -1,9 +1,6 @@
 # BENC
 
 The fastest binary encoder/decoder in pure Golang.
-## Authors
-
-- Created with love by Deneo [@deneonet](https://www.github.com/deneonet)
 
 ## Features
 
@@ -13,6 +10,15 @@ The fastest binary encoder/decoder in pure Golang.
 - Struct support (manual)
 - Message framing support
 - Robust decoding and validation
+
+## Changelog
+v1 to v1.0.1
+- benc -> bstd
+- all Size function requires 1 argument T (going to be removed again in v1.0.2)
+- added Time, Byte, Faster String encoding, Faster byte slice encoding, Maps and Slices, UInt16, UInt32 and Int16, aswell as Float32
+- added best practices
+
+See you in v1.0.2
 
 ## Benchmarks
 
