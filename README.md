@@ -1,7 +1,7 @@
 # BENC
 
 ![go workflow](https://github.com/deneonet/benc/actions/workflows/go.yml/badge.svg)
-![go report card](https://goreportcard.com/badge/github.com/deneonet/benc)
+[![go report card](https://goreportcard.com/badge/github.com/deneonet/benc)](https://goreportcard.com/report/github.com/deneonet/benc)
 [![go reference](https://pkg.go.dev/badge/github.com/deneonet/benc.svg)](https://pkg.go.dev/github.com/deneonet/benc)
 
 The fastest binary encoder/decoder in pure Golang.
@@ -13,22 +13,11 @@ The fastest binary encoder/decoder in pure Golang.
 - Map support (manual)
 - Struct support (manual)
 - Message framing support
-- Unmarshal/Marshal verification
+- Robust decoding and validation
 
 ## Changelog
-v1 to v1.0.1
-- benc -> bstd
-- all Size function requires 1 argument T (going to be removed again in v1.0.2)
-- added Time, Byte, Faster String encoding, Faster byte slice encoding, Maps and Slices, UInt16, UInt32 and Int16, aswell as Float32
-- added best practices
 
-v1.0.1 to v1.0.2
-- added zero memory allocation string to byte slice (and back) convertion
-- removed that all Size function requires 1 argument: T (expect string)
-- added pre-allocation (message framing not done yet, v1.0.3 fix)
-- function inline (not done yet)
-
-See you in v1.0.3 -> we move then to CHANGELOG.md
+- [See changelog here](CHANGELOG.md)
 
 ## Benchmarks
 
@@ -166,8 +155,6 @@ func main() {
 - Automatic struct encoding/decoding
 - Automatic slice encoding/decoding
 - Less encoded byte slice length
-- More unsafe features
-- Unmarshal validation
 - Versioning
 ## License
 

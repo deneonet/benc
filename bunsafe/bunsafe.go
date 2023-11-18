@@ -1,11 +1,11 @@
 package bunsafe
 
 import (
-	"encoding/binary"
+	"errors"
 	"unsafe"
-
-	bstd "github.com/deneonet/benc"
 )
+
+var ErrBytesToSmall = errors.New("insufficient data, given bytes are too small")
 
 //
 // From:
@@ -33,16 +33,22 @@ func s2b(s string) []byte {
 }
 
 func MarshalString(n int, b []byte, str string) int {
-	binary.LittleEndian.PutUint16(b[n:], uint16(len(str)))
+	v := uint16(len(str))
+	u := b[n:]
+	_ = u[1]
+	u[0] = byte(v)
+	u[1] = byte(v >> 8)
 	return n + 2 + copy(b[n+2:], s2b(str))
 }
 
 func UnmarshalString(n int, b []byte) (int, string, error) {
 	if len(b)-n < 2 {
-		return n, "", bstd.ErrBytesToSmall
+		return n, "", ErrBytesToSmall
 	}
-	size := binary.LittleEndian.Uint16(b[n : n+2])
+	u := b[n:]
+	_ = u[1]
+	size := int(uint16(u[0]) | uint16(u[1])<<8)
 	n += 2
-	bs := b[n : n+int(size)]
-	return n + int(size), b2s(bs), nil
+	bs := b[n : n+size]
+	return n + size, b2s(bs), nil
 }

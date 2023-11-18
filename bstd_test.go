@@ -1,8 +1,13 @@
 package bstd
 
 import (
+	"bytes"
 	"testing"
 	"time"
+
+	"github.com/deneonet/benc/bpre"
+	"github.com/deneonet/benc/btag"
+	"github.com/deneonet/benc/bunsafe"
 )
 
 func TestDataTypes(t *testing.T) {
@@ -20,7 +25,7 @@ func TestDataTypes(t *testing.T) {
 	s += SizeUInt16()
 	s += SizeUInt32()
 	s += SizeInt64()
-	n, buf := Marshal(s)
+	n, buf := btag.SMarshal(s, "v1")
 	n = MarshalBool(n, buf, true)
 	n = MarshalByte(n, buf, 1)
 	n = MarshalFloat32(n, buf, 1)
@@ -29,7 +34,7 @@ func TestDataTypes(t *testing.T) {
 	n = MarshalInt16(n, buf, 1)
 	n = MarshalInt32(n, buf, 1)
 	n = MarshalInt64(n, buf, 1)
-	n = MarshalString(n, buf, "H")
+	n = bunsafe.MarshalString(n, buf, "H")
 	n = MarshalTime(n, buf, time.Now())
 	n = MarshalUInt(n, buf, 0)
 	n = MarshalUInt16(n, buf, 0)
@@ -38,7 +43,11 @@ func TestDataTypes(t *testing.T) {
 	if err := VerifyMarshal(n, buf); err != nil {
 		t.Fatal(err.Error())
 	}
-	n, _, err := UnmarshalBool(0, buf)
+	n, tag, err := UnmarshalStringTag(0, buf)
+	if tag != "v1" {
+		t.Fatal("tag doesn't match")
+	}
+	n, _, err = UnmarshalBool(n, buf)
 	checkErr(t, err)
 	n, _, err = UnmarshalByte(n, buf)
 	checkErr(t, err)
@@ -54,7 +63,7 @@ func TestDataTypes(t *testing.T) {
 	checkErr(t, err)
 	n, _, err = UnmarshalInt64(n, buf)
 	checkErr(t, err)
-	n, _, err = UnmarshalString(n, buf)
+	n, _, err = bunsafe.UnmarshalString(n, buf)
 	checkErr(t, err)
 	n, _, err = UnmarshalTime(n, buf)
 	checkErr(t, err)
@@ -101,6 +110,61 @@ func TestSliceMap(t *testing.T) {
 	}
 	if m["hhhhhhhhhhhhhhhhhhhhhhhhhhhh"] != 23232323232323 || m["WWWWWWWWWWWWWWWWWWWWWWWWWWWW"] != 1022323232323232323 {
 		t.Fatal("map doesn't match")
+	}
+}
+
+func TestMessageFraming(t *testing.T) {
+	var bytes bytes.Buffer
+	n, buf := MarshalMF(7)
+	n = bunsafe.MarshalString(n, buf, "Hello")
+	bytes.Write(buf)
+	bytes.Write(buf)
+
+	data, _ := UnmarshalMF(bytes.Bytes())
+	for _, bs := range data {
+		_, d2, _ := bunsafe.UnmarshalString(n, bs)
+		if d2 != "Hello" {
+			t.Fatal("unmarshal string don't match")
+		}
+	}
+
+	bpre.UnmarshalMF(100)
+	bpre.Marshal(100)
+
+	bytes.Reset()
+	n, buf = btag.SMarshalMF(7, "v1")
+	n = bunsafe.MarshalString(n, buf, "Hello")
+	bytes.Write(buf)
+	bytes.Write(buf)
+
+	data, _ = UnmarshalMF(bytes.Bytes())
+	for _, bs := range data {
+		_, tag, _ := UnmarshalStringTag(0, bs)
+		if tag != "v1" {
+			t.Fatal("tag don't match")
+		}
+		_, d2, _ := bunsafe.UnmarshalString(n, bs)
+		if d2 != "Hello" {
+			t.Fatal("unmarshal string don't match")
+		}
+	}
+
+	bytes.Reset()
+	n, buf = btag.UMarshalMF(7, 1)
+	n = bunsafe.MarshalString(n, buf, "Hello")
+	bytes.Write(buf)
+	bytes.Write(buf)
+
+	data, _ = UnmarshalMF(bytes.Bytes())
+	for _, bs := range data {
+		_, tag, _ := UnmarshalUIntTag(0, bs)
+		if tag != 1 {
+			t.Fatal("tag don't match")
+		}
+		_, d2, _ := bunsafe.UnmarshalString(n, bs)
+		if d2 != "Hello" {
+			t.Fatal("unmarshal string don't match")
+		}
 	}
 }
 

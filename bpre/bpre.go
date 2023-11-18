@@ -2,13 +2,13 @@ package bpre
 
 var unmarshal [][]byte = nil
 
-func MFUnmarshal(l int) {
+func UnmarshalMF(l int) {
 	unmarshal = make([][]byte, l)
 }
 
-func GetMFUnmarshal(s int) [][]byte {
+func GetUnmarshalMF(s int) [][]byte {
 	if unmarshal == nil {
-		return make([][]byte, s)
+		return nil
 	}
 	return unmarshal[:s]
 }
