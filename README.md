@@ -1,7 +1,7 @@
 # BENC
 
 ![go workflow](https://github.com/deneonet/benc/actions/workflows/go.yml/badge.svg)
-![go report card]()
+![go report card](https://goreportcard.com/badge/github.com/deneonet/benc)
 [![go reference](https://pkg.go.dev/badge/github.com/deneonet/benc.svg)](https://pkg.go.dev/github.com/deneonet/benc)
 
 The fastest binary encoder/decoder in pure Golang.
