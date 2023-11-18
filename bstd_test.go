@@ -44,6 +44,7 @@ func TestDataTypes(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	n, tag, err := UnmarshalStringTag(0, buf)
+	checkErr(t, err)
 	if tag != "v1" {
 		t.Fatal("tag doesn't match")
 	}
