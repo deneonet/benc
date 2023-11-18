@@ -22,7 +22,13 @@ v1 to v1.0.1
 - added Time, Byte, Faster String encoding, Faster byte slice encoding, Maps and Slices, UInt16, UInt32 and Int16, aswell as Float32
 - added best practices
 
-See you in v1.0.2
+v1.0.1 to v1.0.2
+- added zero memory allocation string to byte slice (and back) convertion
+- removed that all Size function requires 1 argument: T (expect string)
+- added pre-allocation (message framing not done yet, v1.0.3 fix)
+- function inline (not done yet)
+
+See you in v1.0.3 -> we move then to CHANGELOG.md
 
 ## Benchmarks
 
