@@ -13,7 +13,7 @@ The fastest binary encoder/decoder in pure Golang.
 - Map support (manual)
 - Struct support (manual)
 - Message framing support
-- Robust decoding and validation
+- Unmarshal/Marshal verification
 
 ## Changelog
 v1 to v1.0.1
@@ -166,6 +166,8 @@ func main() {
 - Automatic struct encoding/decoding
 - Automatic slice encoding/decoding
 - Less encoded byte slice length
+- More unsafe features
+- Unmarshal validation
 - Versioning
 ## License
 
