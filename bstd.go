@@ -11,7 +11,6 @@ import (
 )
 
 var ErrBytesToSmall = errors.New("insufficient data, given bytes are too small")
-var ErrNegativeLen = errors.New("un-marshaled length is negative")
 
 func MFUnmarshal(b []byte) ([][]byte, error) {
 	var dec [][]byte
@@ -52,11 +51,11 @@ type UnmarshalFunc[T any] func(n int, b []byte) (int, T, error)
 func SizeSlice[T any](slice []T, sizer interface{}) int {
 	s := 2
 	for _, t := range slice {
-		switch sizer.(type) {
-		case func(t T) int:
-			s += sizer.(func(t T) int)(t)
-		case func() int:
-			s += sizer.(func() int)()
+		if p, ok := sizer.(func(t T) int); ok {
+			s += p(t)
+		}
+		if p, ok := sizer.(func() int); ok {
+			s += p()
 		}
 	}
 	return s
@@ -83,9 +82,6 @@ func UnmarshalSlice[T any](n int, b []byte, unmarshal UnmarshalFunc[T]) (int, []
 	}
 	_ = b[n : n+2][1]
 	ui := uint16(b[n : n+2][0]) | uint16(b[n : n+2][1])<<8
-	if ui < 0 {
-		return n, nil, ErrNegativeLen
-	}
 	n += 2
 	if len(b)-n < int(ui) {
 		return n, nil, ErrBytesToSmall
