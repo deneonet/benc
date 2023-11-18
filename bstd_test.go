@@ -6,20 +6,20 @@ import (
 )
 
 func TestDataTypes(t *testing.T) {
-	s := SizeBool(false)
-	s += SizeByte(1)
-	s += SizeFloat32(1)
-	s += SizeFloat64(1)
-	s += SizeInt(1)
-	s += SizeInt16(1)
-	s += SizeInt32(1)
-	s += SizeInt64(1)
+	s := SizeBool()
+	s += SizeByte()
+	s += SizeFloat32()
+	s += SizeFloat64()
+	s += SizeInt()
+	s += SizeInt16()
+	s += SizeInt32()
+	s += SizeInt64()
 	s += SizeString("H")
-	s += SizeTime(time.Time{})
-	s += SizeUInt(0)
-	s += SizeUInt16(0)
-	s += SizeUInt32(0)
-	s += SizeInt64(0)
+	s += SizeTime()
+	s += SizeUInt()
+	s += SizeUInt16()
+	s += SizeUInt32()
+	s += SizeInt64()
 	n, buf := Marshal(s)
 	n = MarshalBool(n, buf, true)
 	n = MarshalByte(n, buf, 1)
@@ -39,61 +39,33 @@ func TestDataTypes(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	n, _, err := UnmarshalBool(0, buf)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	checkErr(t, err)
 	n, _, err = UnmarshalByte(n, buf)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	checkErr(t, err)
 	n, _, err = UnmarshalFloat32(n, buf)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	checkErr(t, err)
 	n, _, err = UnmarshalFloat64(n, buf)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	checkErr(t, err)
 	n, _, err = UnmarshalInt(n, buf)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	checkErr(t, err)
 	n, _, err = UnmarshalInt16(n, buf)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	checkErr(t, err)
 	n, _, err = UnmarshalInt32(n, buf)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	checkErr(t, err)
 	n, _, err = UnmarshalInt64(n, buf)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	checkErr(t, err)
 	n, _, err = UnmarshalString(n, buf)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	checkErr(t, err)
 	n, _, err = UnmarshalTime(n, buf)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	checkErr(t, err)
 	n, _, err = UnmarshalUInt(n, buf)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	checkErr(t, err)
 	n, _, err = UnmarshalUInt16(n, buf)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	checkErr(t, err)
 	n, _, err = UnmarshalUInt32(n, buf)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	checkErr(t, err)
 	n, _, err = UnmarshalUInt64(n, buf)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	checkErr(t, err)
 	if err := VerifyUnmarshal(n, buf); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -114,7 +86,6 @@ func TestSliceMap(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	n, data2, err := UnmarshalSlice(0, buf, UnmarshalString)
-	println(string(buf))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -130,5 +101,11 @@ func TestSliceMap(t *testing.T) {
 	}
 	if m["hhhhhhhhhhhhhhhhhhhhhhhhhhhh"] != 23232323232323 || m["WWWWWWWWWWWWWWWWWWWWWWWWWWWW"] != 1022323232323232323 {
 		t.Fatal("map doesn't match")
+	}
+}
+
+func checkErr(t *testing.T, err error) {
+	if err != nil {
+		t.Fatal(err.Error())
 	}
 }

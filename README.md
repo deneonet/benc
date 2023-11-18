@@ -1,5 +1,9 @@
 # BENC
 
+![go workflow](https://github.com/deneonet/benc/actions/workflows/go.yml/badge.svg)
+![go report card]()
+[![go reference](https://pkg.go.dev/badge/github.com/deneonet/benc.svg)](https://pkg.go.dev/github.com/deneonet/benc)
+
 The fastest binary encoder/decoder in pure Golang.
 
 ## Features
@@ -94,8 +98,8 @@ type TestData struct {
 func MarshalTestData(t TestData) []byte {
 	// Calculate the size of the struct
 	s := bstd.SizeString(t.str)
-	s += bstd.SizeUInt64(t.id)
-	s += bstd.SizeBool(t.cool)
+	s += bstd.SizeUInt64()
+	s += bstd.SizeBool()
 
 	// Encode the struct into a byte slice
 	n, buf := bstd.Marshal(s)

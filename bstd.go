@@ -6,20 +6,24 @@ import (
 	"math"
 	"time"
 
+	"github.com/deneonet/benc/bpre"
 	"golang.org/x/exp/constraints"
 )
+
+var ErrBytesToSmall = errors.New("insufficient data, given bytes are too small")
+var ErrNegativeLen = errors.New("un-marshaled length is negative")
 
 func MFUnmarshal(b []byte) ([][]byte, error) {
 	var dec [][]byte
 	var n uint32
 
 	for {
-		if 4 > uint32(len(b[n:])) {
+		if 4 > len(b[n:]) {
 			return dec, nil
 		}
 		s := binary.LittleEndian.Uint32(b[n : n+4])
 		n += 4
-		if s > uint32(len(b[n:])) {
+		if int(s) > len(b[n:]) {
 			return nil, errors.New("expected length not met")
 		}
 		dec = append(dec, b[n:n+s])
@@ -28,8 +32,8 @@ func MFUnmarshal(b []byte) ([][]byte, error) {
 }
 
 func MFMarshal(s int) (int, []byte) {
-	encoded := make([]byte, s+4)
-	binary.LittleEndian.PutUint32(encoded[0:], uint32(s))
+	encoded := bpre.GetMarshal(s + 4)
+	binary.LittleEndian.PutUint32(encoded[:], uint32(s))
 	return 4, encoded
 }
 
@@ -38,24 +42,35 @@ func MFFinish(n int) int {
 }
 
 func Marshal(s int) (int, []byte) {
-	return 0, make([]byte, s)
+	return 0, bpre.GetMarshal(s)
 }
 
 type SizeFunc[T any] func(t T) int
 type MarshalFunc[T any] func(n int, b []byte, t T) int
 type UnmarshalFunc[T any] func(n int, b []byte) (int, T, error)
 
-func SizeSlice[T any](slice []T, sizer SizeFunc[T]) int {
+func SizeSlice[T any](slice []T, sizer interface{}) int {
 	s := 2
 	for _, t := range slice {
-		s += sizer(t)
+		switch sizer.(type) {
+		case func(t T) int:
+			s += sizer.(func(t T) int)(t)
+		case func() int:
+			s += sizer.(func() int)()
+		}
 	}
 	return s
 }
 
 func MarshalSlice[T any](n int, b []byte, slice []T, marshal MarshalFunc[T]) int {
-	binary.LittleEndian.PutUint16(b[n:], uint16(len(slice)))
+	size := len(slice)
+	_ = b[n:][1]
+	b[n:][0] = byte(uint16(size))
+	b[n:][1] = byte(uint16(size) >> 8)
 	n += 2
+	if size == 0 {
+		return n
+	}
 	for _, elem := range slice {
 		n = marshal(n, b, elem)
 	}
@@ -64,12 +79,16 @@ func MarshalSlice[T any](n int, b []byte, slice []T, marshal MarshalFunc[T]) int
 
 func UnmarshalSlice[T any](n int, b []byte, unmarshal UnmarshalFunc[T]) (int, []T, error) {
 	if len(b)-n < 2 {
-		return n, nil, errors.New("insufficient data for decoding length of Slice")
+		return n, nil, ErrBytesToSmall
 	}
-	ui := binary.LittleEndian.Uint16(b[n : n+2])
+	_ = b[n : n+2][1]
+	ui := uint16(b[n : n+2][0]) | uint16(b[n : n+2][1])<<8
+	if ui < 0 {
+		return n, nil, ErrNegativeLen
+	}
 	n += 2
 	if len(b)-n < int(ui) {
-		return n, nil, errors.New("insufficient data for decoding Slice")
+		return n, nil, ErrBytesToSmall
 	}
 	ts := make([]T, ui)
 	var t T
@@ -77,17 +96,28 @@ func UnmarshalSlice[T any](n int, b []byte, unmarshal UnmarshalFunc[T]) (int, []
 	for i := 0; i < int(ui); i++ {
 		n, t, err = unmarshal(n, b)
 		if err != nil {
-			return n, nil, errors.New("unmarshal slice: " + err.Error())
+			return n, nil, errors.New("unmarshal err: " + err.Error())
 		}
 		ts[i] = t
 	}
 	return n, ts, nil
 }
 
-func SizeMap[K comparable, V any](m map[K]V, sizer SizeFunc[K], vSizer SizeFunc[V]) int {
+func SizeMap[K comparable, V any](m map[K]V, sizer interface{}, vSizer interface{}) int {
 	s := 2
 	for key, val := range m {
-		s += sizer(key) + vSizer(val)
+		switch sizer.(type) {
+		case func(k K) int:
+			s += sizer.(func(k K) int)(key)
+		case func() int:
+			s += sizer.(func() int)()
+		}
+		switch vSizer.(type) {
+		case func(v V) int:
+			s += vSizer.(func(v V) int)(val)
+		case func() int:
+			s += vSizer.(func() int)()
+		}
 	}
 	return s
 }
@@ -108,17 +138,16 @@ func MarshalMap[K comparable, V any](n int, b []byte, m map[K]V, kMarshal Marsha
 
 func UnmarshalMap[K comparable, V any](n int, b []byte, kUnmarshal UnmarshalFunc[K], vUnmarshal UnmarshalFunc[V]) (int, map[K]V, error) {
 	if len(b)-n < 2 {
-		return n, nil, errors.New("insufficient data for decoding length of Map")
+		return n, nil, ErrBytesToSmall
 	}
 	size := int(binary.LittleEndian.Uint16(b[n : n+2]))
 	n += 2
 
 	if len(b)-n < size {
-		return n, nil, errors.New("insufficient data for decoding Map")
+		return n, nil, ErrBytesToSmall
 	}
 
 	result := make(map[K]V, size)
-
 	for i := 0; i < size; i++ {
 		var k K
 		var v V
@@ -126,11 +155,11 @@ func UnmarshalMap[K comparable, V any](n int, b []byte, kUnmarshal UnmarshalFunc
 
 		n, k, err = kUnmarshal(n, b)
 		if err != nil {
-			return n, nil, errors.New("unmarshal key of map: " + err.Error())
+			return n, nil, errors.New("unmarshal err (key of map): " + err.Error())
 		}
 		n, v, err = vUnmarshal(n, b)
 		if err != nil {
-			return n, nil, errors.New("unmarshal val of map: " + err.Error())
+			return n, nil, errors.New("unmarshal err (val of map): " + err.Error())
 		}
 
 		result[k] = v
@@ -141,135 +170,161 @@ func UnmarshalMap[K comparable, V any](n int, b []byte, kUnmarshal UnmarshalFunc
 
 func UnmarshalByte(n int, b []byte) (int, byte, error) {
 	if len(b)-n < 1 {
-		return n, 0, errors.New("insufficient data for decoding Byte")
+		return n, 0, ErrBytesToSmall
 	}
 	return n + 1, b[n], nil
 }
 
 func UnmarshalString(n int, b []byte) (int, string, error) {
 	if len(b)-n < 2 {
-		return n, "", errors.New("insufficient data for decoding String")
+		return n, "", ErrBytesToSmall
 	}
 	size := binary.LittleEndian.Uint16(b[n : n+2])
+	if size < 0 {
+		return n, "", ErrNegativeLen
+	}
 	n += 2
-	bs := b[n : uint16(n)+size]
-	n += int(size)
-	return n, string(bs), nil
+	bs := b[n : n+int(size)]
+	return n + int(size), string(bs), nil
 }
 
 func UnmarshalByteSlice(n int, b []byte) (int, []byte, error) {
 	if len(b)-n < 4 {
-		return n, nil, errors.New("insufficient data for decoding ByteSlice")
+		return n, nil, ErrBytesToSmall
 	}
 	size := binary.LittleEndian.Uint32(b[n : n+4])
+	if size < 0 {
+		return n, nil, ErrNegativeLen
+	}
 	n += 4
-	bs := b[n : uint32(n)+size]
-	n += int(size)
-	return n, bs, nil
+	bs := b[n : n+int(size)]
+	return n + int(size), bs, nil
 }
 
 func UnmarshalTime(n int, b []byte) (int, time.Time, error) {
 	if len(b)-n < 8 {
-		return n, time.Time{}, errors.New("insufficient data for decoding Time")
+		return n, time.Time{}, ErrBytesToSmall
 	}
 	ui := binary.LittleEndian.Uint64(b[n : n+8])
-	n += 8
-	return n, time.Unix(0, int64(ui)), nil
+	if ui < 0 {
+		return n + 8, time.Time{}, ErrNegativeLen
+	}
+	return n + 8, time.Unix(0, int64(ui)), nil
 }
 
 func UnmarshalUInt(n int, b []byte) (int, uint, error) {
 	if len(b)-n < 8 {
-		return n, 0, errors.New("insufficient data for decoding UInt")
+		return n, 0, ErrBytesToSmall
 	}
 	ui := binary.LittleEndian.Uint64(b[n : n+8])
-	n += 8
-	return n, uint(ui), nil
+	if ui < 0 {
+		return n + 8, 0, ErrNegativeLen
+	}
+	return n + 8, uint(ui), nil
 }
 
 func UnmarshalUInt64(n int, b []byte) (int, uint64, error) {
 	if len(b)-n < 8 {
-		return n, 0, errors.New("insufficient data for decoding UInt64")
+		return n, 0, ErrBytesToSmall
 	}
 	ui := binary.LittleEndian.Uint64(b[n : n+8])
-	n += 8
-	return n, ui, nil
+	if ui < 0 {
+		return n + 8, 0, ErrNegativeLen
+	}
+	return n + 8, ui, nil
 }
 
 func UnmarshalUInt32(n int, b []byte) (int, uint32, error) {
 	if len(b)-n < 4 {
-		return n, 0, errors.New("insufficient data for decoding UInt32")
+		return n, 0, ErrBytesToSmall
 	}
 	ui := binary.LittleEndian.Uint32(b[n : n+4])
-	n += 4
-	return n, ui, nil
+	if ui < 0 {
+		return n + 4, 0, ErrNegativeLen
+	}
+	return n + 4, ui, nil
 }
 
 func UnmarshalUInt16(n int, b []byte) (int, uint16, error) {
 	if len(b)-n < 2 {
-		return n, 0, errors.New("insufficient data for decoding UInt16")
+		return n, 0, ErrBytesToSmall
 	}
 	ui := binary.LittleEndian.Uint16(b[n : n+2])
-	n += 2
-	return n, ui, nil
+	if ui < 0 {
+		return n + 2, 0, ErrNegativeLen
+	}
+	return n + 2, ui, nil
 }
 
 func UnmarshalInt(n int, b []byte) (int, int, error) {
 	if len(b)-n < 8 {
-		return n, 0, errors.New("insufficient data for decoding Int")
+		return n, 0, ErrBytesToSmall
 	}
 	ui := binary.LittleEndian.Uint64(b[n : n+8])
-	n += 8
-	return n, int(DecodeZigZag(ui)), nil
+	if ui < 0 {
+		return n + 8, 0, ErrNegativeLen
+	}
+	return n + 8, int(DecodeZigZag(ui)), nil
 }
 
 func UnmarshalInt64(n int, b []byte) (int, int64, error) {
 	if len(b)-n < 8 {
-		return n, 0, errors.New("insufficient data for decoding Int64")
+		return n, 0, ErrBytesToSmall
 	}
 	ui := binary.LittleEndian.Uint64(b[n : n+8])
-	n += 8
-	return n, int64(DecodeZigZag(ui)), nil
+	if ui < 0 {
+		return n + 8, 0, ErrNegativeLen
+	}
+	return n + 8, int64(DecodeZigZag(ui)), nil
 }
 
 func UnmarshalInt32(n int, b []byte) (int, int32, error) {
 	if len(b)-n < 4 {
-		return n, 0, errors.New("insufficient data for decoding Int32")
+		return n, 0, ErrBytesToSmall
 	}
 	ui := binary.LittleEndian.Uint32(b[n : n+4])
-	n += 4
-	return n, int32(DecodeZigZag(ui)), nil
+	if ui < 0 {
+		return n + 4, 0, ErrNegativeLen
+	}
+	return n + 4, int32(DecodeZigZag(ui)), nil
 }
 
 func UnmarshalInt16(n int, b []byte) (int, int16, error) {
 	if len(b)-n < 2 {
-		return n, 0, errors.New("insufficient data for decoding Int16")
+		return n, 0, ErrBytesToSmall
 	}
 	ui := binary.LittleEndian.Uint16(b[n : n+2])
-	n += 2
-	return n, int16(DecodeZigZag(ui)), nil
+	if ui < 0 {
+		return n + 2, 0, ErrNegativeLen
+	}
+	return n + 2, int16(DecodeZigZag(ui)), nil
 }
 
 func UnmarshalFloat64(n int, b []byte) (int, float64, error) {
 	if len(b)-n < 8 {
-		return n, 0, errors.New("insufficient data for decoding Float64")
+		return n, 0, ErrBytesToSmall
 	}
 	ui := binary.LittleEndian.Uint64(b[n : n+8])
-	n += 8
-	return n, math.Float64frombits(ui), nil
+	if ui < 0 {
+		return n + 8, 0, ErrNegativeLen
+	}
+	return n + 8, math.Float64frombits(ui), nil
 }
 
 func UnmarshalFloat32(n int, b []byte) (int, float32, error) {
 	if len(b)-n < 4 {
-		return n, 0, errors.New("insufficient data for decoding Float32")
+		return n, 0, ErrBytesToSmall
 	}
 	ui := binary.LittleEndian.Uint32(b[n : n+4])
-	n += 4
-	return n, math.Float32frombits(ui), nil
+	if ui < 0 {
+		return n + 4, 0, ErrNegativeLen
+	}
+	return n + 4, math.Float32frombits(ui), nil
 }
 
 func UnmarshalBool(n int, b []byte) (int, bool, error) {
 	if len(b)-n < 1 {
-		return n, false, errors.New("insufficient data for decoding Bool")
+		return n, false, ErrBytesToSmall
 	}
 	return n + 1, uint16(b[n]) == 1, nil
 }
@@ -279,12 +334,8 @@ func SizeString(s string) int {
 }
 
 func MarshalString(n int, b []byte, str string) int {
-	s := []byte(str)
-	binary.LittleEndian.PutUint16(b[n:], uint16(len(s)))
-	n += 2
-	copy(b[n:], s)
-	n += len(s)
-	return n
+	binary.LittleEndian.PutUint16(b[n:], uint16(len(str)))
+	return n + 2 + copy(b[n+2:], str)
 }
 
 func SizeByteSlice(bs []byte) int {
@@ -293,23 +344,19 @@ func SizeByteSlice(bs []byte) int {
 
 func MarshalByteSlice(n int, b []byte, bs []byte) int {
 	binary.LittleEndian.PutUint32(b[n:], uint32(len(bs)))
-	n += 4
-	copy(b[n:], bs)
-	n += len(bs)
-	return n
+	return n + 4 + copy(b[n:], bs)
 }
 
-func SizeTime(_ time.Time) int {
+func SizeTime() int {
 	return 8
 }
 
 func MarshalTime(n int, b []byte, t time.Time) int {
 	binary.LittleEndian.PutUint64(b[n:], uint64(t.UnixNano()))
-	n += 8
-	return n
+	return n + 8
 }
 
-func SizeByte(_ byte) int {
+func SizeByte() int {
 	return 1
 }
 
@@ -318,107 +365,97 @@ func MarshalByte(n int, b []byte, byt byte) int {
 	return n + 1
 }
 
-func SizeUInt(_ uint) int {
+func SizeUInt() int {
 	return 8
 }
 
 func MarshalUInt(n int, b []byte, v uint) int {
 	binary.LittleEndian.PutUint64(b[n:], uint64(v))
-	n += 8
-	return n
+	return n + 8
 }
 
-func SizeUInt64(_ uint64) int {
+func SizeUInt64() int {
 	return 8
 }
 
 func MarshalUInt64(n int, b []byte, v uint64) int {
 	binary.LittleEndian.PutUint64(b[n:], v)
-	n += 8
-	return n
+	return n + 8
 }
 
-func SizeUInt32(_ uint32) int {
+func SizeUInt32() int {
 	return 4
 }
 
 func MarshalUInt32(n int, b []byte, v uint32) int {
 	binary.LittleEndian.PutUint32(b[n:], v)
-	n += 4
-	return n
+	return n + 4
 }
 
-func SizeUInt16(_ uint16) int {
+func SizeUInt16() int {
 	return 2
 }
 
 func MarshalUInt16(n int, b []byte, v uint16) int {
 	binary.LittleEndian.PutUint16(b[n:], v)
-	n += 2
-	return n
+	return n + 2
 }
 
-func SizeInt(_ int) int {
+func SizeInt() int {
 	return 8
 }
 
 func MarshalInt(n int, b []byte, v int) int {
 	binary.LittleEndian.PutUint64(b[n:], uint64(EncodeZigZag(v)))
-	n += 8
-	return n
+	return n + 8
 }
 
-func SizeInt64(_ int64) int {
+func SizeInt64() int {
 	return 8
 }
 
 func MarshalInt64(n int, b []byte, v int64) int {
 	binary.LittleEndian.PutUint64(b[n:], uint64(EncodeZigZag(v)))
-	n += 8
-	return n
+	return n + 8
 }
 
-func SizeInt32(_ int32) int {
+func SizeInt32() int {
 	return 4
 }
 
 func MarshalInt32(n int, b []byte, v int32) int {
 	binary.LittleEndian.PutUint32(b[n:], uint32(EncodeZigZag(v)))
-	n += 4
-	return n
+	return n + 4
 }
 
-func SizeInt16(_ int16) int {
+func SizeInt16() int {
 	return 2
 }
 
 func MarshalInt16(n int, b []byte, v int16) int {
 	binary.LittleEndian.PutUint16(b[n:], uint16(EncodeZigZag(v)))
-	n += 2
-	return n
+	return n + 2
 }
 
-func SizeFloat64(_ float64) int {
+func SizeFloat64() int {
 	return 8
 }
 
 func MarshalFloat64(n int, b []byte, v float64) int {
 	binary.LittleEndian.PutUint64(b[n:], math.Float64bits(v))
-	n += 8
-	return n
+	return n + 8
 }
 
-func SizeFloat32(_ float32) int {
+func SizeFloat32() int {
 	return 4
 }
 
 func MarshalFloat32(n int, b []byte, v float32) int {
 	binary.LittleEndian.PutUint32(b[n:], math.Float32bits(v))
-	n += 4
-	return n
+	return n + 4
 }
 
-func SizeBool(_ bool) int {
+func SizeBool() int {
 	return 1
 }
 
