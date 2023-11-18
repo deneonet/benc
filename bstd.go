@@ -388,9 +388,10 @@ func SizeString(s string) int {
 
 func MarshalString(n int, b []byte, str string) int {
 	v := uint16(len(str))
-	_ = b[1]
-	b[0] = byte(v)
-	b[1] = byte(v >> 8)
+	u := b[n : n+2]
+	_ = u[1]
+	u[0] = byte(v)
+	u[1] = byte(v >> 8)
 	return n + 2 + copy(b[n+2:], str)
 }
 
@@ -400,11 +401,12 @@ func SizeByteSlice(bs []byte) int {
 
 func MarshalByteSlice(n int, b []byte, bs []byte) int {
 	v := uint32(len(b))
-	_ = b[3]
-	b[0] = byte(v)
-	b[1] = byte(v >> 8)
-	b[2] = byte(v >> 16)
-	b[3] = byte(v >> 24)
+	u := b[n : n+4]
+	_ = u[3]
+	u[0] = byte(v)
+	u[1] = byte(v >> 8)
+	u[2] = byte(v >> 16)
+	u[3] = byte(v >> 24)
 	return n + 4 + copy(b[n+4:], bs)
 }
 
@@ -414,15 +416,16 @@ func SizeTime() int {
 
 func MarshalTime(n int, b []byte, t time.Time) int {
 	v := uint64(t.UnixNano())
-	_ = b[7]
-	b[0] = byte(v)
-	b[1] = byte(v >> 8)
-	b[2] = byte(v >> 16)
-	b[3] = byte(v >> 24)
-	b[4] = byte(v >> 32)
-	b[5] = byte(v >> 40)
-	b[6] = byte(v >> 48)
-	b[7] = byte(v >> 56)
+	u := b[n : n+8]
+	_ = u[7]
+	u[0] = byte(v)
+	u[1] = byte(v >> 8)
+	u[2] = byte(v >> 16)
+	u[3] = byte(v >> 24)
+	u[4] = byte(v >> 32)
+	u[5] = byte(v >> 40)
+	u[6] = byte(v >> 48)
+	u[7] = byte(v >> 56)
 	return n + 8
 }
 
@@ -440,16 +443,17 @@ func SizeUInt() int {
 }
 
 func MarshalUInt(n int, b []byte, v uint) int {
+	u := b[n : n+8]
 	v64 := uint64(v)
-	_ = b[7]
-	b[0] = byte(v64)
-	b[1] = byte(v64 >> 8)
-	b[2] = byte(v64 >> 16)
-	b[3] = byte(v64 >> 24)
-	b[4] = byte(v64 >> 32)
-	b[5] = byte(v64 >> 40)
-	b[6] = byte(v64 >> 48)
-	b[7] = byte(v64 >> 56)
+	_ = u[7]
+	u[0] = byte(v64)
+	u[1] = byte(v64 >> 8)
+	u[2] = byte(v64 >> 16)
+	u[3] = byte(v64 >> 24)
+	u[4] = byte(v64 >> 32)
+	u[5] = byte(v64 >> 40)
+	u[6] = byte(v64 >> 48)
+	u[7] = byte(v64 >> 56)
 	return n + 8
 }
 
@@ -458,15 +462,16 @@ func SizeUInt64() int {
 }
 
 func MarshalUInt64(n int, b []byte, v uint64) int {
-	_ = b[7]
-	b[0] = byte(v)
-	b[1] = byte(v >> 8)
-	b[2] = byte(v >> 16)
-	b[3] = byte(v >> 24)
-	b[4] = byte(v >> 32)
-	b[5] = byte(v >> 40)
-	b[6] = byte(v >> 48)
-	b[7] = byte(v >> 56)
+	u := b[n : n+8]
+	_ = u[7]
+	u[0] = byte(v)
+	u[1] = byte(v >> 8)
+	u[2] = byte(v >> 16)
+	u[3] = byte(v >> 24)
+	u[4] = byte(v >> 32)
+	u[5] = byte(v >> 40)
+	u[6] = byte(v >> 48)
+	u[7] = byte(v >> 56)
 	return n + 8
 }
 
@@ -475,11 +480,12 @@ func SizeUInt32() int {
 }
 
 func MarshalUInt32(n int, b []byte, v uint32) int {
-	_ = b[3]
-	b[0] = byte(v)
-	b[1] = byte(v >> 8)
-	b[2] = byte(v >> 16)
-	b[3] = byte(v >> 24)
+	u := b[n : n+4]
+	_ = u[3]
+	u[0] = byte(v)
+	u[1] = byte(v >> 8)
+	u[2] = byte(v >> 16)
+	u[3] = byte(v >> 24)
 	return n + 4
 }
 
@@ -488,9 +494,10 @@ func SizeUInt16() int {
 }
 
 func MarshalUInt16(n int, b []byte, v uint16) int {
-	_ = b[1]
-	b[0] = byte(v)
-	b[1] = byte(v >> 8)
+	u := b[n : n+2]
+	_ = u[1]
+	u[0] = byte(v)
+	u[1] = byte(v >> 8)
 	return n + 2
 }
 
@@ -500,15 +507,16 @@ func SizeInt() int {
 
 func MarshalInt(n int, b []byte, v int) int {
 	v64 := uint64(EncodeZigZag(v))
-	_ = b[7]
-	b[0] = byte(v64)
-	b[1] = byte(v64 >> 8)
-	b[2] = byte(v64 >> 16)
-	b[3] = byte(v64 >> 24)
-	b[4] = byte(v64 >> 32)
-	b[5] = byte(v64 >> 40)
-	b[6] = byte(v64 >> 48)
-	b[7] = byte(v64 >> 56)
+	u := b[n : n+8]
+	_ = u[7]
+	u[0] = byte(v64)
+	u[1] = byte(v64 >> 8)
+	u[2] = byte(v64 >> 16)
+	u[3] = byte(v64 >> 24)
+	u[4] = byte(v64 >> 32)
+	u[5] = byte(v64 >> 40)
+	u[6] = byte(v64 >> 48)
+	u[7] = byte(v64 >> 56)
 	return n + 8
 }
 
@@ -518,15 +526,16 @@ func SizeInt64() int {
 
 func MarshalInt64(n int, b []byte, v int64) int {
 	v64 := uint64(EncodeZigZag(v))
-	_ = b[7]
-	b[0] = byte(v64)
-	b[1] = byte(v64 >> 8)
-	b[2] = byte(v64 >> 16)
-	b[3] = byte(v64 >> 24)
-	b[4] = byte(v64 >> 32)
-	b[5] = byte(v64 >> 40)
-	b[6] = byte(v64 >> 48)
-	b[7] = byte(v64 >> 56)
+	u := b[n : n+8]
+	_ = u[7]
+	u[0] = byte(v64)
+	u[1] = byte(v64 >> 8)
+	u[2] = byte(v64 >> 16)
+	u[3] = byte(v64 >> 24)
+	u[4] = byte(v64 >> 32)
+	u[5] = byte(v64 >> 40)
+	u[6] = byte(v64 >> 48)
+	u[7] = byte(v64 >> 56)
 	return n + 8
 }
 
@@ -536,11 +545,12 @@ func SizeInt32() int {
 
 func MarshalInt32(n int, b []byte, v int32) int {
 	v32 := uint32(EncodeZigZag(v))
-	_ = b[3]
-	b[0] = byte(v32)
-	b[1] = byte(v32 >> 8)
-	b[2] = byte(v32 >> 16)
-	b[3] = byte(v32 >> 24)
+	u := b[n : n+4]
+	_ = u[3]
+	u[0] = byte(v32)
+	u[1] = byte(v32 >> 8)
+	u[2] = byte(v32 >> 16)
+	u[3] = byte(v32 >> 24)
 	return n + 4
 }
 
@@ -550,9 +560,10 @@ func SizeInt16() int {
 
 func MarshalInt16(n int, b []byte, v int16) int {
 	v16 := uint16(EncodeZigZag(v))
-	_ = b[1]
-	b[0] = byte(v16)
-	b[1] = byte(v16 >> 8)
+	u := b[n : n+2]
+	_ = u[1]
+	u[0] = byte(v16)
+	u[1] = byte(v16 >> 8)
 	return n + 2
 }
 
@@ -562,15 +573,16 @@ func SizeFloat64() int {
 
 func MarshalFloat64(n int, b []byte, v float64) int {
 	v64 := math.Float64bits(v)
-	_ = b[7]
-	b[0] = byte(v64)
-	b[1] = byte(v64 >> 8)
-	b[2] = byte(v64 >> 16)
-	b[3] = byte(v64 >> 24)
-	b[4] = byte(v64 >> 32)
-	b[5] = byte(v64 >> 40)
-	b[6] = byte(v64 >> 48)
-	b[7] = byte(v64 >> 56)
+	u := b[n : n+8]
+	_ = u[7]
+	u[0] = byte(v64)
+	u[1] = byte(v64 >> 8)
+	u[2] = byte(v64 >> 16)
+	u[3] = byte(v64 >> 24)
+	u[4] = byte(v64 >> 32)
+	u[5] = byte(v64 >> 40)
+	u[6] = byte(v64 >> 48)
+	u[7] = byte(v64 >> 56)
 	return n + 8
 }
 
@@ -580,11 +592,12 @@ func SizeFloat32() int {
 
 func MarshalFloat32(n int, b []byte, v float32) int {
 	v32 := math.Float32bits(v)
-	_ = b[3]
-	b[0] = byte(v32)
-	b[1] = byte(v32 >> 8)
-	b[2] = byte(v32 >> 16)
-	b[3] = byte(v32 >> 24)
+	u := b[n : n+4]
+	_ = u[3]
+	u[0] = byte(v32)
+	u[1] = byte(v32 >> 8)
+	u[2] = byte(v32 >> 16)
+	u[3] = byte(v32 >> 24)
 	return n + 4
 }
 
