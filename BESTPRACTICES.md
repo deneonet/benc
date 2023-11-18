@@ -3,7 +3,7 @@
 - Use fixed int types, like `int16`, `int32`, `int64`, for optimal performance.
 - Prefer `uint` over `int` if negative values aren't required. [difference?](https://www.quora.com/Whats-the-difference-between-uint-and-int-in-golang)
 - Do pre allocations:
-  - Call ```bpre.Marshal(s)``` once (only once), before doing marshal, s represents the max length of the byte slice, make sure s is always bigger than the calculated size when doing marshal
+  - Call ```bpre.Marshal(s)``` once (only once), before doing all marshals, s represents the max length of the byte slice, make sure s is always bigger than the calculated size when doing marshal
   - The same is for ```bpre.MFUnmarshal(s)```, just for message framing unmarshal
 
 - For string encoding:

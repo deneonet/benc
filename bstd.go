@@ -106,17 +106,17 @@ func UnmarshalSlice[T any](n int, b []byte, unmarshal UnmarshalFunc[T]) (int, []
 func SizeMap[K comparable, V any](m map[K]V, sizer interface{}, vSizer interface{}) int {
 	s := 2
 	for key, val := range m {
-		switch sizer.(type) {
-		case func(k K) int:
-			s += sizer.(func(k K) int)(key)
-		case func() int:
-			s += sizer.(func() int)()
+		if p, ok := sizer.(func(k K) int); ok {
+			s += p(key)
 		}
-		switch vSizer.(type) {
-		case func(v V) int:
-			s += vSizer.(func(v V) int)(val)
-		case func() int:
-			s += vSizer.(func() int)()
+		if p, ok := sizer.(func() int); ok {
+			s += p()
+		}
+		if p, ok := vSizer.(func(v V) int); ok {
+			s += p(val)
+		}
+		if p, ok := vSizer.(func() int); ok {
+			s += p()
 		}
 	}
 	return s
@@ -180,9 +180,6 @@ func UnmarshalString(n int, b []byte) (int, string, error) {
 		return n, "", ErrBytesToSmall
 	}
 	size := binary.LittleEndian.Uint16(b[n : n+2])
-	if size < 0 {
-		return n, "", ErrNegativeLen
-	}
 	n += 2
 	bs := b[n : n+int(size)]
 	return n + int(size), string(bs), nil
@@ -193,9 +190,6 @@ func UnmarshalByteSlice(n int, b []byte) (int, []byte, error) {
 		return n, nil, ErrBytesToSmall
 	}
 	size := binary.LittleEndian.Uint32(b[n : n+4])
-	if size < 0 {
-		return n, nil, ErrNegativeLen
-	}
 	n += 4
 	bs := b[n : n+int(size)]
 	return n + int(size), bs, nil
@@ -206,9 +200,6 @@ func UnmarshalTime(n int, b []byte) (int, time.Time, error) {
 		return n, time.Time{}, ErrBytesToSmall
 	}
 	ui := binary.LittleEndian.Uint64(b[n : n+8])
-	if ui < 0 {
-		return n + 8, time.Time{}, ErrNegativeLen
-	}
 	return n + 8, time.Unix(0, int64(ui)), nil
 }
 
@@ -217,9 +208,6 @@ func UnmarshalUInt(n int, b []byte) (int, uint, error) {
 		return n, 0, ErrBytesToSmall
 	}
 	ui := binary.LittleEndian.Uint64(b[n : n+8])
-	if ui < 0 {
-		return n + 8, 0, ErrNegativeLen
-	}
 	return n + 8, uint(ui), nil
 }
 
@@ -228,9 +216,6 @@ func UnmarshalUInt64(n int, b []byte) (int, uint64, error) {
 		return n, 0, ErrBytesToSmall
 	}
 	ui := binary.LittleEndian.Uint64(b[n : n+8])
-	if ui < 0 {
-		return n + 8, 0, ErrNegativeLen
-	}
 	return n + 8, ui, nil
 }
 
@@ -239,9 +224,6 @@ func UnmarshalUInt32(n int, b []byte) (int, uint32, error) {
 		return n, 0, ErrBytesToSmall
 	}
 	ui := binary.LittleEndian.Uint32(b[n : n+4])
-	if ui < 0 {
-		return n + 4, 0, ErrNegativeLen
-	}
 	return n + 4, ui, nil
 }
 
@@ -250,9 +232,6 @@ func UnmarshalUInt16(n int, b []byte) (int, uint16, error) {
 		return n, 0, ErrBytesToSmall
 	}
 	ui := binary.LittleEndian.Uint16(b[n : n+2])
-	if ui < 0 {
-		return n + 2, 0, ErrNegativeLen
-	}
 	return n + 2, ui, nil
 }
 
@@ -261,9 +240,6 @@ func UnmarshalInt(n int, b []byte) (int, int, error) {
 		return n, 0, ErrBytesToSmall
 	}
 	ui := binary.LittleEndian.Uint64(b[n : n+8])
-	if ui < 0 {
-		return n + 8, 0, ErrNegativeLen
-	}
 	return n + 8, int(DecodeZigZag(ui)), nil
 }
 
@@ -272,9 +248,6 @@ func UnmarshalInt64(n int, b []byte) (int, int64, error) {
 		return n, 0, ErrBytesToSmall
 	}
 	ui := binary.LittleEndian.Uint64(b[n : n+8])
-	if ui < 0 {
-		return n + 8, 0, ErrNegativeLen
-	}
 	return n + 8, int64(DecodeZigZag(ui)), nil
 }
 
@@ -283,9 +256,6 @@ func UnmarshalInt32(n int, b []byte) (int, int32, error) {
 		return n, 0, ErrBytesToSmall
 	}
 	ui := binary.LittleEndian.Uint32(b[n : n+4])
-	if ui < 0 {
-		return n + 4, 0, ErrNegativeLen
-	}
 	return n + 4, int32(DecodeZigZag(ui)), nil
 }
 
@@ -294,9 +264,6 @@ func UnmarshalInt16(n int, b []byte) (int, int16, error) {
 		return n, 0, ErrBytesToSmall
 	}
 	ui := binary.LittleEndian.Uint16(b[n : n+2])
-	if ui < 0 {
-		return n + 2, 0, ErrNegativeLen
-	}
 	return n + 2, int16(DecodeZigZag(ui)), nil
 }
 
@@ -305,9 +272,6 @@ func UnmarshalFloat64(n int, b []byte) (int, float64, error) {
 		return n, 0, ErrBytesToSmall
 	}
 	ui := binary.LittleEndian.Uint64(b[n : n+8])
-	if ui < 0 {
-		return n + 8, 0, ErrNegativeLen
-	}
 	return n + 8, math.Float64frombits(ui), nil
 }
 
@@ -316,9 +280,6 @@ func UnmarshalFloat32(n int, b []byte) (int, float32, error) {
 		return n, 0, ErrBytesToSmall
 	}
 	ui := binary.LittleEndian.Uint32(b[n : n+4])
-	if ui < 0 {
-		return n + 4, 0, ErrNegativeLen
-	}
 	return n + 4, math.Float32frombits(ui), nil
 }
 

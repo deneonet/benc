@@ -42,9 +42,6 @@ func UnmarshalString(n int, b []byte) (int, string, error) {
 		return n, "", bstd.ErrBytesToSmall
 	}
 	size := binary.LittleEndian.Uint16(b[n : n+2])
-	if size < 0 {
-		return n, "", bstd.ErrNegativeLen
-	}
 	n += 2
 	bs := b[n : n+int(size)]
 	return n + int(size), b2s(bs), nil
