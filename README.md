@@ -1,5 +1,7 @@
 # BENC
 
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/U7U4T5BU3)
+
 ![go workflow](https://github.com/deneonet/benc/actions/workflows/go.yml/badge.svg)
 [![go report card](https://goreportcard.com/badge/github.com/deneonet/benc)](https://goreportcard.com/report/github.com/deneonet/benc)
 [![go reference](https://pkg.go.dev/badge/github.com/deneonet/benc.svg)](https://pkg.go.dev/github.com/deneonet/benc)
