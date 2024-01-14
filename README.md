@@ -23,7 +23,7 @@ The fastest binary encoder/decoder in pure Golang.
 
 ## Benchmarks
 
-- [See benchmarks here](https://github.com/deneonet/go_serialization_benchmarks)
+- [See benchmarks here](https://github.com/alecthomas/go_serialization_benchmarks)
 
 ## Best Practices
 - [See best practices here](BESTPRACTICES.md)
