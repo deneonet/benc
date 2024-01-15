@@ -1,6 +1,6 @@
 package bpre
 
-var unmarshal [][]byte = nil
+var unmarshal [][]byte
 
 func UnmarshalMF(l int) {
 	unmarshal = make([][]byte, l)
@@ -13,7 +13,7 @@ func GetUnmarshalMF(s int) [][]byte {
 	return unmarshal[:s]
 }
 
-var marshal []byte = nil
+var marshal []byte
 
 func Marshal(l int) {
 	marshal = make([]byte, l)

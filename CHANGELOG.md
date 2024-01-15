@@ -1,8 +1,14 @@
 ## Changelog
 
-#### See you in v1.0.5 :]
+#### See you in v1.0.6 :]
 
-- v1.0.3 to v1.0.4 - mid update
+- v1.0.4 to v1.0.5 - bug fixes + improvements
+  - fixed btag message framing not working
+  - faster unsafe string conversion
+    - replaced deprecated reflect.StringHeader and reflect.SliceHeader
+    - fixed unsafe rule violation
+
+- v1.0.3 to v1.0.4 - bug fixes + new features + improvements
   - fixed message framing bugs
   - added to be able to skip a data type in the unmarshal process, e.g. `bstd.SkipString(...)`
     - added out-of-order deserialization
@@ -16,7 +22,8 @@
   - fixed byte slice bugs
   - replaced `bstd.UnmarshalStringTag(...)` with `btag.SUnmarshal(...)`
   - replaced `bstd.UnmarshalUIntTag(...)` with `btag.UUnmarshal(...)`
-- v1.0.2 to v1.0.3 - small update
+
+- v1.0.2 to v1.0.3 - new features
   - added custom tags to a marshal, `btag.SMarshal(s)` for string tag, `btag.UMarshal(s)` for uint16 tag (more
     performant),
       append a MF at the end of these functions to get the message framing marshal
@@ -24,7 +31,7 @@
     - function inline (done)
   - `bstd.MFUnmarshal(s)` to `bstd.UnmarshalMF(s)`, `bstd.MFFinish()` to `bstd.FinishMF(s)`, etc.
 
-- v1.0.1 to v1.0.2 - small update
+- v1.0.1 to v1.0.2 - new features + improvements
   - added zero memory allocation string to byte slice (and back) conversion, `bunsafe.MarshalString()`
     and `bunsafe.UnmarshalString()`
   - removed that all Size functions require 1 argument: T (expect string), e.g. `bstd.SizeUInt16()`,
@@ -32,7 +39,7 @@
   - added pre-allocation (message framing not done yet, v1.0.3 fix), `bpre.Marshal(maxSize)`
     - function inline (not done yet), e.g. inlining binary calls
 
-- v1 to v1.0.1 - mid update
+- v1 to v1.0.1 - new features + improvements
   - benc -> bstd, e.g. `benc.Marshal(s)` to `bstd.Marshal(s)`
   - all Size function requires 1 argument T (going to be removed again in v1.0.2), e.g. `bstd.SizeUInt16(0)`,
     before: `bstd.SizeUInt16()`

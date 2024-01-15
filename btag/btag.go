@@ -9,7 +9,7 @@ import (
 func SMarshalMF(s int, tag string) (int, []byte) {
 	l := len(tag)
 	b := bpre.GetMarshal(s + 4 + l)
-	v := uint16(s)
+	v := uint16(s + 2 + l)
 	_ = b[1]
 	b[0] = byte(v)
 	b[1] = byte(v >> 8)
@@ -32,7 +32,7 @@ func SMarshal(s int, tag string) (int, []byte) {
 
 func UMarshalMF(s int, tag uint16) (int, []byte) {
 	b := bpre.GetMarshal(s + 4)
-	v := uint16(s)
+	v := uint16(s + 2)
 	_ = b[1]
 	b[0] = byte(v)
 	b[1] = byte(v >> 8)
@@ -80,7 +80,7 @@ func SUnmarshalMD(n int, b []byte) (int, string, error) {
 	if b[n] != bmd.StringTag {
 		return n, "", errors.New("expected a string tag, found something else. check your marshal process")
 	}
-	n += 1
+	n++
 	u := b[n : n+2]
 	_ = u[1]
 	size := int(uint16(u[0]) | uint16(u[1])<<8)
@@ -99,7 +99,7 @@ func UUnmarshalMD(n int, b []byte) (int, uint16, error) {
 	if b[n] != bmd.UIntTag {
 		return n, 0, errors.New("expected a uint tag, found something else. check your marshal process")
 	}
-	n += 1
+	n++
 	u := b[n : n+2]
 	_ = u[1]
 	v := uint16(u[0]) | uint16(u[1])<<8

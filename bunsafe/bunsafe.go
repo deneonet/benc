@@ -8,28 +8,33 @@ import (
 
 var ErrBytesToSmall = errors.New("insufficient data, given bytes are too small")
 
-//
-// From:
-// https://gist.github.com/yakuter/c0df0f4253ea639529f3589e99dc940b
-//
-//
+type StringHeader struct {
+	Data *byte
+	Len  int
+}
 
 // b2s converts byte slice to a string without memory allocation.
-// See https://groups.google.com/forum/#!msg/Golang-Nuts/ENgbUzYvCuU/90yGx7GUAgAJ .
 //
-// Note it may break if string and/or slice header will change
-// in the future go versions.
+// Previously used: -- return *(*string)(unsafe.Pointer(&b))
+//
+// Removed because reflect.SliceHeader is deprecated, so I use unsafe.String
+// see https://github.com/golang/go/issues/53003
 func b2s(b []byte) string {
-	/* #nosec G103 */
-	return *(*string)(unsafe.Pointer(&b))
+	return unsafe.String(&b[0], len(b))
 }
 
 // s2b converts string to a byte slice without memory allocation.
 //
-// Note it may break if string and/or slice header will change
-// in the future go versions.
+// Previously used: -- *(*[]byte)(unsafe.Pointer(&s))
+//
+// Removed because of: https://github.com/golang/go/issues/53003
+// +
+// because reflect.StringHeader is deprecated, so I use a new StringHeader type
+// see https://github.com/golang/go/issues/53003#issuecomment-1145241692
 func s2b(s string) []byte {
-	return *(*[]byte)(unsafe.Pointer(&s))
+	header := (*StringHeader)(unsafe.Pointer(&s))
+	bytes := *(*[]byte)(unsafe.Pointer(header))
+	return bytes
 }
 
 func MarshalString(n int, b []byte, str string) int {
@@ -55,7 +60,7 @@ func UnmarshalString(n int, b []byte) (int, string, error) {
 
 func MarshalStringMD(n int, b []byte, str string) int {
 	b[n] = bmd.String
-	n += 1
+	n++
 	v := uint16(len(str))
 	u := b[n:]
 	_ = u[1]
@@ -71,7 +76,7 @@ func UnmarshalStringMD(n int, b []byte) (int, string, error) {
 	if b[n] != bmd.String {
 		return n, "", errors.New("expected a bunsafe string, found something else. check your marshal process")
 	}
-	n += 1
+	n++
 	u := b[n:]
 	_ = u[1]
 	size := int(uint16(u[0]) | uint16(u[1])<<8)
