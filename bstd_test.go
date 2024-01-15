@@ -109,9 +109,9 @@ func TestDataTypes_StringTag_Metadata(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if err := VerifyUnmarshal(n, buf); err != nil {
+	if err := VerifyUnmarshal(n, buf); err == nil {
 		// will always fail
-		//t.Fatal(err.Error())
+		t.Fatal("should return error")
 	}
 }
 func TestDataTypes_UIntTag_Metadata(t *testing.T) {
