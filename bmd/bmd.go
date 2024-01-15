@@ -1,69 +1,80 @@
-package bstd
+package bmd
 
 import (
 	"errors"
+	"golang.org/x/exp/constraints"
 	"math"
 	"time"
-
-	"github.com/deneonet/benc/bpre"
-	"golang.org/x/exp/constraints"
 )
 
 var ErrBytesToSmall = errors.New("insufficient data, given bytes are too small")
 var ErrNIsNotZero = errors.New("n has to be 0")
 
-func UnmarshalMF(b []byte) ([][]byte, error) {
-	dec := bpre.GetUnmarshalMF(len(b))
-	var n uint16
-	var i int
+const (
+	Int byte = iota
+	Int16
+	Int32
+	Int64
+	UInt
+	UInt16
+	UInt32
+	UInt64
+	Float32
+	Float64
+	Bool
+	Byte
+	String
+	Slice
+	Map
+	ByteSlice
+	StringTag
+	UIntTag
+	Time
+)
 
-	if dec == nil {
-		var dec [][]byte
-		for {
-			if 2 > len(b[n:]) {
-				return dec, nil
-			}
-			u := b[n : n+2]
-			_ = u[1]
-			size := uint16(u[0]) | uint16(u[1])<<8
-			n += 2
-			if int(size) > len(b[n:]) {
-				return nil, ErrBytesToSmall
-			}
-			dec = append(dec, b[n:n+size])
-			n += size
-		}
+func getDataTypeName(dataType byte) string {
+	switch dataType {
+	case Int:
+		return "int"
+	case Int16:
+		return "int16"
+	case Int32:
+		return "int32"
+	case Int64:
+		return "int64"
+	case UInt:
+		return "uint"
+	case UInt16:
+		return "uint16"
+	case UInt32:
+		return "uint32"
+	case UInt64:
+		return "uint64"
+	case Float32:
+		return "float32"
+	case Float64:
+		return "float64"
+	case Bool:
+		return "bool"
+	case Byte:
+		return "byte"
+	case String:
+		return "string"
+	case Slice:
+		return "slice"
+	case Map:
+		return "map"
+	case ByteSlice:
+		return "byte slice"
+	case StringTag:
+		return "string tag"
+	case UIntTag:
+		return "uint tag"
+	case Time:
+		return "time"
+	default:
+		return "unknown"
 	}
-
-	for i = 0; i < len(b); i++ {
-		if 2 > len(b[n:]) {
-			return dec[:i], nil
-		}
-		u := b[n : n+2]
-		_ = u[1]
-		size := uint16(u[0]) | uint16(u[1])<<8
-		n += 2
-		if int(size) > len(b[n:]) {
-			return nil, ErrBytesToSmall
-		}
-		dec[i] = b[n : n+size]
-		n += size
-	}
-
-	return dec[:i], nil
-}
-
-func MarshalMF(s int) (int, []byte) {
-	b := bpre.GetMarshal(s + 2)
-	v := uint16(s)
-	_ = b[1]
-	b[0] = byte(v)
-	b[1] = byte(v >> 8)
-	return 2, b
-}
-
-func Marshal(s int) (int, []byte) {
-	return 0, bpre.GetMarshal(s)
 }
 
 type SizeFunc[T any] func(t T) int
@@ -71,20 +82,10 @@ type SkipFunc func(n int, b []byte) (int, error)
 type MarshalFunc[T any] func(n int, b []byte, t T) int
 type UnmarshalFunc[T any] func(n int, b []byte) (int, T, error)
 
-func SizeSlice[T any](slice []T, sizer interface{}) int {
-	s := 2
-	for _, t := range slice {
-		if p, ok := sizer.(func(t T) int); ok {
-			s += p(t)
-		}
-		if p, ok := sizer.(func() int); ok {
-			s += p()
-		}
-	}
-	return s
-}
-
 func MarshalSlice[T any](n int, b []byte, slice []T, marshal MarshalFunc[T]) int {
+	b[n] = Slice
+	n += 1
+
 	size := len(slice)
 	u := b[n:]
 	_ = u[1]
@@ -101,9 +102,13 @@ func MarshalSlice[T any](n int, b []byte, slice []T, marshal MarshalFunc[T]) int
 }
 
 func UnmarshalSlice[T any](n int, b []byte, unmarshal UnmarshalFunc[T]) (int, []T, error) {
-	if len(b)-n < 2 {
+	if len(b)-n < 3 {
 		return n, nil, ErrBytesToSmall
 	}
+	if b[n] != Slice {
+		return n, nil, errors.New("expected a slice, found: " + getDataTypeName(b[n]) + ". check your marshal process")
+	}
+	n += 1
 	u := b[n : n+2]
 	_ = u[1]
 	size := uint16(u[0]) | uint16(u[1])<<8
@@ -125,7 +130,7 @@ func UnmarshalSlice[T any](n int, b []byte, unmarshal UnmarshalFunc[T]) (int, []
 }
 
 func SizeMap[K comparable, V any](m map[K]V, kSizer interface{}, vSizer interface{}) int {
-	s := 2
+	s := 3
 	for key, val := range m {
 		if p, ok := kSizer.(func(k K) int); ok {
 			s += p(key)
@@ -142,6 +147,9 @@ func SizeMap[K comparable, V any](m map[K]V, kSizer interface{}, vSizer interfac
 }
 
 func MarshalMap[K comparable, V any](n int, b []byte, m map[K]V, kMarshal MarshalFunc[K], vMarshal MarshalFunc[V]) int {
+	b[n] = Map
+	n += 1
+
 	size := len(m)
 	v := uint16(size)
 	u := b[n:]
@@ -160,9 +168,13 @@ func MarshalMap[K comparable, V any](n int, b []byte, m map[K]V, kMarshal Marsha
 }
 
 func UnmarshalMap[K comparable, V any](n int, b []byte, kUnmarshal UnmarshalFunc[K], vUnmarshal UnmarshalFunc[V]) (int, map[K]V, error) {
-	if len(b)-n < 2 {
+	if len(b)-n < 3 {
 		return n, nil, ErrBytesToSmall
 	}
+	if b[n] != Map {
+		return n, nil, errors.New("expected a map, found: " + getDataTypeName(b[n]) + ". check your marshal process")
+	}
+	n += 1
 	u := b[n : n+2]
 	_ = u[1]
 	size := int(uint16(u[0]) | uint16(u[1])<<8)
@@ -192,16 +204,24 @@ func UnmarshalMap[K comparable, V any](n int, b []byte, kUnmarshal UnmarshalFunc
 }
 
 func UnmarshalByte(n int, b []byte) (int, byte, error) {
-	if len(b)-n < 1 {
+	if len(b)-n < 2 {
 		return n, 0, ErrBytesToSmall
 	}
+	if b[n] != Byte {
+		return n, 0, errors.New("expected a byte, found: " + getDataTypeName(b[n]) + ". check your marshal process")
+	}
+	n += 1
 	return n + 1, b[n], nil
 }
 
 func UnmarshalString(n int, b []byte) (int, string, error) {
-	if len(b)-n < 2 {
+	if len(b)-n < 3 {
 		return n, "", ErrBytesToSmall
 	}
+	if b[n] != String {
+		return n, "", errors.New("expected a string, found: " + getDataTypeName(b[n]) + ". check your marshal process")
+	}
+	n += 1
 	u := b[n : n+2]
 	_ = u[1]
 	size := int(uint16(u[0]) | uint16(u[1])<<8)
@@ -211,20 +231,31 @@ func UnmarshalString(n int, b []byte) (int, string, error) {
 }
 
 func UnmarshalByteSlice(n int, b []byte) (int, []byte, error) {
-	if len(b)-n < 4 {
+	if len(b)-n < 5 {
 		return n, nil, ErrBytesToSmall
 	}
+	if b[n] != ByteSlice {
+		return n, nil, errors.New("expected a byte slice, found: " + getDataTypeName(b[n]) + ". check your marshal process")
+	}
+	n += 1
 	u := b[n : n+4]
 	_ = u[3]
 	size := int(uint32(u[0]) | uint32(u[1])<<8 | uint32(u[2])<<16 | uint32(u[3])<<24)
+	println(n + 4)
+	println(n + size)
+	println(len(b))
 	bs := b[n+4 : n+size]
 	return n + 4 + size, bs, nil
 }
 
 func UnmarshalTime(n int, b []byte) (int, time.Time, error) {
-	if len(b)-n < 8 {
+	if len(b)-n < 9 {
 		return n, time.Time{}, ErrBytesToSmall
 	}
+	if b[n] != Time {
+		return n, time.Time{}, errors.New("expected a time, found: " + getDataTypeName(b[n]) + ". check your marshal process")
+	}
+	n += 1
 	u := b[n : n+8]
 	_ = u[7]
 	v := uint64(u[0]) | uint64(u[1])<<8 | uint64(u[2])<<16 | uint64(u[3])<<24 |
@@ -233,9 +264,13 @@ func UnmarshalTime(n int, b []byte) (int, time.Time, error) {
 }
 
 func UnmarshalUInt(n int, b []byte) (int, uint, error) {
-	if len(b)-n < 8 {
+	if len(b)-n < 9 {
 		return n, 0, ErrBytesToSmall
 	}
+	if b[n] != UInt {
+		return n, 0, errors.New("expected a uint, found: " + getDataTypeName(b[n]) + ". check your marshal process")
+	}
+	n += 1
 	u := b[n : n+8]
 	_ = u[7]
 	v := uint64(u[0]) | uint64(u[1])<<8 | uint64(u[2])<<16 | uint64(u[3])<<24 |
@@ -244,9 +279,13 @@ func UnmarshalUInt(n int, b []byte) (int, uint, error) {
 }
 
 func UnmarshalUInt64(n int, b []byte) (int, uint64, error) {
-	if len(b)-n < 8 {
+	if len(b)-n < 9 {
 		return n, 0, ErrBytesToSmall
 	}
+	if b[n] != UInt64 {
+		return n, 0, errors.New("expected a uint64, found: " + getDataTypeName(b[n]) + ". check your marshal process")
+	}
+	n += 1
 	u := b[n : n+8]
 	_ = u[7]
 	v := uint64(u[0]) | uint64(u[1])<<8 | uint64(u[2])<<16 | uint64(u[3])<<24 |
@@ -255,9 +294,13 @@ func UnmarshalUInt64(n int, b []byte) (int, uint64, error) {
 }
 
 func UnmarshalUInt32(n int, b []byte) (int, uint32, error) {
-	if len(b)-n < 4 {
+	if len(b)-n < 5 {
 		return n, 0, ErrBytesToSmall
 	}
+	if b[n] != UInt32 {
+		return n, 0, errors.New("expected a uint32, found: " + getDataTypeName(b[n]) + ". check your marshal process")
+	}
+	n += 1
 	u := b[n : n+4]
 	_ = u[3]
 	v := uint32(u[0]) | uint32(u[1])<<8 | uint32(u[2])<<16 | uint32(u[3])<<24
@@ -265,9 +308,13 @@ func UnmarshalUInt32(n int, b []byte) (int, uint32, error) {
 }
 
 func UnmarshalUInt16(n int, b []byte) (int, uint16, error) {
-	if len(b)-n < 2 {
+	if len(b)-n < 3 {
 		return n, 0, ErrBytesToSmall
 	}
+	if b[n] != UInt16 {
+		return n, 0, errors.New("expected a uint16, found: " + getDataTypeName(b[n]) + ". check your marshal process")
+	}
+	n += 1
 	u := b[n : n+2]
 	_ = u[1]
 	v := uint16(u[0]) | uint16(u[1])<<8
@@ -275,9 +322,13 @@ func UnmarshalUInt16(n int, b []byte) (int, uint16, error) {
 }
 
 func UnmarshalInt(n int, b []byte) (int, int, error) {
-	if len(b)-n < 8 {
+	if len(b)-n < 9 {
 		return n, 0, ErrBytesToSmall
 	}
+	if b[n] != Int {
+		return n, 0, errors.New("expected a int, found: " + getDataTypeName(b[n]) + ". check your marshal process")
+	}
+	n += 1
 	u := b[n : n+8]
 	_ = u[7]
 	v := uint64(u[0]) | uint64(u[1])<<8 | uint64(u[2])<<16 | uint64(u[3])<<24 |
@@ -286,9 +337,13 @@ func UnmarshalInt(n int, b []byte) (int, int, error) {
 }
 
 func UnmarshalInt64(n int, b []byte) (int, int64, error) {
-	if len(b)-n < 8 {
+	if len(b)-n < 9 {
 		return n, 0, ErrBytesToSmall
 	}
+	if b[n] != Int64 {
+		return n, 0, errors.New("expected a int64, found: " + getDataTypeName(b[n]) + ". check your marshal process")
+	}
+	n += 1
 	u := b[n : n+8]
 	_ = u[7]
 	v := uint64(u[0]) | uint64(u[1])<<8 | uint64(u[2])<<16 | uint64(u[3])<<24 |
@@ -297,9 +352,13 @@ func UnmarshalInt64(n int, b []byte) (int, int64, error) {
 }
 
 func UnmarshalInt32(n int, b []byte) (int, int32, error) {
-	if len(b)-n < 4 {
+	if len(b)-n < 5 {
 		return n, 0, ErrBytesToSmall
 	}
+	if b[n] != Int32 {
+		return n, 0, errors.New("expected a int32, found: " + getDataTypeName(b[n]) + ". check your marshal process")
+	}
+	n += 1
 	u := b[n : n+4]
 	_ = u[3]
 	v := uint32(u[0]) | uint32(u[1])<<8 | uint32(u[2])<<16 | uint32(u[3])<<24
@@ -307,9 +366,13 @@ func UnmarshalInt32(n int, b []byte) (int, int32, error) {
 }
 
 func UnmarshalInt16(n int, b []byte) (int, int16, error) {
-	if len(b)-n < 2 {
+	if len(b)-n < 3 {
 		return n, 0, ErrBytesToSmall
 	}
+	if b[n] != Int16 {
+		return n, 0, errors.New("expected a int16, found: " + getDataTypeName(b[n]) + ". check your marshal process")
+	}
+	n += 1
 	u := b[n : n+2]
 	_ = u[1]
 	v := uint16(u[0]) | uint16(u[1])<<8
@@ -317,9 +380,13 @@ func UnmarshalInt16(n int, b []byte) (int, int16, error) {
 }
 
 func UnmarshalFloat64(n int, b []byte) (int, float64, error) {
-	if len(b)-n < 8 {
+	if len(b)-n < 9 {
 		return n, 0, ErrBytesToSmall
 	}
+	if b[n] != Float64 {
+		return n, 0, errors.New("expected a float64, found: " + getDataTypeName(b[n]) + ". check your marshal process")
+	}
+	n += 1
 	u := b[n : n+8]
 	_ = u[7]
 	v := uint64(u[0]) | uint64(u[1])<<8 | uint64(u[2])<<16 | uint64(u[3])<<24 |
@@ -328,9 +395,13 @@ func UnmarshalFloat64(n int, b []byte) (int, float64, error) {
 }
 
 func UnmarshalFloat32(n int, b []byte) (int, float32, error) {
-	if len(b)-n < 4 {
+	if len(b)-n < 5 {
 		return n, 0, ErrBytesToSmall
 	}
+	if b[n] != Float32 {
+		return n, 0, errors.New("expected a float32, found: " + getDataTypeName(b[n]) + ". check your marshal process")
+	}
+	n += 1
 	u := b[n : n+4]
 	_ = u[3]
 	v := uint32(u[0]) | uint32(u[1])<<8 | uint32(u[2])<<16 | uint32(u[3])<<24
@@ -338,16 +409,24 @@ func UnmarshalFloat32(n int, b []byte) (int, float32, error) {
 }
 
 func UnmarshalBool(n int, b []byte) (int, bool, error) {
-	if len(b)-n < 1 {
+	if len(b)-n < 2 {
 		return n, false, ErrBytesToSmall
 	}
+	if b[n] != Bool {
+		return n, false, errors.New("expected a bool, found: " + getDataTypeName(b[n]) + ". check your marshal process")
+	}
+	n += 1
 	return n + 1, uint8(b[n]) == 1, nil
 }
 
 func SkipSlice(n int, b []byte, skipper SkipFunc) (int, error) {
-	if len(b)-n < 2 {
+	if len(b)-n < 3 {
 		return n, ErrBytesToSmall
 	}
+	if b[n] != Slice {
+		return n, errors.New("expected a slice, found: " + getDataTypeName(b[n]) + ". check your marshal process")
+	}
+	n += 1
 	u := b[n : n+2]
 	_ = u[1]
 	size := int(uint16(u[0]) | uint16(u[1])<<8)
@@ -366,9 +445,13 @@ func SkipSlice(n int, b []byte, skipper SkipFunc) (int, error) {
 }
 
 func SkipMap(n int, b []byte, kSkipper SkipFunc, vSkipper SkipFunc) (int, error) {
-	if len(b)-n < 2 {
+	if len(b)-n < 3 {
 		return n, ErrBytesToSmall
 	}
+	if b[n] != Map {
+		return n, errors.New("expected a map, found: " + getDataTypeName(b[n]) + ". check your marshal process")
+	}
+	n += 1
 	u := b[n : n+2]
 	_ = u[1]
 	size := int(uint16(u[0]) | uint16(u[1])<<8)
@@ -395,9 +478,15 @@ func SkipStringTag(n int, b []byte) (int, error) {
 	if n != 0 {
 		return 0, ErrNIsNotZero
 	}
-	if len(b)-n < 2 {
+	if len(b)-n < 3 {
 		return n, ErrBytesToSmall
 	}
+
+	if b[n] != StringTag {
+		return n, errors.New("expected a slice, found: " + getDataTypeName(b[n]) + ". check your marshal process")
+	}
+	n += 1
+
 	u := b[n : n+2]
 	_ = u[1]
 	size := int(uint16(u[0]) | uint16(u[1])<<8)
@@ -409,23 +498,35 @@ func SkipUIntTag(n int, b []byte) (int, error) {
 	if n != 0 {
 		return 0, ErrNIsNotZero
 	}
-	if len(b)-n < 2 {
+	if len(b)-n < 3 {
 		return n, ErrBytesToSmall
 	}
+	if b[n] != UIntTag {
+		return n, errors.New("expected a uint tag, found: " + getDataTypeName(b[n]) + ". check your marshal process")
+	}
+	n += 1
 	return n + 2, nil
 }
 
 func SkipByte(n int, b []byte) (int, error) {
-	if len(b)-n < 1 {
+	if len(b)-n < 2 {
 		return n, ErrBytesToSmall
 	}
+	if b[n] != Byte {
+		return n, errors.New("expected a byte, found: " + getDataTypeName(b[n]) + ". check your marshal process")
+	}
+	n += 1
 	return n + 1, nil
 }
 
 func SkipString(n int, b []byte) (int, error) {
-	if len(b)-n < 2 {
+	if len(b)-n < 3 {
 		return n, ErrBytesToSmall
 	}
+	if b[n] != String {
+		return n, errors.New("expected a string, found: " + getDataTypeName(b[n]) + ". check your marshal process")
+	}
+	n += 1
 	u := b[n : n+2]
 	_ = u[1]
 	size := int(uint16(u[0]) | uint16(u[1])<<8)
@@ -434,9 +535,13 @@ func SkipString(n int, b []byte) (int, error) {
 }
 
 func SkipByteSlice(n int, b []byte) (int, error) {
-	if len(b)-n < 4 {
+	if len(b)-n < 5 {
 		return n, ErrBytesToSmall
 	}
+	if b[n] != ByteSlice {
+		return n, errors.New("expected a byte slice, found: " + getDataTypeName(b[n]) + ". check your marshal process")
+	}
+	n += 1
 	u := b[n : n+4]
 	_ = u[3]
 	size := int(uint32(u[0]) | uint32(u[1])<<8 | uint32(u[2])<<16 | uint32(u[3])<<24)
@@ -445,94 +550,145 @@ func SkipByteSlice(n int, b []byte) (int, error) {
 }
 
 func SkipTime(n int, b []byte) (int, error) {
-	if len(b)-n < 8 {
+	if len(b)-n < 9 {
 		return n, ErrBytesToSmall
 	}
+	if b[n] != Time {
+		return n, errors.New("expected a time, found: " + getDataTypeName(b[n]) + ". check your marshal process")
+	}
+	n += 1
 	return n + 8, nil
 }
 
 func SkipUInt(n int, b []byte) (int, error) {
-	if len(b)-n < 8 {
+	if len(b)-n < 9 {
 		return n, ErrBytesToSmall
 	}
+	if b[n] != UInt {
+		return n, errors.New("expected a uint, found: " + getDataTypeName(b[n]) + ". check your marshal process")
+	}
+	n += 1
 	return n + 8, nil
 }
 
 func SkipUInt64(n int, b []byte) (int, error) {
-	if len(b)-n < 8 {
+	if len(b)-n < 9 {
 		return n, ErrBytesToSmall
 	}
+	if b[n] != UInt64 {
+		return n, errors.New("expected a uint64, found: " + getDataTypeName(b[n]) + ". check your marshal process")
+	}
+	n += 1
 	return n + 8, nil
 }
 
 func SkipUInt32(n int, b []byte) (int, error) {
-	if len(b)-n < 4 {
+	if len(b)-n < 5 {
 		return n, ErrBytesToSmall
 	}
+	if b[n] != UInt32 {
+		return n, errors.New("expected a uint32, found: " + getDataTypeName(b[n]) + ". check your marshal process")
+	}
+	n += 1
 	return n + 4, nil
 }
 
 func SkipUInt16(n int, b []byte) (int, error) {
-	if len(b)-n < 2 {
+	if len(b)-n < 3 {
 		return n, ErrBytesToSmall
 	}
+	if b[n] != UInt16 {
+		return n, errors.New("expected a uint16, found: " + getDataTypeName(b[n]) + ". check your marshal process")
+	}
+	n += 1
 	return n + 2, nil
 }
 
 func SkipInt(n int, b []byte) (int, error) {
-	if len(b)-n < 8 {
+	if len(b)-n < 9 {
 		return n, ErrBytesToSmall
 	}
+	if b[n] != Int {
+		return n, errors.New("expected a int, found: " + getDataTypeName(b[n]) + ". check your marshal process")
+	}
+	n += 1
 	return n + 8, nil
 }
 
 func SkipInt64(n int, b []byte) (int, error) {
-	if len(b)-n < 8 {
+	if len(b)-n < 9 {
 		return n, ErrBytesToSmall
 	}
+	if b[n] != Int64 {
+		return n, errors.New("expected a int64, found: " + getDataTypeName(b[n]) + ". check your marshal process")
+	}
+	n += 1
 	return n + 8, nil
 }
 
 func SkipInt32(n int, b []byte) (int, error) {
-	if len(b)-n < 4 {
+	if len(b)-n < 5 {
 		return n, ErrBytesToSmall
 	}
+	if b[n] != Int32 {
+		return n, errors.New("expected a int32, found: " + getDataTypeName(b[n]) + ". check your marshal process")
+	}
+	n += 1
 	return n + 4, nil
 }
 
 func SkipInt16(n int, b []byte) (int, error) {
-	if len(b)-n < 2 {
+	if len(b)-n < 3 {
 		return n, ErrBytesToSmall
 	}
+	if b[n] != Int16 {
+		return n, errors.New("expected a int16, found: " + getDataTypeName(b[n]) + ". check your marshal process")
+	}
+	n += 1
 	return n + 2, nil
 }
 
 func SkipFloat64(n int, b []byte) (int, error) {
-	if len(b)-n < 8 {
+	if len(b)-n < 9 {
 		return n, ErrBytesToSmall
 	}
+	if b[n] != Float64 {
+		return n, errors.New("expected a float64, found: " + getDataTypeName(b[n]) + ". check your marshal process")
+	}
+	n += 1
 	return n + 8, nil
 }
 
 func SkipFloat32(n int, b []byte) (int, error) {
-	if len(b)-n < 4 {
+	if len(b)-n < 5 {
 		return n, ErrBytesToSmall
 	}
+	if b[n] != Float32 {
+		return n, errors.New("expected a float32, found: " + getDataTypeName(b[n]) + ". check your marshal process")
+	}
+	n += 1
 	return n + 4, nil
 }
 
 func SkipBool(n int, b []byte) (int, error) {
-	if len(b)-n < 1 {
+	if len(b)-n < 2 {
 		return n, ErrBytesToSmall
 	}
+	if b[n] != Bool {
+		return n, errors.New("expected a bool, found: " + getDataTypeName(b[n]) + ". check your marshal process")
+	}
+	n += 1
 	return n + 1, nil
 }
 
 func SizeString(s string) int {
-	return len(s) + 2
+	return len(s) + 3
 }
 
 func MarshalString(n int, b []byte, str string) int {
+	b[n] = String
+	n += 1
+
 	v := uint16(len(str))
 	u := b[n : n+2]
 	_ = u[1]
@@ -542,10 +698,13 @@ func MarshalString(n int, b []byte, str string) int {
 }
 
 func SizeByteSlice(bs []byte) int {
-	return len(bs) + 4
+	return len(bs) + 5
 }
 
 func MarshalByteSlice(n int, b []byte, bs []byte) int {
+	b[n] = ByteSlice
+	n += 1
+
 	v := uint32(len(bs))
 	u := b[n : n+4]
 	_ = u[3]
@@ -557,10 +716,13 @@ func MarshalByteSlice(n int, b []byte, bs []byte) int {
 }
 
 func SizeTime() int {
-	return 8
+	return 9
 }
 
 func MarshalTime(n int, b []byte, t time.Time) int {
+	b[n] = Time
+	n += 1
+
 	v := uint64(t.UnixNano())
 	u := b[n : n+8]
 	_ = u[7]
@@ -576,19 +738,23 @@ func MarshalTime(n int, b []byte, t time.Time) int {
 }
 
 func SizeByte() int {
-	return 1
+	return 2
 }
 
 func MarshalByte(n int, b []byte, byt byte) int {
+	b[n] = Byte
+	n += 1
 	b[n] = byt
 	return n + 1
 }
 
 func SizeUInt() int {
-	return 8
+	return 9
 }
 
 func MarshalUInt(n int, b []byte, v uint) int {
+	b[n] = UInt
+	n += 1
 	u := b[n : n+8]
 	v64 := uint64(v)
 	_ = u[7]
@@ -604,10 +770,12 @@ func MarshalUInt(n int, b []byte, v uint) int {
 }
 
 func SizeUInt64() int {
-	return 8
+	return 9
 }
 
 func MarshalUInt64(n int, b []byte, v uint64) int {
+	b[n] = UInt64
+	n += 1
 	u := b[n : n+8]
 	_ = u[7]
 	u[0] = byte(v)
@@ -622,10 +790,12 @@ func MarshalUInt64(n int, b []byte, v uint64) int {
 }
 
 func SizeUInt32() int {
-	return 4
+	return 5
 }
 
 func MarshalUInt32(n int, b []byte, v uint32) int {
+	b[n] = UInt32
+	n += 1
 	u := b[n : n+4]
 	_ = u[3]
 	u[0] = byte(v)
@@ -636,10 +806,12 @@ func MarshalUInt32(n int, b []byte, v uint32) int {
 }
 
 func SizeUInt16() int {
-	return 2
+	return 3
 }
 
 func MarshalUInt16(n int, b []byte, v uint16) int {
+	b[n] = UInt16
+	n += 1
 	u := b[n : n+2]
 	_ = u[1]
 	u[0] = byte(v)
@@ -648,10 +820,12 @@ func MarshalUInt16(n int, b []byte, v uint16) int {
 }
 
 func SizeInt() int {
-	return 8
+	return 9
 }
 
 func MarshalInt(n int, b []byte, v int) int {
+	b[n] = Int
+	n += 1
 	v64 := uint64(EncodeZigZag(v))
 	u := b[n : n+8]
 	_ = u[7]
@@ -667,10 +841,12 @@ func MarshalInt(n int, b []byte, v int) int {
 }
 
 func SizeInt64() int {
-	return 8
+	return 9
 }
 
 func MarshalInt64(n int, b []byte, v int64) int {
+	b[n] = Int64
+	n += 1
 	v64 := uint64(EncodeZigZag(v))
 	u := b[n : n+8]
 	_ = u[7]
@@ -686,10 +862,12 @@ func MarshalInt64(n int, b []byte, v int64) int {
 }
 
 func SizeInt32() int {
-	return 4
+	return 5
 }
 
 func MarshalInt32(n int, b []byte, v int32) int {
+	b[n] = Int32
+	n += 1
 	v32 := uint32(EncodeZigZag(v))
 	u := b[n : n+4]
 	_ = u[3]
@@ -701,10 +879,12 @@ func MarshalInt32(n int, b []byte, v int32) int {
 }
 
 func SizeInt16() int {
-	return 2
+	return 3
 }
 
 func MarshalInt16(n int, b []byte, v int16) int {
+	b[n] = Int16
+	n += 1
 	v16 := uint16(EncodeZigZag(v))
 	u := b[n : n+2]
 	_ = u[1]
@@ -714,10 +894,12 @@ func MarshalInt16(n int, b []byte, v int16) int {
 }
 
 func SizeFloat64() int {
-	return 8
+	return 9
 }
 
 func MarshalFloat64(n int, b []byte, v float64) int {
+	b[n] = Float64
+	n += 1
 	v64 := math.Float64bits(v)
 	u := b[n : n+8]
 	_ = u[7]
@@ -733,10 +915,12 @@ func MarshalFloat64(n int, b []byte, v float64) int {
 }
 
 func SizeFloat32() int {
-	return 4
+	return 5
 }
 
 func MarshalFloat32(n int, b []byte, v float32) int {
+	b[n] = Float32
+	n += 1
 	v32 := math.Float32bits(v)
 	u := b[n : n+4]
 	_ = u[3]
@@ -748,37 +932,18 @@ func MarshalFloat32(n int, b []byte, v float32) int {
 }
 
 func SizeBool() int {
-	return 1
+	return 2
 }
 
 func MarshalBool(n int, b []byte, v bool) int {
+	b[n] = Bool
+	n += 1
 	var i byte
 	if v {
 		i = 1
 	}
 	b[n] = i
 	return n + 1
-}
-
-func VerifyMarshal(n int, b []byte) error {
-	if n != len(b) {
-		return errors.New("check for a mistake in calculating the size or in the marshal process")
-	}
-	return nil
-}
-
-func VerifyUnmarshal(n int, b []byte) error {
-	if n != len(b) {
-		return errors.New("check for a mistake in the unmarshal process")
-	}
-	return nil
-}
-
-func VerifyUnmarshalMF(n int, b []byte) error {
-	if n+2 != len(b) {
-		return errors.New("check for a mistake in the unmarshal (message framing) process")
-	}
-	return nil
 }
 
 func EncodeZigZag[T constraints.Signed](t T) T {

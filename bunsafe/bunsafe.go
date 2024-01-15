@@ -2,6 +2,7 @@ package bunsafe
 
 import (
 	"errors"
+	"github.com/deneonet/benc/bmd"
 	"unsafe"
 )
 
@@ -28,8 +29,7 @@ func b2s(b []byte) string {
 // Note it may break if string and/or slice header will change
 // in the future go versions.
 func s2b(s string) []byte {
-	str := *(*[]byte)(unsafe.Pointer(&s))
-	return str
+	return *(*[]byte)(unsafe.Pointer(&s))
 }
 
 func MarshalString(n int, b []byte, str string) int {
@@ -45,6 +45,33 @@ func UnmarshalString(n int, b []byte) (int, string, error) {
 	if len(b)-n < 2 {
 		return n, "", ErrBytesToSmall
 	}
+	u := b[n:]
+	_ = u[1]
+	size := int(uint16(u[0]) | uint16(u[1])<<8)
+	n += 2
+	bs := b[n : n+size]
+	return n + size, b2s(bs), nil
+}
+
+func MarshalStringMD(n int, b []byte, str string) int {
+	b[n] = bmd.String
+	n += 1
+	v := uint16(len(str))
+	u := b[n:]
+	_ = u[1]
+	u[0] = byte(v)
+	u[1] = byte(v >> 8)
+	return n + 2 + copy(b[n+2:], s2b(str))
+}
+
+func UnmarshalStringMD(n int, b []byte) (int, string, error) {
+	if len(b)-n < 3 {
+		return n, "", ErrBytesToSmall
+	}
+	if b[n] != bmd.String {
+		return n, "", errors.New("expected a bunsafe string, found something else. check your marshal process")
+	}
+	n += 1
 	u := b[n:]
 	_ = u[1]
 	size := int(uint16(u[0]) | uint16(u[1])<<8)
