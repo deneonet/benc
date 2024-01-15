@@ -1075,6 +1075,9 @@ func TestMessageFraming_StringTag(t *testing.T) {
 	for _, bs := range data {
 		var tag string
 		n, tag, err = btag.SUnmarshal(0, bs)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 		if tag != "v1" {
 			t.Fatal("tag: string doesn't match")
 		}
@@ -1131,6 +1134,9 @@ func TestMessageFraming_UIntTag(t *testing.T) {
 	for _, bs := range data {
 		var tag uint16
 		n, tag, err = btag.UUnmarshal(0, bs)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 		if tag != 1 {
 			t.Fatal("tag: string doesn't match")
 		}
