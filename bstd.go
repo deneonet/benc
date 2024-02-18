@@ -217,8 +217,9 @@ func UnmarshalByteSlice(n int, b []byte) (int, []byte, error) {
 	u := b[n : n+4]
 	_ = u[3]
 	size := int(uint32(u[0]) | uint32(u[1])<<8 | uint32(u[2])<<16 | uint32(u[3])<<24)
-	bs := b[n+4 : n+size]
-	return n + 4 + size, bs, nil
+	n += 4
+	bs := b[n : n+size]
+	return n + size, bs, nil
 }
 
 func UnmarshalTime(n int, b []byte) (int, time.Time, error) {
@@ -553,7 +554,8 @@ func MarshalByteSlice(n int, b []byte, bs []byte) int {
 	u[1] = byte(v >> 8)
 	u[2] = byte(v >> 16)
 	u[3] = byte(v >> 24)
-	return n + 4 + copy(b[n+4:], bs)
+	n += 4
+	return n + copy(b[n:], bs)
 }
 
 func SizeTime() int {

@@ -345,6 +345,7 @@ func TestSkippingDataTypes_UIntTag_Metadata(t *testing.T) {
 	s += bmd.SizeUInt16()
 	s += bmd.SizeUInt32()
 	s += bmd.SizeInt64()
+	s += bmd.SizeByteSlice([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10})
 
 	n, buf := btag.UMarshalMD(s, 1)
 	n = bmd.MarshalBool(n, buf, true)
@@ -361,6 +362,7 @@ func TestSkippingDataTypes_UIntTag_Metadata(t *testing.T) {
 	n = bmd.MarshalUInt16(n, buf, 0)
 	n = bmd.MarshalUInt32(n, buf, 0)
 	n = bmd.MarshalUInt64(n, buf, 0)
+	n = bmd.MarshalByteSlice(n, buf, []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10})
 
 	if err := VerifyMarshal(n, buf); err != nil {
 		t.Fatal(err.Error())
@@ -424,6 +426,10 @@ func TestSkippingDataTypes_UIntTag_Metadata(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	n, err = bmd.SkipUInt64(n, buf)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	n, err = bmd.SkipByteSlice(n, buf)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
