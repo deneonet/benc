@@ -1,7 +1,7 @@
 ---
 name: Bug report
 about: Create a report to help us improve
-title: ''
+title: "[BUG] "
 labels: bug
 assignees: deneonet
 
@@ -19,9 +19,6 @@ Steps to reproduce the behavior:
 
 **Expected behavior**
 A clear and concise description of what you expected to happen.
-
-**Code Snippet**
-The code snippet that produces the error.
 
 **Golang version:**
 Enter `go version` into your terminal, and paste the output here.
