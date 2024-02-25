@@ -155,15 +155,15 @@ func main() {
 ```
 
 Little benchmark, `btag.SMarshal` (string tag) vs `btag.UMarshal` (uint tag):
+You can find all benchmarks in `benchs_test.go`.
 
 ```bash
 goos: windows
 goarch: amd64
-pkg: github.com/deneonet/benc/main
+pkg: github.com/deneonet/benc
 cpu: 11th Gen Intel(R) Core(TM) i5-11300H @ 3.10GHz
-BenchmarkStringTag-8       85837388                 13.64 ns/op           4 B/op      1 allocs/op
-BenchmarkUIntTag-8         139445058                8.629 ns/op           2 B/op      1 allocs/op
-PASS
+BenchmarkStringTag-8    100000000  10.80 ns/op   3 B/op  1 allocs/op
+BenchmarkUIntTag-8      147857434  7.944 ns/op  2 B/op  1 allocs/op
 ```
 
 Not a big difference but still faster, here is the code:
@@ -332,18 +332,15 @@ func main() {
 }
 ```
 
-Little benchmark, with pre-allocation/buffer reuse and without, the exact same code is used, just
-in `BenchmarkNoPreAllocation`, I removed the `bpre.Marshal(1000)`, a similar benchmark can be
-found [here](BESTPRACTICES.md):
+Little benchmark, with pre-allocation/buffer reuse and without, you can find these benchmarks in `benchs_test.go`. A similar benchmark can be found [here](BESTPRACTICES.md):
 
 ```bash
 goos: windows
 goarch: amd64
-pkg: github.com/deneonet/benc/main
+pkg: github.com/deneonet/benc
 cpu: 11th Gen Intel(R) Core(TM) i5-11300H @ 3.10GHz
-BenchmarkPreAllocation-8         308539366               3.647 ns/op           0 B/op      0 allocs/op
-BenchmarkNoPreAllocation-8       50328482                23.53 ns/op           24 B/op     1 allocs/op
-PASS
+BenchmarkPreAllocations-8       320253640   3.612 ns/op   0 B/op   0 allocs/op
+BenchmarkNoPreAllocations-8     54564552   22.89 ns/op   24 B/op   1 allocs/op
 ```
 
 ## Out-Of-Order Deserialization

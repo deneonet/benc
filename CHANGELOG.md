@@ -1,6 +1,9 @@
 ## Changelog
 
-#### See you in v1.0.6 :]
+#### See you in v1.0.7 :]
+
+- v1.0.5 to v1.0.6 - bug fix
+  - bug fix in the byte slice unmarshal
 
 - v1.0.4 to v1.0.5 - bug fixes + improvements
   - fixed btag message framing not working
