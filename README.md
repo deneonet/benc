@@ -166,69 +166,7 @@ BenchmarkStringTag-8    100000000  10.80 ns/op   3 B/op  1 allocs/op
 BenchmarkUIntTag-8      147857434  7.944 ns/op  2 B/op  1 allocs/op
 ```
 
-Not a big difference but still faster, here is the code:
-
-```go
-package main
-
-import (
-	bstd "github.com/deneonet/benc"
-	"github.com/deneonet/benc/btag"
-	"testing"
-)
-
-func BenchmarkStringTag(b *testing.B) {
-	b.ReportAllocs()
-
-	for i := 0; i < b.N; i++ {
-		// for a uint tag: btag.UMarshal(0, UINT16)
-		n, b := btag.SMarshal(0, "v1")
-		if err := bstd.VerifyMarshal(n, b); err != nil {
-			panic(err.Error())
-		}
-
-		// a string/uint tag is the first thing that has to be deserialized
-		n, tag, err := btag.SUnmarshal(0, b) // or for a uint tag: btag.UUnmarshal(0, b)
-		if err != nil {
-			panic(err.Error())
-		}
-		if tag != "v1" {
-			panic("tag doesn't match")
-		}
-
-		if err := bstd.VerifyUnmarshal(n, b); err != nil {
-			panic(err.Error())
-		}
-	}
-}
-
-const (
-	v1 uint16 = iota
-)
-
-func BenchmarkUIntTag(b *testing.B) {
-	b.ReportAllocs()
-
-	for i := 0; i < b.N; i++ {
-		n, b := btag.UMarshal(0, v1)
-		if err := bstd.VerifyMarshal(n, b); err != nil {
-			panic(err.Error())
-		}
-
-		n, tag, err := btag.UUnmarshal(0, b)
-		if err != nil {
-			panic(err.Error())
-		}
-		if tag != v1 {
-			panic("tag doesn't match")
-		}
-
-		if err := bstd.VerifyUnmarshal(n, b); err != nil {
-			panic(err.Error())
-		}
-	}
-}
-```
+Not a big difference but still faster.
 
 ## Slices And Maps serialization
 
