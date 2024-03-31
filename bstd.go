@@ -71,56 +71,216 @@ type SkipFunc func(n int, b []byte) (int, error)
 type MarshalFunc[T any] func(n int, b []byte, t T) int
 type UnmarshalFunc[T any] func(n int, b []byte) (int, T, error)
 
-func SizeSlice[T any](slice []T, sizer interface{}) int {
-	s := 2
+/*
+bencVersion is the version this code was written in
+*/
+const bencVersion = "v1.0.7"
+
+type MaxSize int
+
+const (
+	MaxSizeUint16 MaxSize = iota
+	MaxSizeUint32
+	MaxSizeInt64
+)
+
+/*
+maxSizeToByteSize returns the byte size of the max size (uint16, uint32, uint64)
+*/
+func maxSizeToByteSize(ms MaxSize) int {
+	switch ms {
+	case MaxSizeUint16:
+		return 2
+	case MaxSizeUint32:
+		return 4
+	case MaxSizeInt64:
+		return 8
+	}
+
+	panic("[benc " + bencVersion + "]: MaxSizeToByteSize: ms is invalid!")
+}
+
+/*
+verifySize verifies that l is smaller or equal to ms and returns the result
+*/
+func verifySize(l int, ms MaxSize) bool {
+	switch ms {
+	case MaxSizeUint16:
+		return l <= math.MaxUint16
+	case MaxSizeUint32:
+		return l <= math.MaxUint32
+	case MaxSizeInt64:
+		return true
+	}
+
+	return false
+}
+
+/*
+SizeSlice returns the size of a slice in the benc format.
+
+sizer: the corresponding benc size function for the slice's type! ms: the maximum slice size!
+
+# Panics:
+
+..if slice is too big for ms, ...if sizer is incorrect
+
+# Example:
+
+	slice := make([]int, math.MaxUint16 + 1)
+	slice[0] = 1
+	slice[len(slice)-1] = 1
+
+	size := SizeSlice(slice, SizeInt, 4)
+*/
+func SizeSlice[T any](slice []T, sizer interface{}, ms ...MaxSize) int {
+	maxs := MaxSizeUint16
+	if len(ms) != 0 {
+		maxs = ms[0]
+	}
+
+	s := maxSizeToByteSize(maxs)
+	if !verifySize(len(slice), maxs) {
+		panic("[benc " + bencVersion + "]: SizeSlice: length of slice is too big!")
+	}
+
 	for _, t := range slice {
 		if p, ok := sizer.(func(t T) int); ok {
 			s += p(t)
-		}
-		if p, ok := sizer.(func() int); ok {
+		} else if p, ok := sizer.(func() int); ok {
 			s += p()
+		} else {
+			panic("[benc " + bencVersion + "]: SizeSlice: sizer is invalid!")
 		}
 	}
+
 	return s
 }
 
-func MarshalSlice[T any](n int, b []byte, slice []T, marshal MarshalFunc[T]) int {
-	size := len(slice)
-	u := b[n:]
-	_ = u[1]
-	u[0] = byte(uint16(size))
-	u[1] = byte(uint16(size) >> 8)
-	n += 2
-	if size == 0 {
-		return n
+/*
+MarshalSlice encodes a slice in the benc format.
+
+marshal: the corresponding benc marshal function for the slice's type! ms: the maximum slice size!
+
+# Panics:
+
+....if slice is too big for ms
+
+# Example:
+
+	n = MarshalSlice(n, buf, myIntSlice, bstd.MarshalInt, bstd.MaxSizeUint16)
+*/
+func MarshalSlice[T any](n int, b []byte, slice []T, marshal MarshalFunc[T], ms ...MaxSize) int {
+	maxs := MaxSizeUint16
+	if len(ms) != 0 {
+		maxs = ms[0]
 	}
+
+	s := maxSizeToByteSize(maxs)
+	if !verifySize(len(slice), maxs) {
+		panic("[benc " + bencVersion + "]: MarshalSlice: length of slice is too big!")
+	}
+
+	v := len(slice)
+	if v == 0 {
+		return n + s
+	}
+
+	u := b[n : n+s]
+
+	switch maxs {
+	case MaxSizeUint16:
+		_ = u[1]
+		v16 := uint16(v)
+		u[0] = byte(v16)
+		u[1] = byte(v16 >> 8)
+	case MaxSizeUint32:
+		_ = u[3]
+		v32 := uint32(v)
+		u[0] = byte(v32)
+		u[1] = byte(v32 >> 8)
+		u[2] = byte(v32 >> 16)
+		u[3] = byte(v32 >> 24)
+	case MaxSizeInt64:
+		_ = u[7]
+		v64 := uint64(v)
+		u[0] = byte(v64)
+		u[1] = byte(v64 >> 8)
+		u[2] = byte(v64 >> 16)
+		u[3] = byte(v64 >> 24)
+		u[4] = byte(v64 >> 32)
+		u[5] = byte(v64 >> 40)
+		u[6] = byte(v64 >> 48)
+		u[7] = byte(v64 >> 56)
+	}
+
+	n += s
+
 	for _, elem := range slice {
 		n = marshal(n, b, elem)
 	}
 	return n
 }
 
-func UnmarshalSlice[T any](n int, b []byte, unmarshal UnmarshalFunc[T]) (int, []T, error) {
-	if len(b)-n < 2 {
+/*
+UnmarshalSlice decodes a slice in the benc format.
+
+unmarshal: the corresponding benc unmarshal function for the slice's type! ms: the maximum slice size!
+
+# Panics:
+
+doesn't panic
+
+# Example:
+
+	n = MarshalSlice(n, buf, myIntSlice, bstd.MarshalInt, bstd.MaxSizeUint16)
+*/
+func UnmarshalSlice[T any](n int, b []byte, unmarshal UnmarshalFunc[T], ms ...MaxSize) (int, []T, error) {
+	maxs := MaxSizeUint16
+	if len(ms) != 0 {
+		maxs = ms[0]
+	}
+
+	s := maxSizeToByteSize(maxs)
+
+	if len(b)-n < s {
 		return n, nil, ErrBytesToSmall
 	}
-	u := b[n : n+2]
-	_ = u[1]
-	size := uint16(u[0]) | uint16(u[1])<<8
-	n += 2
-	if len(b)-n < int(size) {
+
+	u := b[n : n+s]
+	var v int = 0
+
+	switch maxs {
+	case MaxSizeUint16:
+		v = int(uint16(u[0]) | uint16(u[1])<<8)
+	case MaxSizeUint32:
+		_ = u[3]
+		v = int(uint32(u[0]) | uint32(u[1])<<8 | uint32(u[2])<<16 | uint32(u[3])<<24)
+	case MaxSizeInt64:
+		_ = u[7]
+		v = int(uint64(u[0]) | uint64(u[1])<<8 | uint64(u[2])<<16 | uint64(u[3])<<24 |
+			uint64(u[4])<<32 | uint64(u[5])<<40 | uint64(u[6])<<48 | uint64(u[7])<<56)
+	}
+
+	n += s
+	if len(b)-n < v {
 		return n, nil, ErrBytesToSmall
 	}
-	ts := make([]T, size)
+
 	var t T
 	var err error
-	for i := 0; i < int(size); i++ {
+
+	ts := make([]T, v)
+
+	for i := 0; i < v; i++ {
 		n, t, err = unmarshal(n, b)
 		if err != nil {
 			return n, nil, errors.New("unmarshal err: " + err.Error())
 		}
+
 		ts[i] = t
 	}
+
 	return n, ts, nil
 }
 

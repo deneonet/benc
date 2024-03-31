@@ -2,11 +2,14 @@ package bstd
 
 import (
 	"bytes"
-	"github.com/deneonet/benc/bpre"
+	"math"
+	"reflect"
 	"testing"
 	"time"
 
 	"github.com/deneonet/benc/bmd"
+
+	"github.com/deneonet/benc/bpre"
 	"github.com/deneonet/benc/btag"
 	"github.com/deneonet/benc/bunsafe"
 )
@@ -1261,5 +1264,30 @@ func TestOutOfOrderDeserialization(t *testing.T) {
 
 	if err := VerifyUnmarshal(n, buf); err != nil {
 		t.Fatal(err.Error())
+	}
+}
+
+func TestMarshalUnmarshalLongSlices(t *testing.T) {
+	slice := make([]int, math.MaxUint16+1)
+
+	slice[0] = 1
+	slice[len(slice)-1] = 1
+
+	size := SizeSlice(slice, SizeInt, MaxSizeInt64)
+
+	n, buf := Marshal(size)
+
+	n = MarshalSlice(n, buf, slice, MarshalInt, MaxSizeInt64)
+
+	n, decoded, err := UnmarshalSlice(0, buf, UnmarshalInt, MaxSizeInt64)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = VerifyUnmarshal(n, buf); err != nil {
+		t.Fatal(err)
+	}
+
+	if !reflect.DeepEqual(slice, decoded) {
+		t.Fatal("not equal")
 	}
 }
