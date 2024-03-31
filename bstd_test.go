@@ -1277,7 +1277,7 @@ func TestMarshalUnmarshalLongSlices(t *testing.T) {
 
 	n, buf := Marshal(size)
 
-	n = MarshalSlice(n, buf, slice, MarshalInt, MaxSizeInt64)
+	MarshalSlice(n, buf, slice, MarshalInt, MaxSizeInt64)
 
 	n, decoded, err := UnmarshalSlice(0, buf, UnmarshalInt, MaxSizeInt64)
 	if err != nil {
