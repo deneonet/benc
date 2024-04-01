@@ -2,6 +2,9 @@
 
 #### See you in v1.0.7 :]
 
+- v1.0.6 to v1.0.7 - enhancement
+ - adding the option to set the maximum size of a slice in sizing/encoding/decoding
+
 - v1.0.5 to v1.0.6 - bug fix
   - bug fix in the byte slice unmarshal
 
