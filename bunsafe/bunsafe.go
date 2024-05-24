@@ -47,7 +47,9 @@ func MarshalString(n int, b []byte, str string) int {
 }
 
 func UnmarshalString(n int, b []byte) (int, string, error) {
-	if len(b)-n < 2 {
+	if len(b)-n == 2 {
+		return n + 2, "", nil
+	} else if len(b)-n < 2 {
 		return n, "", ErrBytesToSmall
 	}
 	u := b[n:]
@@ -70,7 +72,9 @@ func MarshalStringMD(n int, b []byte, str string) int {
 }
 
 func UnmarshalStringMD(n int, b []byte) (int, string, error) {
-	if len(b)-n < 3 {
+	if len(b)-n == 3 {
+		return n + 3, "", nil
+	} else if len(b)-n < 3 {
 		return n, "", ErrBytesToSmall
 	}
 	if b[n] != bmd.String {
