@@ -20,7 +20,7 @@ type StringHeader struct {
 // Removed because reflect.SliceHeader is deprecated, so I use unsafe.String
 // see https://github.com/golang/go/issues/53003
 func b2s(b []byte) string {
-	return unsafe.String(&b[0], len(b))
+	return unsafe.String(unsafe.SliceData(b), len(b))
 }
 
 // s2b converts string to a byte slice without memory allocation.
