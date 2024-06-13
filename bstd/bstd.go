@@ -1,4 +1,4 @@
-package bmd
+package bstd
 
 import (
 	"fmt"
@@ -9,76 +9,15 @@ import (
 	"golang.org/x/exp/constraints"
 )
 
-const (
-	Int16 byte = iota
-	Int32
-	Int64
-	UInt16
-	UInt32
-	UInt64
-	Float32
-	Float64
-	Bool
-	Byte
-	String
-	Slice
-	Map
-	ByteSlice
-)
-
-const AllowedDataTypeStartID = 14
-
-//nolint:funlen
-func GetDataTypeName(dataType byte) string {
-	switch dataType {
-	case Int16:
-		return "Int16"
-	case Int32:
-		return "Int32"
-	case Int64:
-		return "Int64"
-	case UInt16:
-		return "Uint16"
-	case UInt32:
-		return "Uint32"
-	case UInt64:
-		return "Uint64"
-	case Float32:
-		return "Float32"
-	case Float64:
-		return "Float64"
-	case Bool:
-		return "Bool"
-	case Byte:
-		return "Byte"
-	case String:
-		return "String"
-	case Slice:
-		return "Slice"
-	case Map:
-		return "Map"
-	case ByteSlice:
-		return "Byte slice"
-	default:
-		return "Invalid"
-	}
-}
-
 type SkipFunc func(n int, b []byte) (int, error)
 type UnmarshalFunc[T any] func(n int, b []byte) (int, T, error)
 
 // For unsafe string too
 func SkipString(n int, b []byte) (int, error) {
 	lb := len(b) - n
-	if lb < 2 {
+	if lb < 1 {
 		return n, benc.ErrBufTooSmall
 	}
-
-	dt := b[n]
-	if dt != String {
-		return n, fmt.Errorf("type mismatch: expected String, got %s", GetDataTypeName(dt))
-	}
-	n++
 
 	s := int(b[n])
 	n++
@@ -86,7 +25,7 @@ func SkipString(n int, b []byte) (int, error) {
 	if s != 2 && s != 4 && s != 8 {
 		return n, benc.ErrInvalidSize
 	}
-	if lb-2 < s {
+	if lb-1 < s {
 		return n, benc.ErrBufTooSmall
 	}
 
@@ -105,7 +44,7 @@ func SkipString(n int, b []byte) (int, error) {
 			uint64(u[4])<<32 | uint64(u[5])<<40 | uint64(u[6])<<48 | uint64(u[7])<<56)
 	}
 
-	if lb-s-2 < v {
+	if lb-s-1 < v {
 		return n, benc.ErrInvalidData
 	}
 
@@ -136,13 +75,10 @@ func SizeString(str string, ms ...int) (int, error) {
 		panic("[benc " + benc.BencVersion + "]: invalid `ms` provided in `SizeString`: allowed values, are: 2, 4 and 8")
 	}
 
-	return v + s + 2, nil
+	return v + s + 1, nil
 }
 
 func MarshalString(n int, b []byte, str string, ms ...int) (int, error) {
-	b[n] = String
-	n++
-
 	s := 2
 	if len(ms) == 1 {
 		s = ms[0]
@@ -194,15 +130,9 @@ func MarshalString(n int, b []byte, str string, ms ...int) (int, error) {
 
 func UnmarshalString(n int, b []byte) (int, string, error) {
 	lb := len(b) - n
-	if lb < 2 {
+	if lb < 1 {
 		return n, "", benc.ErrBufTooSmall
 	}
-
-	dt := b[n]
-	if dt != String {
-		return n, "", fmt.Errorf("type mismatch: expected String, got %s", GetDataTypeName(dt))
-	}
-	n++
 
 	s := int(b[n])
 	n++
@@ -210,7 +140,7 @@ func UnmarshalString(n int, b []byte) (int, string, error) {
 	if s != 2 && s != 4 && s != 8 {
 		return n, "", benc.ErrInvalidSize
 	}
-	if lb-2 < s {
+	if lb-1 < s {
 		return n, "", benc.ErrBufTooSmall
 	}
 
@@ -229,7 +159,7 @@ func UnmarshalString(n int, b []byte) (int, string, error) {
 			uint64(u[4])<<32 | uint64(u[5])<<40 | uint64(u[6])<<48 | uint64(u[7])<<56)
 	}
 
-	if lb-s-2 < v {
+	if lb-s-1 < v {
 		return n, "", benc.ErrInvalidData
 	}
 
@@ -270,9 +200,6 @@ func s2b(s string) []byte {
 }
 
 func MarshalUnsafeString(n int, b []byte, str string, ms ...int) (int, error) {
-	b[n] = String
-	n++
-
 	s := 2
 	if len(ms) == 1 {
 		s = ms[0]
@@ -325,15 +252,9 @@ func MarshalUnsafeString(n int, b []byte, str string, ms ...int) (int, error) {
 
 func UnmarshalUnsafeString(n int, b []byte) (int, string, error) {
 	lb := len(b) - n
-	if lb < 2 {
+	if lb < 1 {
 		return n, "", benc.ErrBufTooSmall
 	}
-
-	dt := b[n]
-	if dt != String {
-		return n, "", fmt.Errorf("type mismatch: expected String, got %s", GetDataTypeName(dt))
-	}
-	n++
 
 	s := int(b[n])
 	n++
@@ -341,7 +262,7 @@ func UnmarshalUnsafeString(n int, b []byte) (int, string, error) {
 	if s != 2 && s != 4 && s != 8 {
 		return n, "", benc.ErrInvalidSize
 	}
-	if lb-2 < s {
+	if lb-1 < s {
 		return n, "", benc.ErrBufTooSmall
 	}
 
@@ -363,7 +284,7 @@ func UnmarshalUnsafeString(n int, b []byte) (int, string, error) {
 	if v == 0 {
 		return n + s, "", nil
 	}
-	if lb-s-2 < v {
+	if lb-s-1 < v {
 		return n, "", benc.ErrInvalidData
 	}
 
@@ -376,15 +297,9 @@ func UnmarshalUnsafeString(n int, b []byte) (int, string, error) {
 
 func SkipSlice(n int, b []byte, skipper SkipFunc) (int, error) {
 	lb := len(b) - n
-	if lb < 2 {
+	if lb < 1 {
 		return n, benc.ErrBufTooSmall
 	}
-
-	dt := b[n]
-	if dt != Slice {
-		return n, fmt.Errorf("type mismatch: expected Slice, got %s", GetDataTypeName(dt))
-	}
-	n++
 
 	s := int(b[n])
 	n++
@@ -392,7 +307,7 @@ func SkipSlice(n int, b []byte, skipper SkipFunc) (int, error) {
 	if s != 2 && s != 4 && s != 8 {
 		return n, benc.ErrInvalidSize
 	}
-	if lb-2 < s {
+	if lb-1 < s {
 		return n, benc.ErrBufTooSmall
 	}
 
@@ -411,7 +326,7 @@ func SkipSlice(n int, b []byte, skipper SkipFunc) (int, error) {
 			uint64(u[4])<<32 | uint64(u[5])<<40 | uint64(u[6])<<48 | uint64(u[7])<<56)
 	}
 
-	if lb-s-2 < v {
+	if lb-s-1 < v {
 		return n, benc.ErrInvalidData
 	}
 
@@ -472,13 +387,10 @@ func SizeSlice[T any](slice []T, sizer interface{}, ms ...int) (int, error) {
 		}
 	}
 
-	return s + 2, nil
+	return s + 1, nil
 }
 
 func MarshalSlice[T any](n int, b []byte, slice []T, marshaler interface{}, ms ...int) (int, error) {
-	b[n] = Slice
-	n++
-
 	s := 2
 	if len(ms) == 1 {
 		s = ms[0]
@@ -550,15 +462,9 @@ func MarshalSlice[T any](n int, b []byte, slice []T, marshaler interface{}, ms .
 
 func UnmarshalSlice[T any](n int, b []byte, unmarshaler UnmarshalFunc[T]) (int, []T, error) {
 	lb := len(b) - n
-	if lb < 2 {
+	if lb < 1 {
 		return n, nil, benc.ErrBufTooSmall
 	}
-
-	dt := b[n]
-	if dt != Slice {
-		return n, nil, fmt.Errorf("type mismatch: expected Slice, got %s", GetDataTypeName(dt))
-	}
-	n++
 
 	s := int(b[n])
 	n++
@@ -566,7 +472,7 @@ func UnmarshalSlice[T any](n int, b []byte, unmarshaler UnmarshalFunc[T]) (int, 
 	if s != 2 && s != 4 && s != 8 {
 		return n, nil, benc.ErrInvalidSize
 	}
-	if lb-2 < s {
+	if lb-1 < s {
 		return n, nil, benc.ErrBufTooSmall
 	}
 
@@ -585,7 +491,7 @@ func UnmarshalSlice[T any](n int, b []byte, unmarshaler UnmarshalFunc[T]) (int, 
 			uint64(u[4])<<32 | uint64(u[5])<<40 | uint64(u[6])<<48 | uint64(u[7])<<56)
 	}
 
-	if lb-s-2 < v {
+	if lb-s-1 < v {
 		return n, nil, benc.ErrInvalidData
 	}
 
@@ -608,19 +514,11 @@ func UnmarshalSlice[T any](n int, b []byte, unmarshaler UnmarshalFunc[T]) (int, 
 	return n, ts, nil
 }
 
-// TODO: Do the max size thing wingy
-
 func SkipMap(n int, b []byte, kSkipper SkipFunc, vSkipper SkipFunc) (int, error) {
 	lb := len(b) - n
-	if lb < 2 {
+	if lb < 1 {
 		return n, benc.ErrBufTooSmall
 	}
-
-	dt := b[n]
-	if dt != Map {
-		return n, fmt.Errorf("type mismatch: expected Map, got %s", GetDataTypeName(dt))
-	}
-	n++
 
 	s := int(b[n])
 	n++
@@ -628,7 +526,7 @@ func SkipMap(n int, b []byte, kSkipper SkipFunc, vSkipper SkipFunc) (int, error)
 	if s != 2 && s != 4 && s != 8 {
 		return n, benc.ErrInvalidSize
 	}
-	if lb-2 < s {
+	if lb-1 < s {
 		return n, benc.ErrBufTooSmall
 	}
 
@@ -647,7 +545,7 @@ func SkipMap(n int, b []byte, kSkipper SkipFunc, vSkipper SkipFunc) (int, error)
 			uint64(u[4])<<32 | uint64(u[5])<<40 | uint64(u[6])<<48 | uint64(u[7])<<56)
 	}
 
-	if lb-s-2 < v {
+	if lb-s-1 < v {
 		return n, benc.ErrInvalidData
 	}
 
@@ -734,13 +632,10 @@ func SizeMap[K comparable, V any](m map[K]V, kSizer interface{}, vSizer interfac
 		i++
 	}
 
-	return s + 2, nil
+	return s + 1, nil
 }
 
 func MarshalMap[K comparable, V any](n int, b []byte, m map[K]V, kMarshaler interface{}, vMarshaler interface{}, ms ...int) (int, error) {
-	b[n] = Map
-	n++
-
 	s := 2
 	if len(ms) == 1 {
 		s = ms[0]
@@ -832,15 +727,9 @@ func MarshalMap[K comparable, V any](n int, b []byte, m map[K]V, kMarshaler inte
 
 func UnmarshalMap[K comparable, V any](n int, b []byte, kUnmarshaler UnmarshalFunc[K], vUnmarshaler UnmarshalFunc[V]) (int, map[K]V, error) {
 	lb := len(b) - n
-	if lb < 2 {
+	if lb < 1 {
 		return n, nil, benc.ErrBufTooSmall
 	}
-
-	dt := b[n]
-	if dt != Map {
-		return n, nil, fmt.Errorf("type mismatch: expected Map, got %s", GetDataTypeName(dt))
-	}
-	n++
 
 	s := int(b[n])
 	n++
@@ -848,7 +737,7 @@ func UnmarshalMap[K comparable, V any](n int, b []byte, kUnmarshaler UnmarshalFu
 	if s != 2 && s != 4 && s != 8 {
 		return n, nil, benc.ErrInvalidSize
 	}
-	if lb-2 < s {
+	if lb-1 < s {
 		return n, nil, benc.ErrBufTooSmall
 	}
 
@@ -867,7 +756,7 @@ func UnmarshalMap[K comparable, V any](n int, b []byte, kUnmarshaler UnmarshalFu
 			uint64(u[4])<<32 | uint64(u[5])<<40 | uint64(u[6])<<48 | uint64(u[7])<<56)
 	}
 
-	if lb-s-2 < v {
+	if lb-s-1 < v {
 		return n, nil, benc.ErrInvalidData
 	}
 
@@ -899,35 +788,25 @@ func UnmarshalMap[K comparable, V any](n int, b []byte, kUnmarshaler UnmarshalFu
 //
 
 func SkipByte(n int, b []byte) (int, error) {
-	if len(b)-n < 2 {
+	if len(b)-n < 1 {
 		return n, benc.ErrBufTooSmall
 	}
-	dt := b[n]
-	if dt != Byte {
-		return n, fmt.Errorf("type mismatch: expected Byte, got %s", GetDataTypeName(dt))
-	}
-	return n + 2, nil
+	return n + 1, nil
 }
 
 func SizeByte() int {
-	return 2
+	return 1
 }
 
 func MarshalByte(n int, b []byte, byt byte) int {
-	b[n] = Byte
-	b[n+1] = byt
-	return n + 2
+	b[n] = byt
+	return n + 1
 }
 
 func UnmarshalByte(n int, b []byte) (int, byte, error) {
-	if len(b)-n < 2 {
+	if len(b)-n < 1 {
 		return n, 0, benc.ErrBufTooSmall
 	}
-	dt := b[n]
-	if dt != Byte {
-		return n, 0, fmt.Errorf("type mismatch: expected Byte, got %s", GetDataTypeName(dt))
-	}
-	n++
 	return n + 1, b[n], nil
 }
 
@@ -935,15 +814,9 @@ func UnmarshalByte(n int, b []byte) (int, byte, error) {
 
 func SkipByteSlice(n int, b []byte) (int, error) {
 	lb := len(b) - n
-	if lb < 2 {
+	if lb < 1 {
 		return n, benc.ErrBufTooSmall
 	}
-
-	dt := b[n]
-	if dt != ByteSlice {
-		return n, fmt.Errorf("type mismatch: expected ByteSlice, got %s", GetDataTypeName(dt))
-	}
-	n++
 
 	s := int(b[n])
 	n++
@@ -951,7 +824,7 @@ func SkipByteSlice(n int, b []byte) (int, error) {
 	if s != 2 && s != 4 && s != 8 {
 		return n, benc.ErrInvalidSize
 	}
-	if lb-2 < s {
+	if lb-1 < s {
 		return n, benc.ErrBufTooSmall
 	}
 
@@ -970,7 +843,7 @@ func SkipByteSlice(n int, b []byte) (int, error) {
 			uint64(u[4])<<32 | uint64(u[5])<<40 | uint64(u[6])<<48 | uint64(u[7])<<56)
 	}
 
-	if lb-s-2 < v {
+	if lb-s-1 < v {
 		return n, benc.ErrInvalidData
 	}
 
@@ -1000,13 +873,10 @@ func SizeByteSlice(bs []byte, ms ...int) (int, error) {
 		panic("[benc " + benc.BencVersion + "]: invalid `ms` provided in `SizeByteSlice`: allowed values, are: 2, 4 and 8")
 	}
 
-	return v + s + 2, nil
+	return v + s + 1, nil
 }
 
 func MarshalByteSlice(n int, b []byte, bs []byte, ms ...int) (int, error) {
-	b[n] = ByteSlice
-	n++
-
 	s := 2
 	if len(ms) == 1 {
 		s = ms[0]
@@ -1059,15 +929,9 @@ func MarshalByteSlice(n int, b []byte, bs []byte, ms ...int) (int, error) {
 
 func UnmarshalByteSlice(n int, b []byte) (int, []byte, error) {
 	lb := len(b) - n
-	if lb < 2 {
+	if lb < 1 {
 		return n, nil, benc.ErrBufTooSmall
 	}
-
-	dt := b[n]
-	if dt != ByteSlice {
-		return n, nil, fmt.Errorf("type mismatch: expected ByteSlice, got %s", GetDataTypeName(dt))
-	}
-	n++
 
 	s := int(b[n])
 	n++
@@ -1075,7 +939,7 @@ func UnmarshalByteSlice(n int, b []byte) (int, []byte, error) {
 	if s != 2 && s != 4 && s != 8 {
 		return n, nil, benc.ErrInvalidSize
 	}
-	if lb-2 < s {
+	if lb-1 < s {
 		return n, nil, benc.ErrBufTooSmall
 	}
 
@@ -1094,7 +958,7 @@ func UnmarshalByteSlice(n int, b []byte) (int, []byte, error) {
 			uint64(u[4])<<32 | uint64(u[5])<<40 | uint64(u[6])<<48 | uint64(u[7])<<56)
 	}
 
-	if lb-s-2 < v {
+	if lb-s-1 < v {
 		return n, nil, benc.ErrInvalidData
 	}
 
@@ -1105,24 +969,17 @@ func UnmarshalByteSlice(n int, b []byte) (int, []byte, error) {
 //
 
 func SkipUInt64(n int, b []byte) (int, error) {
-	if len(b)-n < 9 {
+	if len(b)-n < 8 {
 		return n, benc.ErrBufTooSmall
 	}
-	dt := b[n]
-	if dt != UInt64 {
-		return n, fmt.Errorf("type mismatch: expected Uint64, got %s", GetDataTypeName(dt))
-	}
-	return n + 9, nil
+	return n + 8, nil
 }
 
 func SizeUInt64() int {
-	return 9
+	return 8
 }
 
 func MarshalUInt64(n int, b []byte, v uint64) int {
-	b[n] = UInt64
-	n++
-
 	u := b[n : n+8]
 	_ = u[7]
 	u[0] = byte(v)
@@ -1137,14 +994,9 @@ func MarshalUInt64(n int, b []byte, v uint64) int {
 }
 
 func UnmarshalUInt64(n int, b []byte) (int, uint64, error) {
-	if len(b)-n < 9 {
+	if len(b)-n < 8 {
 		return n, 0, benc.ErrBufTooSmall
 	}
-	dt := b[n]
-	if dt != UInt64 {
-		return n, 0, fmt.Errorf("type mismatch: expected Uint64, got %s", GetDataTypeName(dt))
-	}
-	n++
 	u := b[n : n+8]
 	_ = u[7]
 	v := uint64(u[0]) | uint64(u[1])<<8 | uint64(u[2])<<16 | uint64(u[3])<<24 |
@@ -1155,24 +1007,17 @@ func UnmarshalUInt64(n int, b []byte) (int, uint64, error) {
 //
 
 func SkipUInt32(n int, b []byte) (int, error) {
-	if len(b)-n < 5 {
+	if len(b)-n < 4 {
 		return n, benc.ErrBufTooSmall
 	}
-	dt := b[n]
-	if dt != UInt32 {
-		return n, fmt.Errorf("type mismatch: expected Uint32, got %s", GetDataTypeName(dt))
-	}
-	return n + 5, nil
+	return n + 4, nil
 }
 
 func SizeUInt32() int {
-	return 5
+	return 4
 }
 
 func MarshalUInt32(n int, b []byte, v uint32) int {
-	b[n] = UInt32
-	n++
-
 	u := b[n : n+4]
 	_ = u[3]
 	u[0] = byte(v)
@@ -1183,14 +1028,9 @@ func MarshalUInt32(n int, b []byte, v uint32) int {
 }
 
 func UnmarshalUInt32(n int, b []byte) (int, uint32, error) {
-	if len(b)-n < 5 {
+	if len(b)-n < 4 {
 		return n, 0, benc.ErrBufTooSmall
 	}
-	dt := b[n]
-	if dt != UInt32 {
-		return n, 0, fmt.Errorf("type mismatch: expected Uint32, got %s", GetDataTypeName(dt))
-	}
-	n++
 	u := b[n : n+4]
 	_ = u[3]
 	v := uint32(u[0]) | uint32(u[1])<<8 | uint32(u[2])<<16 | uint32(u[3])<<24
@@ -1200,24 +1040,17 @@ func UnmarshalUInt32(n int, b []byte) (int, uint32, error) {
 //
 
 func SkipUInt16(n int, b []byte) (int, error) {
-	if len(b)-n < 3 {
+	if len(b)-n < 2 {
 		return n, benc.ErrBufTooSmall
 	}
-	dt := b[n]
-	if dt != UInt16 {
-		return n, fmt.Errorf("type mismatch: expected Uint16, got %s", GetDataTypeName(dt))
-	}
-	return n + 3, nil
+	return n + 2, nil
 }
 
 func SizeUInt16() int {
-	return 3
+	return 2
 }
 
 func MarshalUInt16(n int, b []byte, v uint16) int {
-	b[n] = UInt16
-	n++
-
 	u := b[n : n+2]
 	_ = u[1]
 	u[0] = byte(v)
@@ -1226,14 +1059,9 @@ func MarshalUInt16(n int, b []byte, v uint16) int {
 }
 
 func UnmarshalUInt16(n int, b []byte) (int, uint16, error) {
-	if len(b)-n < 3 {
+	if len(b)-n < 2 {
 		return n, 0, benc.ErrBufTooSmall
 	}
-	dt := b[n]
-	if dt != UInt16 {
-		return n, 0, fmt.Errorf("type mismatch: expected Uint16, got %s", GetDataTypeName(dt))
-	}
-	n++
 	u := b[n : n+2]
 	_ = u[1]
 	v := uint16(u[0]) | uint16(u[1])<<8
@@ -1243,24 +1071,17 @@ func UnmarshalUInt16(n int, b []byte) (int, uint16, error) {
 //
 
 func SkipInt64(n int, b []byte) (int, error) {
-	if len(b)-n < 9 {
+	if len(b)-n < 8 {
 		return n, benc.ErrBufTooSmall
 	}
-	dt := b[n]
-	if dt != Int64 {
-		return n, fmt.Errorf("type mismatch: expected Int64, got %s", GetDataTypeName(dt))
-	}
-	return n + 9, nil
+	return n + 8, nil
 }
 
 func SizeInt64() int {
-	return 9
+	return 8
 }
 
 func MarshalInt64(n int, b []byte, v int64) int {
-	b[n] = Int64
-	n++
-
 	v64 := uint64(EncodeZigZag(v))
 	u := b[n : n+8]
 	_ = u[7]
@@ -1276,14 +1097,9 @@ func MarshalInt64(n int, b []byte, v int64) int {
 }
 
 func UnmarshalInt64(n int, b []byte) (int, int64, error) {
-	if len(b)-n < 9 {
+	if len(b)-n < 8 {
 		return n, 0, benc.ErrBufTooSmall
 	}
-	dt := b[n]
-	if dt != Int64 {
-		return n, 0, fmt.Errorf("type mismatch: expected Int64, got %s", GetDataTypeName(dt))
-	}
-	n++
 	u := b[n : n+8]
 	_ = u[7]
 	v := uint64(u[0]) | uint64(u[1])<<8 | uint64(u[2])<<16 | uint64(u[3])<<24 |
@@ -1294,24 +1110,17 @@ func UnmarshalInt64(n int, b []byte) (int, int64, error) {
 //
 
 func SkipInt32(n int, b []byte) (int, error) {
-	if len(b)-n < 5 {
+	if len(b)-n < 4 {
 		return n, benc.ErrBufTooSmall
 	}
-	dt := b[n]
-	if dt != Int32 {
-		return n, fmt.Errorf("type mismatch: expected Int32, got %s", GetDataTypeName(dt))
-	}
-	return n + 5, nil
+	return n + 4, nil
 }
 
 func SizeInt32() int {
-	return 5
+	return 4
 }
 
 func MarshalInt32(n int, b []byte, v int32) int {
-	b[n] = Int32
-	n++
-
 	v32 := uint32(EncodeZigZag(v))
 	u := b[n : n+4]
 	_ = u[3]
@@ -1323,14 +1132,9 @@ func MarshalInt32(n int, b []byte, v int32) int {
 }
 
 func UnmarshalInt32(n int, b []byte) (int, int32, error) {
-	if len(b)-n < 5 {
+	if len(b)-n < 4 {
 		return n, 0, benc.ErrBufTooSmall
 	}
-	dt := b[n]
-	if dt != Int32 {
-		return n, 0, fmt.Errorf("type mismatch: expected Int32, got %s", GetDataTypeName(dt))
-	}
-	n++
 	u := b[n : n+4]
 	_ = u[3]
 	v := uint32(u[0]) | uint32(u[1])<<8 | uint32(u[2])<<16 | uint32(u[3])<<24
@@ -1340,24 +1144,17 @@ func UnmarshalInt32(n int, b []byte) (int, int32, error) {
 //
 
 func SkipInt16(n int, b []byte) (int, error) {
-	if len(b)-n < 3 {
+	if len(b)-n < 2 {
 		return n, benc.ErrBufTooSmall
 	}
-	dt := b[n]
-	if dt != Int16 {
-		return n, fmt.Errorf("type mismatch: expected Int16, got %s", GetDataTypeName(dt))
-	}
-	return n + 3, nil
+	return n + 2, nil
 }
 
 func SizeInt16() int {
-	return 3
+	return 2
 }
 
 func MarshalInt16(n int, b []byte, v int16) int {
-	b[n] = Int16
-	n++
-
 	v16 := uint16(EncodeZigZag(v))
 	u := b[n : n+2]
 	_ = u[1]
@@ -1367,14 +1164,9 @@ func MarshalInt16(n int, b []byte, v int16) int {
 }
 
 func UnmarshalInt16(n int, b []byte) (int, int16, error) {
-	if len(b)-n < 3 {
+	if len(b)-n < 2 {
 		return n, 0, benc.ErrBufTooSmall
 	}
-	dt := b[n]
-	if dt != Int16 {
-		return n, 0, fmt.Errorf("type mismatch: expected Int16, got %s", GetDataTypeName(dt))
-	}
-	n++
 	u := b[n : n+2]
 	_ = u[1]
 	v := uint16(u[0]) | uint16(u[1])<<8
@@ -1384,24 +1176,17 @@ func UnmarshalInt16(n int, b []byte) (int, int16, error) {
 //
 
 func SkipFloat64(n int, b []byte) (int, error) {
-	if len(b)-n < 9 {
+	if len(b)-n < 8 {
 		return n, benc.ErrBufTooSmall
 	}
-	dt := b[n]
-	if dt != Float64 {
-		return n, fmt.Errorf("type mismatch: expected Float64, got %s", GetDataTypeName(dt))
-	}
-	return n + 9, nil
+	return n + 8, nil
 }
 
 func SizeFloat64() int {
-	return 9
+	return 8
 }
 
 func MarshalFloat64(n int, b []byte, v float64) int {
-	b[n] = Float64
-	n++
-
 	v64 := math.Float64bits(v)
 	u := b[n : n+8]
 	_ = u[7]
@@ -1417,14 +1202,9 @@ func MarshalFloat64(n int, b []byte, v float64) int {
 }
 
 func UnmarshalFloat64(n int, b []byte) (int, float64, error) {
-	if len(b)-n < 9 {
+	if len(b)-n < 8 {
 		return n, 0, benc.ErrBufTooSmall
 	}
-	dt := b[n]
-	if dt != Float64 {
-		return n, 0, fmt.Errorf("type mismatch: expected Float64, got %s", GetDataTypeName(dt))
-	}
-	n++
 	u := b[n : n+8]
 	_ = u[7]
 	v := uint64(u[0]) | uint64(u[1])<<8 | uint64(u[2])<<16 | uint64(u[3])<<24 |
@@ -1435,24 +1215,17 @@ func UnmarshalFloat64(n int, b []byte) (int, float64, error) {
 //
 
 func SkipFloat32(n int, b []byte) (int, error) {
-	if len(b)-n < 5 {
+	if len(b)-n < 4 {
 		return n, benc.ErrBufTooSmall
 	}
-	dt := b[n]
-	if dt != Float32 {
-		return n, fmt.Errorf("type mismatch: expected Float32, got %s", GetDataTypeName(dt))
-	}
-	return n + 5, nil
+	return n + 4, nil
 }
 
 func SizeFloat32() int {
-	return 5
+	return 4
 }
 
 func MarshalFloat32(n int, b []byte, v float32) int {
-	b[n] = Float32
-	n++
-
 	v32 := math.Float32bits(v)
 	u := b[n : n+4]
 	_ = u[3]
@@ -1464,14 +1237,9 @@ func MarshalFloat32(n int, b []byte, v float32) int {
 }
 
 func UnmarshalFloat32(n int, b []byte) (int, float32, error) {
-	if len(b)-n < 5 {
+	if len(b)-n < 4 {
 		return n, 0, benc.ErrBufTooSmall
 	}
-	dt := b[n]
-	if dt != Float32 {
-		return n, 0, fmt.Errorf("type mismatch: expected Float32, got %s", GetDataTypeName(dt))
-	}
-	n++
 	u := b[n : n+4]
 	_ = u[3]
 	v := uint32(u[0]) | uint32(u[1])<<8 | uint32(u[2])<<16 | uint32(u[3])<<24
@@ -1481,23 +1249,17 @@ func UnmarshalFloat32(n int, b []byte) (int, float32, error) {
 //
 
 func SkipBool(n int, b []byte) (int, error) {
-	if len(b)-n < 2 {
+	if len(b)-n < 1 {
 		return n, benc.ErrBufTooSmall
 	}
-	dt := b[n]
-	if dt != Bool {
-		return n, fmt.Errorf("type mismatch: expected Bool, got %s", GetDataTypeName(dt))
-	}
-	return n + 2, nil
+	return n + 1, nil
 }
 
 func SizeBool() int {
-	return 2
+	return 1
 }
 
 func MarshalBool(n int, b []byte, v bool) int {
-	b[n] = Bool
-	n++
 	var i byte
 	if v {
 		i = 1
@@ -1507,14 +1269,9 @@ func MarshalBool(n int, b []byte, v bool) int {
 }
 
 func UnmarshalBool(n int, b []byte) (int, bool, error) {
-	if len(b)-n < 2 {
+	if len(b)-n < 1 {
 		return n, false, benc.ErrBufTooSmall
 	}
-	dt := b[n]
-	if dt != Bool {
-		return n, false, fmt.Errorf("type mismatch: expected Bool, got %s", GetDataTypeName(dt))
-	}
-	n++
 	return n + 1, uint8(b[n]) == 1, nil
 }
 

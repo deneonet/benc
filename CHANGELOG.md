@@ -1,20 +1,35 @@
 ## Changelog
 
-#### See you in v1.0.7 :]
+#### See you in v1.1.0 :]
 
-- v1.0.6 to v1.0.7 - enhancement
+- v1.0.9 - refactors
+  - removed `btag`
+  - removed `bunsafe`, use `bstd.MarshalUnsafeString` and `bstd.UnmarshalUnsafeString` instead
+  - removed `bpre`, [how to use buffer reuse in v1.0.9?](README.md#buffer-reuse)
+  - added maxsize to string, byte slice and map: support now a size over `math.MaxUint16`
+  - removed `bstd.MaxSizeUint16`, `bstd.MaxSizeUint32` and `bstd.MaxSizeInt64`, instead use `benc.Bytes2`, `benc.Bytes4`, `benc.Bytes8`
+  - removed `bstd.SizeInt`, `bstd.MarshalInt`, `bstd.UnmarshalInt`, use `bstd.SizeInt64`, `bstd.MarshalInt64`, `bstd.UnmarshalInt64` (same for uint), because int and int64 in benc was the same, which is misleading
+  - moved `bstd.Marshal`, `bstd.MarshalMF`, `bstd.UnmarshalMF`, `bstd.VerifyMarshal`, `bstd.VerifyUnmarshal` into `benc` package
+  - expanded tests to a coverage of ~85%, view `tests` folder
+  - made all unmarshal and skips error-prone (so no panics, look at the tests and test coverage: `tests` folder)
+  - better error message (from panics and returned errors)
+  - [now fully compatible with custom marshal and unmarshal functions, even with data type validation](README.md#custom-marshal-and-unmarshal-1)
+
+- v1.0.8 - pull request
+
+- v1.0.7 - enhancement
  - adding the option to set the maximum size of a slice in sizing/encoding/decoding
 
-- v1.0.5 to v1.0.6 - bug fix
+- v1.0.6 - bug fix
   - bug fix in the byte slice unmarshal
 
-- v1.0.4 to v1.0.5 - bug fixes + improvements
+- v1.0.5 - bug fixes + improvements
   - fixed btag message framing not working
   - faster unsafe string conversion
     - replaced deprecated reflect.StringHeader and reflect.SliceHeader
     - fixed unsafe rule violation
 
-- v1.0.3 to v1.0.4 - bug fixes + new features + improvements
+- v1.0.4 - bug fixes + new features + improvements
   - fixed message framing bugs
   - added to be able to skip a data type in the unmarshal process, e.g. `bstd.SkipString(...)`
     - added out-of-order deserialization
@@ -29,7 +44,7 @@
   - replaced `bstd.UnmarshalStringTag(...)` with `btag.SUnmarshal(...)`
   - replaced `bstd.UnmarshalUIntTag(...)` with `btag.UUnmarshal(...)`
 
-- v1.0.2 to v1.0.3 - new features
+- v1.0.3 - new features
   - added custom tags to a marshal, `btag.SMarshal(s)` for string tag, `btag.UMarshal(s)` for uint16 tag (more
     performant),
       append a MF at the end of these functions to get the message framing marshal
@@ -37,7 +52,7 @@
     - function inline (done)
   - `bstd.MFUnmarshal(s)` to `bstd.UnmarshalMF(s)`, `bstd.MFFinish()` to `bstd.FinishMF(s)`, etc.
 
-- v1.0.1 to v1.0.2 - new features + improvements
+- v1.0.2 - new features + improvements
   - added zero memory allocation string to byte slice (and back) conversion, `bunsafe.MarshalString()`
     and `bunsafe.UnmarshalString()`
   - removed that all Size functions require 1 argument: T (expect string), e.g. `bstd.SizeUInt16()`,
@@ -45,7 +60,7 @@
   - added pre-allocation (message framing not done yet, v1.0.3 fix), `bpre.Marshal(maxSize)`
     - function inline (not done yet), e.g. inlining binary calls
 
-- v1 to v1.0.1 - new features + improvements
+- v1.0.1 - new features + improvements
   - benc -> bstd, e.g. `benc.Marshal(s)` to `bstd.Marshal(s)`
   - all Size function requires 1 argument T (going to be removed again in v1.0.2), e.g. `bstd.SizeUInt16(0)`,
     before: `bstd.SizeUInt16()`
