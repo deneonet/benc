@@ -10,8 +10,8 @@
   - removed `bstd.MaxSizeUint16`, `bstd.MaxSizeUint32` and `bstd.MaxSizeInt64`, instead use `benc.Bytes2`, `benc.Bytes4`, `benc.Bytes8`
   - removed `bstd.SizeInt`, `bstd.MarshalInt`, `bstd.UnmarshalInt`, use `bstd.SizeInt64`, `bstd.MarshalInt64`, `bstd.UnmarshalInt64` (same for uint), because int and int64 in benc was the same, which is misleading
   - moved `bstd.Marshal`, `bstd.MarshalMF`, `bstd.UnmarshalMF`, `bstd.VerifyMarshal`, `bstd.VerifyUnmarshal` into `benc` package
-  - expanded tests to a coverage of ~85%, view `tests` folder
-  - made all unmarshal and skips error-prone (so no panics, look at the tests and test coverage: `tests` folder)
+  - expanded tests to a coverage of ~85%
+  - made all unmarshal and skips error-prone (so no panics, view the tests)
   - better error message (from panics and returned errors)
   - [now fully compatible with custom marshal and unmarshal functions, even with data type validation](https://github.com/deneonet/benc/tree/main?tab=readme-ov-file#custom-marshal-and-unmarshal-1)
 
