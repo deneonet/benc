@@ -5,13 +5,14 @@ import (
 	"sync"
 )
 
+var ErrBufTooSmall = errors.New("buffer too small")
+var ErrInvalidData = errors.New("decoded size is too big")
+var ErrDataTooBig = errors.New("data too big for max size")
 var ErrReuseBufTooSmall = errors.New("reuse buffer too small")
-var ErrInvalidData = errors.New("received size is bigger than the given buffer")
-var ErrBufTooSmall = errors.New("insufficient data, given buffer is too small")
-var ErrInvalidSize = errors.New("received size is invalid, neither 2, 4 nor 8")
-var ErrDataTooBig = errors.New("received data is too big for max size")
+var ErrOverflow = errors.New("varint overflows a 64-bit integer")
+var ErrInvalidSize = errors.New("decoded size is invalid, neither 2, 4 nor 8")
 
-const BencVersion = "v1.0.9"
+const BencVersion = "v1.1.0"
 
 const (
 	Bytes2 int = 2
@@ -84,6 +85,36 @@ func (bp *BufPool) Marshal(s int, f func(b []byte) (n int)) ([]byte, error) {
 // s = size of the data in bytes, retrieved by using the benc `Size...` methods
 func Marshal(s int) (int, []byte) {
 	return 0, make([]byte, s)
+}
+
+type Container interface {
+	Size(id uint16) (int, error)
+	Marshal(n int, b []byte, id uint16) (int, error)
+	Unmarshal(n int, b []byte, id uint16) (int, error)
+}
+
+// Marshals a benc container, which is generated using bencgen
+//
+// c = the container
+func MarshalCtr(c Container) (b []byte, err error) {
+	s, err := c.Size(0)
+	if err != nil {
+		return nil, err
+	}
+
+	b = make([]byte, s)
+	if _, err = c.Marshal(0, b, 0); err != nil {
+		return
+	}
+	return
+}
+
+// Unmarshals a benc container, which is generated using bencgen
+//
+// c = the container, b = the bytes to unmarshal
+func UnmarshalCtr(b []byte, c Container) (err error) {
+	_, err = c.Unmarshal(0, b, 0)
+	return
 }
 
 // Verifies that the length of the buffer equals n

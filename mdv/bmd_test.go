@@ -1,4 +1,4 @@
-package bstd
+package bmd
 
 import (
 	"bytes"
@@ -7,9 +7,10 @@ import (
 	"math"
 	"math/rand"
 	"reflect"
+	"strings"
 	"testing"
 
-	"github.com/deneonet/benc"
+	"go.kine.bz/benc"
 )
 
 func SizeAll(sizers ...func() int) int {
@@ -62,6 +63,7 @@ func MarshalAll(s int, values []any, marshals ...func(n int, b []byte, v any) in
 		}
 	}
 	if n != len(b) {
+		fmt.Println(n, len(b))
 		return nil, errors.New("marshal failed: something doesn't match in the marshal- and size progrss")
 	}
 	return b, nil
@@ -103,6 +105,18 @@ func SkipAll_VerifyError(expected error, buffers [][]byte, skipers ...func(n int
 		_, err = skiper(0, buffers[i])
 		if err != expected {
 			return fmt.Errorf("(skip) at idx %d: expected a %s error", i, expected)
+		}
+	}
+	return nil
+}
+
+func Verify_Metadata(buf []byte, unmarshals []func(n int, b []byte) (int, any, error)) error {
+	var err error
+	for i, unmarshaler := range unmarshals {
+		MarshalBool(0, buf, true)
+		_, _, err = unmarshaler(0, buf)
+		if err == nil || !strings.HasPrefix(err.Error(), "type mismatch") {
+			return fmt.Errorf("(metadata) at idx %d: expected a type mismatch error", i)
 		}
 	}
 	return nil
@@ -196,8 +210,37 @@ func TestDataTypes(t *testing.T) {
 	}
 }
 
+func TestDataTypes_Metadata(t *testing.T) {
+	buf := make([]byte, 64)
+
+	unmarshals := []func(n int, b []byte) (int, any, error){
+		func(n int, b []byte) (int, any, error) { return UnmarshalByte(n, b) },
+		func(n int, b []byte) (int, any, error) { return UnmarshalFloat32(n, b) },
+		func(n int, b []byte) (int, any, error) { return UnmarshalFloat64(n, b) },
+		func(n int, b []byte) (int, any, error) { return UnmarshalInt16(n, b) },
+		func(n int, b []byte) (int, any, error) { return UnmarshalInt32(n, b) },
+		func(n int, b []byte) (int, any, error) { return UnmarshalInt64(n, b) },
+		func(n int, b []byte) (int, any, error) { return UnmarshalUInt16(n, b) },
+		func(n int, b []byte) (int, any, error) { return UnmarshalUInt32(n, b) },
+		func(n int, b []byte) (int, any, error) { return UnmarshalUInt64(n, b) },
+		func(n int, b []byte) (int, any, error) { return UnmarshalString(n, b) },
+		func(n int, b []byte) (int, any, error) { return UnmarshalUnsafeString(n, b) },
+		func(n int, b []byte) (int, any, error) { return UnmarshalByteSlice(n, b) },
+	}
+
+	if err := Verify_Metadata(buf, unmarshals); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	_ = MarshalByte(0, buf, 128)
+	_, _, err := UnmarshalBool(0, buf)
+	if err == nil || !strings.HasPrefix(err.Error(), "type mismatch") {
+		t.Fatal("(metadata) at bool: expected a type mismatch error")
+	}
+}
+
 func TestErrBufTooSmall(t *testing.T) {
-	buffers := [][]byte{{}, {}, {1, 2, 3}, {1, 2, 3, 4, 5, 6, 7}, {1}, {1, 2, 3}, {1, 2, 3, 4, 5, 6, 7}, {1}, {1, 2, 3}, {1, 2, 3, 4, 5, 6, 7}, {}, {2, 0}, {4, 1, 2, 3}, {8, 1, 2, 3, 4, 5, 6, 7}, {}, {2, 0}, {4, 1, 2, 3}, {8, 1, 2, 3, 4, 5, 6, 7}, {}, {2, 0}, {4, 1, 2, 3}, {8, 1, 2, 3, 4, 5, 6, 7}, {}, {2, 0}, {4, 1, 2, 3}, {8, 1, 2, 3, 4, 5, 6, 7}, {}, {2, 0}, {4, 1, 2, 3}, {8, 1, 2, 3, 4, 5, 6, 7}}
+	buffers := [][]byte{{8}, {9}, {6, 1, 2, 3}, {7, 1, 2, 3, 4, 5, 6, 7}, {0, 1}, {1, 1, 2, 3}, {2, 1, 2, 3, 4, 5, 6, 7}, {3, 1}, {4, 1, 2, 3}, {5, 1, 2, 3, 4, 5, 6, 7}, {10}, {10, 2, 0}, {10, 4, 1, 2, 3}, {10, 8, 1, 2, 3, 4, 5, 6, 7}, {10}, {10, 2, 0}, {10, 4, 1, 2, 3}, {10, 8, 1, 2, 3, 4, 5, 6, 7}, {13}, {13, 2, 0}, {13, 4, 1, 2, 3}, {13, 8, 1, 2, 3, 4, 5, 6, 7}, {11}, {11, 2, 0}, {11, 4, 1, 2, 3}, {11, 8, 1, 2, 3, 4, 5, 6, 7}, {12}, {12, 2, 0}, {12, 4, 1, 2, 3}, {12, 8, 1, 2, 3, 4, 5, 6, 7}}
 	if err := UnmarshalAll_VerifyError(benc.ErrBufTooSmall, buffers,
 		func(n int, b []byte) (int, any, error) { return UnmarshalBool(n, b) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalByte(n, b) },
@@ -241,7 +284,7 @@ func TestErrBufTooSmall(t *testing.T) {
 }
 
 func TestErrInvalidData(t *testing.T) {
-	buffers := [][]byte{{2, 1, 1}, {4, 1, 2, 3, 4}, {8, 1, 2, 3, 4, 5, 6, 7, 8}, {2, 1, 1}, {4, 1, 2, 3, 4}, {8, 1, 2, 3, 4, 5, 6, 7, 8}, {2, 1, 1}, {4, 1, 2, 3, 4}, {8, 1, 2, 3, 4, 5, 6, 7, 8}, {2, 1, 1}, {4, 1, 2, 3, 4}, {8, 1, 2, 3, 4, 5, 6, 7, 8}, {2, 1, 1}, {4, 1, 2, 3, 4}, {8, 1, 2, 3, 4, 5, 6, 7, 8}}
+	buffers := [][]byte{{10, 2, 1, 1}, {10, 4, 1, 2, 3, 4}, {10, 8, 1, 2, 3, 4, 5, 6, 7, 8}, {10, 2, 1, 1}, {10, 4, 1, 2, 3, 4}, {10, 8, 1, 2, 3, 4, 5, 6, 7, 8}, {13, 2, 1, 1}, {13, 4, 1, 2, 3, 4}, {13, 8, 1, 2, 3, 4, 5, 6, 7, 8}, {11, 2, 1, 1}, {11, 4, 1, 2, 3, 4}, {11, 8, 1, 2, 3, 4, 5, 6, 7, 8}, {12, 2, 1, 1}, {12, 4, 1, 2, 3, 4}, {12, 8, 1, 2, 3, 4, 5, 6, 7, 8}}
 	if err := UnmarshalAll_VerifyError(benc.ErrInvalidData, buffers,
 		func(n int, b []byte) (int, any, error) { return UnmarshalString(n, b) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalString(n, b) },
@@ -270,7 +313,7 @@ func TestErrInvalidData(t *testing.T) {
 }
 
 func TestErrInvalidSize(t *testing.T) {
-	buffers := [][]byte{{5}, {5}, {5}, {5}, {5}}
+	buffers := [][]byte{{10, 5}, {10, 5}, {13, 5}, {11, 5}, {12, 5}}
 	if err := UnmarshalAll_VerifyError(benc.ErrInvalidSize, buffers,
 		func(n int, b []byte) (int, any, error) { return UnmarshalString(n, b) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalUnsafeString(n, b) },

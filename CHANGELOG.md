@@ -5,7 +5,7 @@
 - v1.0.9 - refactors
   - removed `btag`
   - removed `bunsafe`, use `bstd.MarshalUnsafeString` and `bstd.UnmarshalUnsafeString` instead
-  - removed `bpre`, [how to use buffer reuse in v1.0.9?](https://github.com/deneonet/benc/tree/main?tab=readme-ov-file#buffer-reuse)
+  - removed `bpre`, [how to use buffer reuse in v1.0.9?](https://go.kine.bz/benc/tree/main?tab=readme-ov-file#buffer-reuse)
   - added maxsize to string, byte slice and map: support now a size over `math.MaxUint16`
   - removed `bstd.MaxSizeUint16`, `bstd.MaxSizeUint32` and `bstd.MaxSizeInt64`, instead use `benc.Bytes2`, `benc.Bytes4`, `benc.Bytes8`
   - removed `bstd.SizeInt`, `bstd.MarshalInt`, `bstd.UnmarshalInt`, use `bstd.SizeInt64`, `bstd.MarshalInt64`, `bstd.UnmarshalInt64` (same for uint), because int and int64 in benc was the same, which is misleading
@@ -13,7 +13,7 @@
   - expanded tests to a coverage of ~85%
   - made all unmarshal and skips error-prone (so no panics, view the tests)
   - better error message (from panics and returned errors)
-  - [now fully compatible with custom marshal and unmarshal functions, even with data type validation](https://github.com/deneonet/benc/tree/main?tab=readme-ov-file#custom-marshal-and-unmarshal-1)
+  - [now fully compatible with custom marshal and unmarshal functions, even with data type validation](https://go.kine.bz/benc/tree/main?tab=readme-ov-file#custom-marshal-and-unmarshal-1)
 
 - v1.0.8 - pull request
 
