@@ -8,11 +8,12 @@ import (
 	bstd "go.kine.bz/benc/std"
 )
 
-var ErrEof = errors.New("eof: reached end of decoding")
-var ErrInvalidType = errors.New("the type decoded is invalid, and can't be used")
+var ErrEof = errors.New("reached end of decoding")
+var ErrInvalidType = errors.New("the type decoded is invalid")
 
 const (
 	Container byte = iota + 2
+	Array
 	Bytes
 	Fixed8
 	Fixed16
@@ -25,6 +26,8 @@ func skipByType(tn int, b []byte, t byte) (n int, err error) {
 	switch t {
 	case Bytes:
 		n, err = bstd.SkipBytes(n, b)
+	case Array:
+		n, err = bstd.SkipSlice(n, b)
 	case Container:
 		for b[n] != 1 || b[n+1] != 1 {
 			n, _, t, err = UnmarshalTag(n, b)

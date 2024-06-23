@@ -1,21 +1,17 @@
 package utils
 
 import (
-	"strings"
-
-	"go.kine.bz/benc/cmd/bencgen/lexer"
 	"go.kine.bz/benc/cmd/bencgen/parser"
 )
 
-func FormatType(f parser.Field) string {
-	array := ""
-	if f.IsArray {
-		array = "[]"
+func FormatType(t *parser.Type) string {
+	if t.IsArray {
+		return "[]" + FormatType(t.Type)
 	}
 
-	if f.Type == lexer.CTR {
-		return array + f.CtrName
+	if t.CtrName != "" {
+		return t.CtrName
 	}
 
-	return array + strings.ToLower(f.Type.String())
+	return t.UT.Golang()
 }

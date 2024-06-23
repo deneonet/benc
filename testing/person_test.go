@@ -1,15 +1,14 @@
 //go:generate bencgen --in schemas/person.benc --out generated/person --lang go
 //go:generate bencgen --in schemas/person2.benc --out generated/person2 --lang go
 
-package bfc
+package tests
 
 import (
 	"reflect"
 	"testing"
 
-	"go.kine.bz/benc"
-	"go.kine.bz/benc/testing/bfc/generated/person"
-	"go.kine.bz/benc/testing/bfc/generated/person2"
+	"go.kine.bz/benc/testing/generated/person"
+	"go.kine.bz/benc/testing/generated/person2"
 )
 
 func CustomDeepEqual(a, b interface{}) bool {
@@ -69,13 +68,12 @@ func TestPersonToPerson2(t *testing.T) {
 		},
 	}
 
-	b, err := benc.MarshalCtr(&data)
-	if err != nil {
-		t.Fatal(err)
-	}
+	s := data.Size()
+	b := make([]byte, s)
+	data.Marshal(b)
 
 	var retData person2.Person
-	if err = benc.UnmarshalCtr(b, &retData); err != nil {
+	if err := retData.Unmarshal(b); err != nil {
 		t.Fatal(err)
 	}
 
@@ -98,13 +96,12 @@ func TestPerson2ToPerson(t *testing.T) {
 		},
 	}
 
-	b, err := benc.MarshalCtr(&data)
-	if err != nil {
-		t.Fatal(err)
-	}
+	s := data.Size()
+	b := make([]byte, s)
+	data.Marshal(b)
 
-	var retData person.Person
-	if err = benc.UnmarshalCtr(b, &retData); err != nil {
+	retData := person.Person{}
+	if err := retData.Unmarshal(b); err != nil {
 		t.Fatal(err)
 	}
 

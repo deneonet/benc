@@ -45,6 +45,13 @@ func (p *Parser) error(m string) {
 type Node interface{}
 
 type (
+	Type struct {
+		Type     *Type
+		UT       lexer.Token
+		CtrName  string
+		IsArray  bool
+		IsUnsafe bool
+	}
 	HeaderStmt struct {
 		Name string
 	}
@@ -54,33 +61,15 @@ type (
 		ReservedIds []uint16
 	}
 	Field struct {
-		IsArray  bool
-		IsUnsafe bool
-
-		CtrName string
-		MaxSize int
-
 		Id   uint16
 		Name string
-		Type lexer.Token
+		Type *Type
 	}
 )
 
 func (f *Field) GetUnsafeStr() string {
-	if f.IsUnsafe {
+	if f.Type.IsUnsafe {
 		return "Unsafe"
-	}
-	return ""
-}
-
-func (f *Field) GetMaxSizeStr() string {
-	switch f.MaxSize {
-	case 2:
-		return ", benc.Bytes2"
-	case 4:
-		return ", benc.Bytes4"
-	case 8:
-		return ", benc.Bytes8"
 	}
 	return ""
 }
@@ -118,13 +107,25 @@ func (p *Parser) expect(expected lexer.Token) {
 	p.nextToken()
 }
 
-func (p *Parser) expectType() lexer.Token {
+func (p *Parser) expectType() *Type {
+	if p.match(lexer.OPEN_BRACKET) {
+		p.nextToken()
+		p.expect(lexer.CLOSE_BRACKET)
+		return &Type{IsArray: true, Type: p.expectType()}
+	}
+
+	if p.match(lexer.IDENT) {
+		ctrName := p.lit
+		p.nextToken()
+		return &Type{CtrName: ctrName}
+	}
+
 	typ := p.token
 	if !p.mMatch(lexer.STRING, lexer.BYTES, lexer.INT16, lexer.INT32, lexer.INT64, lexer.UINT16, lexer.UINT32, lexer.UINT64, lexer.FLOAT32, lexer.FLOAT64, lexer.BYTE, lexer.BOOL) {
 		p.error(fmt.Sprintf("Unexpected token: `%s`. Expected: A Type", p.token))
 	}
 	p.nextToken()
-	return typ
+	return &Type{UT: typ}
 }
 
 func (p *Parser) Parse() []Node {
@@ -206,31 +207,15 @@ func (p *Parser) parseIdList() []uint16 {
 }
 
 func (p *Parser) parseField() Field {
-	ctrName := ""
-	var typ lexer.Token = lexer.CTR
+	t := p.expectType()
 
-	if p.match(lexer.IDENT) {
-		ctrName = p.lit
-		p.expect(lexer.IDENT)
-	} else {
-		typ = p.expectType()
-	}
-
-	unsafe, maxSize := p.parseTypeAttrs()
+	/*unsafe, maxSize := p.parseTypeAttrs()
 	if (maxSize > 0 || unsafe) && typ != lexer.STRING && typ != lexer.BYTES {
 		p.error(fmt.Sprintf("Type attributes (@...) are not allowed on type `%s`", typ.String()))
-	}
+	}*/
 
-	fieldName := p.lit
+	n := p.lit
 	p.expect(lexer.IDENT)
-
-	array := false
-	if p.match(lexer.OPEN_BRACKET) {
-		p.nextToken()
-		p.expect(lexer.CLOSE_BRACKET)
-		array = true
-	}
-
 	p.expect(lexer.EQUALS)
 
 	id, err := strconv.ParseUint(p.lit, 10, 16)
@@ -240,7 +225,7 @@ func (p *Parser) parseField() Field {
 	}
 
 	p.expect(lexer.SEMICOLON)
-	return Field{Id: uint16(id), Name: fieldName, Type: typ, CtrName: ctrName, IsArray: array, IsUnsafe: unsafe, MaxSize: maxSize}
+	return Field{Id: uint16(id), Name: n, Type: t}
 }
 
 func (p *Parser) parseTypeAttrs() (unsafe bool, maxSize int) {

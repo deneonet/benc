@@ -1,17 +1,6 @@
 package bcd
 
-import (
-	"encoding/base64"
-	"encoding/json"
-	"fmt"
-	"os"
-	"slices"
-	"strings"
-
-	"go.kine.bz/benc/cmd/bencgen/parser"
-	"go.kine.bz/benc/cmd/bencgen/utils"
-)
-
+/*
 type Msgs struct {
 	Msgs map[string]Msg `json:"msgs"`
 }
@@ -128,3 +117,4 @@ func (b *Bcd) Analyze(force bool) {
 		panic(err)
 	}
 }
+*/

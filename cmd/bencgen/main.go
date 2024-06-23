@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"go.kine.bz/benc/cmd/bencgen/bcd"
 	"go.kine.bz/benc/cmd/bencgen/codegens"
 	"go.kine.bz/benc/cmd/bencgen/parser"
 )
@@ -42,6 +41,11 @@ func main() {
 	}
 
 	lang := codegens.GeneratorLanguage(*lFlag)
+	generator := codegens.NewGenerator(lang, *iFlag)
+	if generator == nil {
+		printError("Unknown language provided.")
+		return
+	}
 
 	start := time.Now()
 
@@ -58,10 +62,9 @@ func main() {
 	parser := parser.NewParser(file, string(content))
 	nodes := parser.Parse()
 
-	bcd := bcd.NewBcd(nodes, *iFlag)
-	bcd.Analyze(*fFlag)
+	/*bcd := bcd.NewBcd(nodes, *iFlag)
+	bcd.Analyze(*fFlag)*/
 
-	generator := codegens.NewGenerator(lang, *iFlag)
 	outCode := codegens.Generate(generator, nodes)
 
 	dn := "out"

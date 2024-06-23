@@ -11,168 +11,45 @@ import (
 )
 
 type SkipFunc func(n int, b []byte) (int, error)
+type MarshalFunc[T any] func(n int, b []byte, t T) int
 type UnmarshalFunc[T any] func(n int, b []byte) (int, T, error)
 
 // For unsafe string too
 func SkipString(n int, b []byte) (int, error) {
-	lb := len(b) - n
-	if lb < 1 {
+	n, us, err := UnmarshalUVarint(n, b)
+	if err != nil {
+		return 0, err
+	}
+	s := int(us)
+
+	if len(b)-n < s {
 		return n, benc.ErrBufTooSmall
 	}
-
-	s := int(b[n])
-	n++
-
-	if s != 2 && s != 4 && s != 8 {
-		return n, benc.ErrInvalidSize
-	}
-	if lb-1 < s {
-		return n, benc.ErrBufTooSmall
-	}
-
-	u := b[n : n+s]
-	v := 0
-
-	switch s {
-	case 2:
-		v = int(uint16(u[0]) | uint16(u[1])<<8)
-	case 4:
-		_ = u[3]
-		v = int(uint32(u[0]) | uint32(u[1])<<8 | uint32(u[2])<<16 | uint32(u[3])<<24)
-	case 8:
-		_ = u[7]
-		v = int(uint64(u[0]) | uint64(u[1])<<8 | uint64(u[2])<<16 | uint64(u[3])<<24 |
-			uint64(u[4])<<32 | uint64(u[5])<<40 | uint64(u[6])<<48 | uint64(u[7])<<56)
-	}
-
-	if lb-s-1 < v {
-		return n, benc.ErrInvalidData
-	}
-
-	n += s
-	return n + v, nil
+	return n + s, nil
 }
 
 // For unsafe string too
-func SizeString(str string, ms ...int) (int, error) {
-	s := 2
+func SizeString(str string) int {
 	v := len(str)
-	if len(ms) == 1 {
-		s = ms[0]
-	}
-
-	switch s {
-	case 2:
-		if v > math.MaxUint16 {
-			return 0, benc.ErrDataTooBig
-		}
-	case 4:
-		if v > math.MaxUint32 {
-			return 0, benc.ErrDataTooBig
-		}
-	case 8:
-		break
-	default:
-		panic("[benc " + benc.BencVersion + "]: invalid `ms` provided in `SizeString`: allowed values, are: 2, 4 and 8")
-	}
-
-	return v + s + 1, nil
+	return v + SizeUVarint(uint64(v))
 }
 
-func MarshalString(n int, b []byte, str string, ms ...int) (int, error) {
-	s := 2
-	if len(ms) == 1 {
-		s = ms[0]
-	}
-
-	b[n] = byte(s)
-	n++
-
-	v := len(str)
-	u := b[n : n+s]
-	switch s {
-	case 2:
-		if v > math.MaxUint16 {
-			return n - 1, benc.ErrDataTooBig
-		}
-
-		_ = u[1]
-		u[0] = byte(v)
-		u[1] = byte(v >> 8)
-	case 4:
-		if v > math.MaxUint32 {
-			return n - 1, benc.ErrDataTooBig
-		}
-
-		_ = u[3]
-		v32 := uint32(v)
-		u[0] = byte(v32)
-		u[1] = byte(v32 >> 8)
-		u[2] = byte(v32 >> 16)
-		u[3] = byte(v32 >> 24)
-	case 8:
-		_ = u[7]
-		v64 := uint64(v)
-		u[0] = byte(v64)
-		u[1] = byte(v64 >> 8)
-		u[2] = byte(v64 >> 16)
-		u[3] = byte(v64 >> 24)
-		u[4] = byte(v64 >> 32)
-		u[5] = byte(v64 >> 40)
-		u[6] = byte(v64 >> 48)
-		u[7] = byte(v64 >> 56)
-	default:
-		panic("[benc " + benc.BencVersion + "]: invalid `ms` provided in `MarshalString`: allowed values, are: 2, 4 and 8")
-	}
-
-	n += s
-	return n + copy(b[n:], str), nil
-}
-
-func MarshalVarIntString(n int, b []byte, str string) (int, error) {
-	v := len(str)
-	n = MarshalUVarint(n, b, uint64(v))
-	return n + copy(b[n:], str), nil
+func MarshalString(n int, b []byte, str string) int {
+	n = MarshalUVarint(n, b, uint64(len(str)))
+	return n + copy(b[n:], str)
 }
 
 func UnmarshalString(n int, b []byte) (int, string, error) {
-	lb := len(b) - n
-	if lb < 1 {
+	n, us, err := UnmarshalUVarint(n, b)
+	if err != nil {
+		return 0, "", err
+	}
+	s := int(us)
+
+	if len(b)-n < s {
 		return n, "", benc.ErrBufTooSmall
 	}
-
-	s := int(b[n])
-	n++
-
-	if s != 2 && s != 4 && s != 8 {
-		return n, "", benc.ErrInvalidSize
-	}
-	if lb-1 < s {
-		return n, "", benc.ErrBufTooSmall
-	}
-
-	u := b[n : n+s]
-	v := 0
-
-	switch s {
-	case 2:
-		v = int(uint16(u[0]) | uint16(u[1])<<8)
-	case 4:
-		_ = u[3]
-		v = int(uint32(u[0]) | uint32(u[1])<<8 | uint32(u[2])<<16 | uint32(u[3])<<24)
-	case 8:
-		_ = u[7]
-		v = int(uint64(u[0]) | uint64(u[1])<<8 | uint64(u[2])<<16 | uint64(u[3])<<24 |
-			uint64(u[4])<<32 | uint64(u[5])<<40 | uint64(u[6])<<48 | uint64(u[7])<<56)
-	}
-
-	if lb-s-1 < v {
-		return n, "", benc.ErrInvalidData
-	}
-
-	n += s
-	bs := b[n : n+v]
-	return n + v, string(bs), nil
+	return n + s, string(b[n : n+s]), nil
 }
 
 //
@@ -206,576 +83,234 @@ func s2b(s string) []byte {
 	return bytes
 }
 
-func MarshalUnsafeString(n int, b []byte, str string, ms ...int) (int, error) {
-	s := 2
-	if len(ms) == 1 {
-		s = ms[0]
-	}
-
-	b[n] = byte(s)
-	n++
-
-	v := len(str)
-	u := b[n : n+s]
-
-	switch s {
-	case 2:
-		if v > math.MaxUint16 {
-			return n - 1, benc.ErrDataTooBig
-		}
-
-		_ = u[1]
-		u[0] = byte(v)
-		u[1] = byte(v >> 8)
-	case 4:
-		if v > math.MaxUint32 {
-			return n - 1, benc.ErrDataTooBig
-		}
-
-		_ = u[3]
-		v32 := uint32(v)
-		u[0] = byte(v32)
-		u[1] = byte(v32 >> 8)
-		u[2] = byte(v32 >> 16)
-		u[3] = byte(v32 >> 24)
-	case 8:
-		_ = u[7]
-		v64 := uint64(v)
-		u[0] = byte(v64)
-		u[1] = byte(v64 >> 8)
-		u[2] = byte(v64 >> 16)
-		u[3] = byte(v64 >> 24)
-		u[4] = byte(v64 >> 32)
-		u[5] = byte(v64 >> 40)
-		u[6] = byte(v64 >> 48)
-		u[7] = byte(v64 >> 56)
-	default:
-		panic("[benc " + benc.BencVersion + "]: invalid `ms` provided in `MarshalString`: allowed values, are: 2, 4 and 8")
-	}
-
-	n += s
-	return n + copy(b[n:], s2b(str)), nil
+func MarshalUnsafeString(n int, b []byte, str string) int {
+	n = MarshalUVarint(n, b, uint64(len(str)))
+	return n + copy(b[n:], s2b(str))
 }
 
 func UnmarshalUnsafeString(n int, b []byte) (int, string, error) {
-	lb := len(b) - n
-	if lb < 1 {
+	n, us, err := UnmarshalUVarint(n, b)
+	if err != nil {
+		return 0, "", err
+	}
+	s := int(us)
+
+	if len(b)-n < s {
 		return n, "", benc.ErrBufTooSmall
 	}
-
-	s := int(b[n])
-	n++
-
-	if s != 2 && s != 4 && s != 8 {
-		return n, "", benc.ErrInvalidSize
-	}
-	if lb-1 < s {
-		return n, "", benc.ErrBufTooSmall
-	}
-
-	u := b[n : n+s]
-	v := 0
-
-	switch s {
-	case 2:
-		v = int(uint16(u[0]) | uint16(u[1])<<8)
-	case 4:
-		_ = u[3]
-		v = int(uint32(u[0]) | uint32(u[1])<<8 | uint32(u[2])<<16 | uint32(u[3])<<24)
-	case 8:
-		_ = u[7]
-		v = int(uint64(u[0]) | uint64(u[1])<<8 | uint64(u[2])<<16 | uint64(u[3])<<24 |
-			uint64(u[4])<<32 | uint64(u[5])<<40 | uint64(u[6])<<48 | uint64(u[7])<<56)
-	}
-
-	if v == 0 {
-		return n + s, "", nil
-	}
-	if lb-s-1 < v {
-		return n, "", benc.ErrInvalidData
-	}
-
-	n += s
-	bs := b[n : n+v]
-	return n + v, b2s(bs), nil
+	return n + s, b2s(b[n : n+s]), nil
 }
 
 //
 
-func SkipSlice(n int, b []byte, skipper SkipFunc) (int, error) {
-	lb := len(b) - n
-	if lb < 1 {
-		return n, benc.ErrBufTooSmall
+func SkipSlice(n int, b []byte) (int, error) {
+	if len(b)-n < 4 {
+		return 0, benc.ErrBufTooSmall
 	}
 
-	s := int(b[n])
-	n++
-
-	if s != 2 && s != 4 && s != 8 {
-		return n, benc.ErrInvalidSize
-	}
-	if lb-1 < s {
-		return n, benc.ErrBufTooSmall
-	}
-
-	u := b[n : n+s]
-	v := 0
-
-	switch s {
-	case 2:
-		v = int(uint16(u[0]) | uint16(u[1])<<8)
-	case 4:
-		_ = u[3]
-		v = int(uint32(u[0]) | uint32(u[1])<<8 | uint32(u[2])<<16 | uint32(u[3])<<24)
-	case 8:
-		_ = u[7]
-		v = int(uint64(u[0]) | uint64(u[1])<<8 | uint64(u[2])<<16 | uint64(u[3])<<24 |
-			uint64(u[4])<<32 | uint64(u[5])<<40 | uint64(u[6])<<48 | uint64(u[7])<<56)
-	}
-
-	if lb-s-1 < v {
-		return n, benc.ErrInvalidData
-	}
-
-	n += s
-	var err error
-	for i := 0; i < v; i++ {
-		n, err = skipper(n, b)
-		if err != nil {
-			return n, fmt.Errorf("at index %d: %s", i, err.Error())
-		}
-	}
-	return n, nil
+	u := b[n : n+4]
+	_ = u[3]
+	return n + int(uint32(u[0])|uint32(u[1])<<8|uint32(u[2])<<16|uint32(u[3])<<24) + 4, nil
 }
 
-func SizeSlice[T any](slice []T, sizer interface{}, ms ...int) (int, error) {
-	s := 2
+func SizeSlice[T any](slice []T, sizer interface{}) (s int) {
 	v := len(slice)
-	if len(ms) == 1 {
-		s = ms[0]
-	}
+	s += 4 + SizeUVarint(uint64(v))
 
-	switch s {
-	case 2:
-		if v > math.MaxUint16 {
-			return 0, benc.ErrDataTooBig
-		}
-	case 4:
-		if v > math.MaxUint32 {
-			return 0, benc.ErrDataTooBig
-		}
-	case 8:
-		break
-	default:
-		panic("[benc " + benc.BencVersion + "]: invalid `ms` provided in `SizeSlice`: allowed values, are: 2, 4 and 8")
-	}
-
-	var ts int
-	var err error
-
-	for i, t := range slice {
-		switch p := sizer.(type) {
-		case func() int:
+	switch p := sizer.(type) {
+	case func() int:
+		for i := 0; i < v; i++ {
 			s += p()
-		case func(T) (int, error):
-			ts, err = p(t)
-			if err != nil {
-				return 0, fmt.Errorf("at index %d: %s", i, err.Error())
-			}
-			s += ts
-		case func(T, ...int) (int, error):
-			ts, err = p(t)
-			if err != nil {
-				return 0, fmt.Errorf("at index %d: %s", i, err.Error())
-			}
-			s += ts
-		default:
-			panic("[benc " + benc.BencVersion + "]: invalid `sizer` provided in `SizeSlice`")
 		}
-	}
-
-	return s + 1, nil
-}
-
-func MarshalSlice[T any](n int, b []byte, slice []T, marshaler interface{}, ms ...int) (int, error) {
-	s := 2
-	if len(ms) == 1 {
-		s = ms[0]
-	}
-
-	b[n] = byte(s)
-	n++
-
-	v := len(slice)
-	u := b[n : n+s]
-
-	switch s {
-	case 2:
-		if v > math.MaxUint16 {
-			return n - 1, benc.ErrDataTooBig
+	case func(T) int:
+		for _, t := range slice {
+			s += p(t)
 		}
-
-		_ = u[1]
-		u[0] = byte(v)
-		u[1] = byte(v >> 8)
-	case 4:
-		if v > math.MaxUint32 {
-			return n - 1, benc.ErrDataTooBig
-		}
-
-		_ = u[3]
-		v32 := uint32(v)
-		u[0] = byte(v32)
-		u[1] = byte(v32 >> 8)
-		u[2] = byte(v32 >> 16)
-		u[3] = byte(v32 >> 24)
-	case 8:
-		_ = u[7]
-		v64 := uint64(v)
-		u[0] = byte(v64)
-		u[1] = byte(v64 >> 8)
-		u[2] = byte(v64 >> 16)
-		u[3] = byte(v64 >> 24)
-		u[4] = byte(v64 >> 32)
-		u[5] = byte(v64 >> 40)
-		u[6] = byte(v64 >> 48)
-		u[7] = byte(v64 >> 56)
 	default:
-		panic("[benc " + benc.BencVersion + "]: invalid `ms` provided in `MarshalSlice`: allowed values, are: 2, 4 and 8")
+		panic("[benc " + benc.BencVersion + "]: invalid `sizer` provided in `SizeSlice`")
 	}
-
-	n += s
-	var err error
-	for i, t := range slice {
-		switch p := marshaler.(type) {
-		case func(n int, b []byte, t T) int:
-			n = p(n, b, t)
-		case func(n int, b []byte, t T) (int, error):
-			n, err = p(n, b, t)
-			if err != nil {
-				return n, fmt.Errorf("at index %d: %s", i, err.Error())
-			}
-		case func(n int, b []byte, t T, ms ...int) (int, error):
-			n, err = p(n, b, t)
-			if err != nil {
-				return n, fmt.Errorf("at index %d: %s", i, err.Error())
-			}
-		default:
-			panic("[benc " + benc.BencVersion + "]: invalid `marshaler` provided in `MarshalSlice`")
-		}
-	}
-	return n, nil
+	return
 }
 
-func UnmarshalSlice[T any](n int, b []byte, unmarshaler UnmarshalFunc[T]) (int, []T, error) {
-	lb := len(b) - n
-	if lb < 1 {
-		return n, nil, benc.ErrBufTooSmall
+func MarshalSlice[T any](n int, b []byte, slice []T, marshaler MarshalFunc[T]) int {
+	u := b[n : n+4]
+	n += 4
+
+	sn := n
+	n = MarshalUVarint(n, b, uint64(len(slice)))
+	for _, t := range slice {
+		n = marshaler(n, b, t)
 	}
 
-	s := int(b[n])
-	n++
+	_ = u[3]
+	v32 := uint32(sn - n)
+	u[0] = byte(v32)
+	u[1] = byte(v32 >> 8)
+	u[2] = byte(v32 >> 16)
+	u[3] = byte(v32 >> 24)
+	return n
+}
 
-	if s != 2 && s != 4 && s != 8 {
-		return n, nil, benc.ErrInvalidSize
+func UnmarshalSlice[T any](n int, b []byte, unmarshaler interface{}) (int, []T, error) {
+	n, us, err := UnmarshalUVarint(n+4, b)
+	if err != nil {
+		return 0, nil, err
 	}
-	if lb-1 < s {
-		return n, nil, benc.ErrBufTooSmall
-	}
-
-	u := b[n : n+s]
-	v := 0
-
-	switch s {
-	case 2:
-		v = int(uint16(u[0]) | uint16(u[1])<<8)
-	case 4:
-		_ = u[3]
-		v = int(uint32(u[0]) | uint32(u[1])<<8 | uint32(u[2])<<16 | uint32(u[3])<<24)
-	case 8:
-		_ = u[7]
-		v = int(uint64(u[0]) | uint64(u[1])<<8 | uint64(u[2])<<16 | uint64(u[3])<<24 |
-			uint64(u[4])<<32 | uint64(u[5])<<40 | uint64(u[6])<<48 | uint64(u[7])<<56)
-	}
-
-	if lb-s-1 < v {
-		return n, nil, benc.ErrInvalidData
-	}
-
-	n += s
+	s := int(us)
 
 	var t T
-	var err error
+	ts := make([]T, s)
 
-	ts := make([]T, v)
+	switch p := unmarshaler.(type) {
+	case func(n int, b []byte) (int, T, error):
+		for i := 0; i < s; i++ {
+			n, t, err = p(n, b)
+			if err != nil {
+				return 0, nil, fmt.Errorf("at index %d: %s", i, err.Error())
+			}
 
-	for i := 0; i < v; i++ {
-		n, t, err = unmarshaler(n, b)
-		if err != nil {
-			return n, nil, fmt.Errorf("at index %d: %s", i, err.Error())
+			ts[i] = t
 		}
-
-		ts[i] = t
+	case func(n int, b []byte, a *[]T, i int) (int, error):
+		for i := 0; i < s; i++ {
+			n, err = p(n, b, &ts, i)
+			if err != nil {
+				return 0, nil, fmt.Errorf("at index %d: %s", i, err.Error())
+			}
+		}
+	default:
+		panic("[benc " + benc.BencVersion + "]: invalid `unmarshaler` provided in `UnmarshalSlice`")
 	}
 
 	return n, ts, nil
 }
 
+// SkipMap = SkipSlice
 func SkipMap(n int, b []byte, kSkipper SkipFunc, vSkipper SkipFunc) (int, error) {
-	lb := len(b) - n
-	if lb < 1 {
-		return n, benc.ErrBufTooSmall
+	if len(b)-n < 4 {
+		return 0, benc.ErrBufTooSmall
 	}
 
-	s := int(b[n])
-	n++
-
-	if s != 2 && s != 4 && s != 8 {
-		return n, benc.ErrInvalidSize
-	}
-	if lb-1 < s {
-		return n, benc.ErrBufTooSmall
-	}
-
-	u := b[n : n+s]
-	v := 0
-
-	switch s {
-	case 2:
-		v = int(uint16(u[0]) | uint16(u[1])<<8)
-	case 4:
-		_ = u[3]
-		v = int(uint32(u[0]) | uint32(u[1])<<8 | uint32(u[2])<<16 | uint32(u[3])<<24)
-	case 8:
-		_ = u[7]
-		v = int(uint64(u[0]) | uint64(u[1])<<8 | uint64(u[2])<<16 | uint64(u[3])<<24 |
-			uint64(u[4])<<32 | uint64(u[5])<<40 | uint64(u[6])<<48 | uint64(u[7])<<56)
-	}
-
-	if lb-s-1 < v {
-		return n, benc.ErrInvalidData
-	}
-
-	n += s
-	var err error
-	for i := 0; i < v; i++ {
-		n, err = kSkipper(n, b)
-		if err != nil {
-			return n, fmt.Errorf("(key) at index %d: %s", i, err.Error())
-		}
-
-		n, err = vSkipper(n, b)
-		if err != nil {
-			return n, fmt.Errorf("(value) at index %d: %s", i, err.Error())
-		}
-	}
-	return n, nil
+	u := b[n : n+4]
+	_ = u[3]
+	return n + int(uint32(u[0])|uint32(u[1])<<8|uint32(u[2])<<16|uint32(u[3])<<24) + 4, nil
 }
 
-func SizeMap[K comparable, V any](m map[K]V, kSizer interface{}, vSizer interface{}, ms ...int) (int, error) {
-	s := 2
-	v := len(m)
-	if len(ms) == 1 {
-		s = ms[0]
-	}
+func SizeMap[K comparable, V any](m map[K]V, kSizer interface{}, vSizer interface{}) (s int) {
+	v := len(slice)
+	s += 4 + SizeUVarint(uint64(v))
 
-	switch s {
-	case 2:
-		if v > math.MaxUint16 {
-			return 0, benc.ErrDataTooBig
-		}
-	case 4:
-		if v > math.MaxUint32 {
-			return 0, benc.ErrDataTooBig
-		}
-	case 8:
-		break
-	default:
-		panic("[benc " + benc.BencVersion + "]: invalid `ms` provided in `SizeMap`: allowed values, are: 2, 4 and 8")
-	}
-
-	var ts int
-	var err error
-
-	var i int
 	for k, v := range m {
-		switch p := kSizer.(type) {
-		case func() int:
+	switch p := kSizer.(type) {
+	case func() int:
+		for i := 0; i < v; i++ {
 			s += p()
-		case func(K) (int, error):
-			ts, err = p(k)
-			if err != nil {
-				return 0, fmt.Errorf("(key) at index %d: %s", i, err.Error())
-			}
-			s += ts
-		case func(K, ...int) (int, error):
-			ts, err = p(k)
-			if err != nil {
-				return 0, fmt.Errorf("(key) at index %d: %s", i, err.Error())
-			}
-			s += ts
-		default:
-			panic("[benc " + benc.BencVersion + "]: invalid `kSizer` provided in `SizeMap`")
 		}
-
-		switch p := vSizer.(type) {
-		case func() int:
-			s += p()
-		case func(V) (int, error):
-			ts, err = p(v)
-			if err != nil {
-				return 0, fmt.Errorf("(value) at index %d: %s", i, err.Error())
-			}
-			s += ts
-		case func(V, ...int) (int, error):
-			ts, err = p(v)
-			if err != nil {
-				return 0, fmt.Errorf("(value) at index %d: %s", i, err.Error())
-			}
-			s += ts
-		default:
-			panic("[benc " + benc.BencVersion + "]: invalid `vSizer` provided in `SizeMap`")
+	case func(T) int:
+		for _, t := range slice {
+			s += p(t)
 		}
-		i++
-	}
-
-	return s + 1, nil
-}
-
-func MarshalMap[K comparable, V any](n int, b []byte, m map[K]V, kMarshaler interface{}, vMarshaler interface{}, ms ...int) (int, error) {
-	s := 2
-	if len(ms) == 1 {
-		s = ms[0]
-	}
-
-	b[n] = byte(s)
-	n++
-
-	v := len(m)
-	u := b[n : n+s]
-
-	switch s {
-	case 2:
-		if v > math.MaxUint16 {
-			return n - 1, benc.ErrDataTooBig
-		}
-
-		_ = u[1]
-		u[0] = byte(v)
-		u[1] = byte(v >> 8)
-	case 4:
-		if v > math.MaxUint32 {
-			return n - 1, benc.ErrDataTooBig
-		}
-
-		_ = u[3]
-		v32 := uint32(v)
-		u[0] = byte(v32)
-		u[1] = byte(v32 >> 8)
-		u[2] = byte(v32 >> 16)
-		u[3] = byte(v32 >> 24)
-	case 8:
-		_ = u[7]
-		v64 := uint64(v)
-		u[0] = byte(v64)
-		u[1] = byte(v64 >> 8)
-		u[2] = byte(v64 >> 16)
-		u[3] = byte(v64 >> 24)
-		u[4] = byte(v64 >> 32)
-		u[5] = byte(v64 >> 40)
-		u[6] = byte(v64 >> 48)
-		u[7] = byte(v64 >> 56)
 	default:
-		panic("[benc " + benc.BencVersion + "]: invalid `ms` provided in `MarshalMap`: allowed values, are: 2, 4 and 8")
+		panic("[benc " + benc.BencVersion + "]: invalid `kSizer` provided in `SizeMap`")
 	}
 
-	n += s
-	var err error
-	var i int
-	for k, v := range m {
-		switch p := kMarshaler.(type) {
-		case func(n int, b []byte, k K) int:
-			n = p(n, b, k)
-		case func(n int, b []byte, k K) (int, error):
-			n, err = p(n, b, k)
-			if err != nil {
-				return n, fmt.Errorf("(key) at index %d: %s", i, err.Error())
-			}
-		case func(n int, b []byte, k K, ms ...int) (int, error):
-			n, err = p(n, b, k)
-			if err != nil {
-				return n, fmt.Errorf("(key) at index %d: %s", i, err.Error())
-			}
-		default:
-			panic("[benc " + benc.BencVersion + "]: invalid `kMarshaler` provided in `MarshalMap`")
+	switch p := vSizer.(type) {
+	case func() int:
+		for i := 0; i < v; i++ {
+			s += p()
 		}
-
-		switch p := vMarshaler.(type) {
-		case func(n int, b []byte, v V) int:
-			n = p(n, b, v)
-		case func(n int, b []byte, v V) (int, error):
-			n, err = p(n, b, v)
-			if err != nil {
-				return n, fmt.Errorf("(value) at index %d: %s", i, err.Error())
-			}
-		case func(n int, b []byte, v V, ms ...int) (int, error):
-			n, err = p(n, b, v)
-			if err != nil {
-				return n, fmt.Errorf("(value) at index %d: %s", i, err.Error())
-			}
-		default:
-			panic("[benc " + benc.BencVersion + "]: invalid `vMarshaler` provided in `MarshalMap`")
+	case func(T) int:
+		for _, t := range slice {
+			s += p(t)
 		}
-
-		i++
+	default:
+		panic("[benc " + benc.BencVersion + "]: invalid `vSizer` provided in `SizeMap`")
 	}
-	return n, nil
+	}
+	return s + SizeUVarint(uint64(len(m)))
 }
 
-func UnmarshalMap[K comparable, V any](n int, b []byte, kUnmarshaler UnmarshalFunc[K], vUnmarshaler UnmarshalFunc[V]) (int, map[K]V, error) {
-	lb := len(b) - n
-	if lb < 1 {
-		return n, nil, benc.ErrBufTooSmall
+func MarshalMap[K comparable, V any](n int, b []byte, m map[K]V, kMarshaler MarshalFunc[K], vMarshaler MarshalFunc[V]) int {
+	u := b[n : n+4]
+	n += 4
+
+	sn := n
+	n = MarshalUVarint(n, b, uint64(len(slice)))
+	for _, t := range slice {
+		n = kMarshaler(n, b, t)
+		n = vMarshaler(n, b, t)
 	}
 
-	s := int(b[n])
-	n++
+	_ = u[3]
+	v32 := uint32(sn - n)
+	u[0] = byte(v32)
+	u[1] = byte(v32 >> 8)
+	u[2] = byte(v32 >> 16)
+	u[3] = byte(v32 >> 24)
+	return n
+}
 
-	if s != 2 && s != 4 && s != 8 {
-		return n, nil, benc.ErrInvalidSize
+func UnmarshalMap[K comparable, V any](n int, b []byte, kUnmarshaler interface{}, vUnmarshaler interface{}) (int, map[K]V, error) {
+	n, us, err := UnmarshalUVarint(n+4, b)
+	if err != nil {
+		return 0, nil, err
 	}
-	if lb-1 < s {
-		return n, nil, benc.ErrBufTooSmall
-	}
-
-	u := b[n : n+s]
-	v := 0
-
-	switch s {
-	case 2:
-		v = int(uint16(u[0]) | uint16(u[1])<<8)
-	case 4:
-		_ = u[3]
-		v = int(uint32(u[0]) | uint32(u[1])<<8 | uint32(u[2])<<16 | uint32(u[3])<<24)
-	case 8:
-		_ = u[7]
-		v = int(uint64(u[0]) | uint64(u[1])<<8 | uint64(u[2])<<16 | uint64(u[3])<<24 |
-			uint64(u[4])<<32 | uint64(u[5])<<40 | uint64(u[6])<<48 | uint64(u[7])<<56)
-	}
-
-	if lb-s-1 < v {
-		return n, nil, benc.ErrInvalidData
-	}
-
-	n += s
+	s := int(us)
 
 	var k K
-	var val V
-	var err error
+	var v V
+	ts := make(map[K]V, s)
 
-	ts := make(map[K]V, v)
+	switch p := kUnmarshaler.(type) {
+	case func(n int, b []byte) (int, K, error):
+		for i := 0; i < s; i++ {
+			n, t, err = p(n, b)
+			if err != nil {
+				return 0, nil, fmt.Errorf("(key) at index %d: %s", i, err.Error())
+			}
 
-	for i := 0; i < v; i++ {
+			ts[i] = t
+		}
+	case func(n int, b []byte, a *[]T, i int) (int, error):
+		for i := 0; i < s; i++ {
+			n, err = p(n, b, &ts, i)
+			if err != nil {
+				return 0, nil, fmt.Errorf("(key) at index %d: %s", i, err.Error())
+			}
+		}
+	default:
+		panic("[benc " + benc.BencVersion + "]: invalid `kUnmarshaler` provided in `UnmarshalMap`")
+	}
+
+	return n, ts, nil
+
+	n, us, err := UnmarshalUVarint(n, b)
+	if err != nil {
+		return 0, nil, err
+	}
+	s := int(us)
+
+	var k K
+	var v V
+
+	ts := make(map[K]V, s)
+
+	for i := 0; i < s; i++ {
+		switch p := kUnmarshaler.(type) {
+		case func(n int, b []byte) (int, K, error):
+			n, k, err = p(n, b)
+			if err != nil {
+				return 0, nil, fmt.Errorf("(key) at index %d: %s", i, err.Error())
+			}
+			case func(n int, b []byte, a *[]T, i int) (int, error):
+			for i := 0; i < s; i++ {
+				n, err = p(n, b, &ts, i)
+				if err != nil {
+					return 0, nil, fmt.Errorf("at index %d: %s", i, err.Error())
+				}
+			}
+		}
+
 		n, k, err = kUnmarshaler(n, b)
 		if err != nil {
 			return n, nil, fmt.Errorf("(key) at index %d: %s", i, err.Error())
@@ -787,9 +322,9 @@ func UnmarshalMap[K comparable, V any](n int, b []byte, kUnmarshaler UnmarshalFu
 		}
 
 		ts[k] = val
-	}
+	}*/
 
-	return n, ts, nil
+	return n, nil, nil
 }
 
 //
@@ -817,160 +352,40 @@ func UnmarshalByte(n int, b []byte) (int, byte, error) {
 	return n + 1, b[n], nil
 }
 
-//
-
+// SkipBytes = SkipString
 func SkipBytes(n int, b []byte) (int, error) {
-	lb := len(b) - n
-	if lb < 1 {
+	n, us, err := UnmarshalUVarint(n, b)
+	if err != nil {
+		return 0, err
+	}
+	s := int(us)
+
+	if len(b)-n < s {
 		return n, benc.ErrBufTooSmall
 	}
-
-	s := int(b[n])
-	n++
-
-	if s != 2 && s != 4 && s != 8 {
-		return n, benc.ErrInvalidSize
-	}
-	if lb-1 < s {
-		return n, benc.ErrBufTooSmall
-	}
-
-	u := b[n : n+s]
-	v := 0
-
-	switch s {
-	case 2:
-		v = int(uint16(u[0]) | uint16(u[1])<<8)
-	case 4:
-		_ = u[3]
-		v = int(uint32(u[0]) | uint32(u[1])<<8 | uint32(u[2])<<16 | uint32(u[3])<<24)
-	case 8:
-		_ = u[7]
-		v = int(uint64(u[0]) | uint64(u[1])<<8 | uint64(u[2])<<16 | uint64(u[3])<<24 |
-			uint64(u[4])<<32 | uint64(u[5])<<40 | uint64(u[6])<<48 | uint64(u[7])<<56)
-	}
-
-	if lb-s-1 < v {
-		return n, benc.ErrInvalidData
-	}
-
-	n += s
-	return n + v, nil
+	return n + s, nil
 }
 
-func SizeBytes(bs []byte, ms ...int) (int, error) {
-	s := 2
+func SizeBytes(bs []byte) int {
 	v := len(bs)
-	if len(ms) == 1 {
-		s = ms[0]
-	}
-
-	switch s {
-	case 2:
-		if v > math.MaxUint16 {
-			return 0, benc.ErrDataTooBig
-		}
-	case 4:
-		if v > math.MaxUint32 {
-			return 0, benc.ErrDataTooBig
-		}
-	case 8:
-		break
-	default:
-		panic("[benc " + benc.BencVersion + "]: invalid `ms` provided in `SizeBytes`: allowed values, are: 2, 4 and 8")
-	}
-
-	return v + s + 1, nil
+	return v + SizeUVarint(uint64(v))
 }
 
-func MarshalBytes(n int, b []byte, bs []byte, ms ...int) (int, error) {
-	s := 2
-	if len(ms) == 1 {
-		s = ms[0]
-	}
-
-	b[n] = byte(s)
-	n++
-
-	v := len(bs)
-	u := b[n : n+s]
-
-	switch s {
-	case 2:
-		if v > math.MaxUint16 {
-			return n - 1, benc.ErrDataTooBig
-		}
-
-		_ = u[1]
-		u[0] = byte(v)
-		u[1] = byte(v >> 8)
-	case 4:
-		if v > math.MaxUint32 {
-			return n - 1, benc.ErrDataTooBig
-		}
-
-		_ = u[3]
-		v32 := uint32(v)
-		u[0] = byte(v32)
-		u[1] = byte(v32 >> 8)
-		u[2] = byte(v32 >> 16)
-		u[3] = byte(v32 >> 24)
-	case 8:
-		_ = u[7]
-		v64 := uint64(v)
-		u[0] = byte(v64)
-		u[1] = byte(v64 >> 8)
-		u[2] = byte(v64 >> 16)
-		u[3] = byte(v64 >> 24)
-		u[4] = byte(v64 >> 32)
-		u[5] = byte(v64 >> 40)
-		u[6] = byte(v64 >> 48)
-		u[7] = byte(v64 >> 56)
-	default:
-		panic("[benc " + benc.BencVersion + "]: invalid `ms` provided in `MarshalBytes`: allowed values, are: 2, 4 and 8")
-	}
-
-	n += s
-	return n + copy(b[n:], bs), nil
+func MarshalBytes(n int, b []byte, bs []byte) int {
+	n = MarshalUVarint(n, b, uint64(len(bs)))
+	return n + copy(b[n:], bs)
 }
 
 func UnmarshalBytes(n int, b []byte) (int, []byte, error) {
-	lb := len(b) - n
-	if lb < 1 {
-		return n, nil, benc.ErrBufTooSmall
+	n, us, err := UnmarshalUVarint(n, b)
+	if err != nil {
+		return 0, nil, err
 	}
-
-	s := int(b[n])
-	n++
-
-	if s != 2 && s != 4 && s != 8 {
-		return n, nil, benc.ErrInvalidSize
+	s := int(us)
+	if len(b)-n < s {
+		return 0, nil, benc.ErrBufTooSmall
 	}
-	if lb-1 < s {
-		return n, nil, benc.ErrBufTooSmall
-	}
-
-	u := b[n : n+s]
-	v := 0
-
-	switch s {
-	case 2:
-		v = int(uint16(u[0]) | uint16(u[1])<<8)
-	case 4:
-		_ = u[3]
-		v = int(uint32(u[0]) | uint32(u[1])<<8 | uint32(u[2])<<16 | uint32(u[3])<<24)
-	case 8:
-		_ = u[7]
-		v = int(uint64(u[0]) | uint64(u[1])<<8 | uint64(u[2])<<16 | uint64(u[3])<<24 |
-			uint64(u[4])<<32 | uint64(u[5])<<40 | uint64(u[6])<<48 | uint64(u[7])<<56)
-	}
-
-	if lb-s-1 < v {
-		return n, nil, benc.ErrInvalidData
-	}
-
-	n += s
-	return n + v, b[n : n+v], nil
+	return n + s, b[n : n+s], nil
 }
 
 //
@@ -1284,6 +699,21 @@ func UnmarshalBool(n int, b []byte) (int, bool, error) {
 
 //
 
+func SkipUVarint(n int, buf []byte) (int, error) {
+	for i, b := range buf[n:] {
+		if i == binary.MaxVarintLen64 {
+			return n, benc.ErrOverflow
+		}
+		if b < 0x80 {
+			if i == binary.MaxVarintLen64-1 && b > 1 {
+				return n, benc.ErrOverflow
+			}
+			return i + 1, nil
+		}
+	}
+	return n, benc.ErrBufTooSmall
+}
+
 func SizeUVarint(v uint64) int {
 	i := 0
 	for v >= 0x80 {
@@ -1315,7 +745,7 @@ func UnmarshalUVarint(n int, buf []byte) (int, uint64, error) {
 			if i == binary.MaxVarintLen64-1 && b > 1 {
 				return n, 0, benc.ErrOverflow
 			}
-			return i + 1, x | uint64(b)<<s, nil
+			return n + i + 1, x | uint64(b)<<s, nil
 		}
 		x |= uint64(b&0x7f) << s
 		s += 7
