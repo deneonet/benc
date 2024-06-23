@@ -217,15 +217,12 @@ func TestErrBufTooSmall(t *testing.T) {
 }
 
 func TestErrBufTooSmall_2(t *testing.T) {
-	buffers := [][]byte{{2, 1, 1}, {4, 1, 2, 3, 4}, {8, 1, 2, 3, 4, 5, 6, 7, 8}, {2, 1, 1}, {4, 1, 2, 3, 4}, {8, 1, 2, 3, 4, 5, 6, 7, 8}, {2, 1, 1}, {4, 1, 2, 3, 4}, {8, 1, 2, 3, 4, 5, 6, 7, 8}, {2, 1, 1}, {4, 1, 2, 3, 4}, {8, 1, 2, 3, 4, 5, 6, 7, 8}, {2, 1, 1}, {4, 1, 2, 3, 4}, {8, 1, 2, 3, 4, 5, 6, 7, 8}}
+	buffers := [][]byte{{}, {2, 0}, {}, {2, 0}, {}, {2, 0}, {0, 0, 0}, {10, 0, 0, 0, 1}, {10, 0, 0, 0, 1, 2, 3}}
 	if err := UnmarshalAll_VerifyError(benc.ErrBufTooSmall, buffers,
 		func(n int, b []byte) (int, any, error) { return UnmarshalString(n, b) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalString(n, b) },
-		func(n int, b []byte) (int, any, error) { return UnmarshalString(n, b) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalUnsafeString(n, b) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalUnsafeString(n, b) },
-		func(n int, b []byte) (int, any, error) { return UnmarshalUnsafeString(n, b) },
-		func(n int, b []byte) (int, any, error) { return UnmarshalBytes(n, b) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalBytes(n, b) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalBytes(n, b) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalSlice[byte](n, b, UnmarshalByte) },

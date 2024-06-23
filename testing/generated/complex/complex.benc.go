@@ -233,7 +233,7 @@ func (d *D) unmarshal(tn int, b []byte, r []uint16, id uint16) (n int, err error
         return
     }
     if ok {
-        if n, d.Events, err = bstd.UnmarshalSlice[E](n, b, func (n int, b []byte, a *[]E, i int) (int, error) { return (*a)[i].UnmarshalPlain(n, b) }); err != nil {
+        if n, d.Events, err = bstd.UnmarshalSlice[E](n, b, func (n int, b []byte, s *E) (int, error) { return s.UnmarshalPlain(n, b) }); err != nil {
             return
         }
     }
@@ -250,7 +250,7 @@ func (d *D) UnmarshalPlain(tn int, b []byte) (n int, err error) {
     if n, d.Note, err = bstd.UnmarshalString(n, b); err != nil {
         return
     }
-    if n, d.Events, err = bstd.UnmarshalSlice[E](n, b, func (n int, b []byte, a *[]E, i int) (int, error) { return (*a)[i].UnmarshalPlain(n, b) }); err != nil {
+    if n, d.Events, err = bstd.UnmarshalSlice[E](n, b, func (n int, b []byte, s *E) (int, error) { return s.UnmarshalPlain(n, b) }); err != nil {
         return
     }
     return
@@ -350,7 +350,7 @@ func (c *C) unmarshal(tn int, b []byte, r []uint16, id uint16) (n int, err error
         return
     }
     if ok {
-        if n, c.Measurements, err = bstd.UnmarshalSlice[D](n, b, func (n int, b []byte, a *[]D, i int) (int, error) { return (*a)[i].UnmarshalPlain(n, b) }); err != nil {
+        if n, c.Measurements, err = bstd.UnmarshalSlice[D](n, b, func (n int, b []byte, s *D) (int, error) { return s.UnmarshalPlain(n, b) }); err != nil {
             return
         }
     }
@@ -364,7 +364,7 @@ func (c *C) UnmarshalPlain(tn int, b []byte) (n int, err error) {
     if n, c.Value, err = bstd.UnmarshalFloat64(n, b); err != nil {
         return
     }
-    if n, c.Measurements, err = bstd.UnmarshalSlice[D](n, b, func (n int, b []byte, a *[]D, i int) (int, error) { return (*a)[i].UnmarshalPlain(n, b) }); err != nil {
+    if n, c.Measurements, err = bstd.UnmarshalSlice[D](n, b, func (n int, b []byte, s *D) (int, error) { return s.UnmarshalPlain(n, b) }); err != nil {
         return
     }
     return
@@ -464,7 +464,7 @@ func (bB *BB) unmarshal(tn int, b []byte, r []uint16, id uint16) (n int, err err
         return
     }
     if ok {
-        if n, bB.Details, err = bstd.UnmarshalSlice[[]C](n, b, func (n int, b []byte) (int, []C, error) { return bstd.UnmarshalSlice[C](n, b, func (n int, b []byte, a *[]C, i int) (int, error) { return (*a)[i].UnmarshalPlain(n, b) }) }); err != nil {
+        if n, bB.Details, err = bstd.UnmarshalSlice[[]C](n, b, func (n int, b []byte) (int, []C, error) { return bstd.UnmarshalSlice[C](n, b, func (n int, b []byte, s *C) (int, error) { return s.UnmarshalPlain(n, b) }) }); err != nil {
             return
         }
     }
@@ -478,7 +478,7 @@ func (bB *BB) UnmarshalPlain(tn int, b []byte) (n int, err error) {
     if n, bB.IsActive, err = bstd.UnmarshalBool(n, b); err != nil {
         return
     }
-    if n, bB.Details, err = bstd.UnmarshalSlice[[]C](n, b, func (n int, b []byte) (int, []C, error) { return bstd.UnmarshalSlice[C](n, b, func (n int, b []byte, a *[]C, i int) (int, error) { return (*a)[i].UnmarshalPlain(n, b) }) }); err != nil {
+    if n, bB.Details, err = bstd.UnmarshalSlice[[]C](n, b, func (n int, b []byte) (int, []C, error) { return bstd.UnmarshalSlice[C](n, b, func (n int, b []byte, s *C) (int, error) { return s.UnmarshalPlain(n, b) }) }); err != nil {
         return
     }
     return
@@ -601,7 +601,7 @@ func (a *A) unmarshal(tn int, b []byte, r []uint16, id uint16) (n int, err error
         return
     }
     if ok {
-        if n, a.SubItems, err = bstd.UnmarshalSlice[BB](n, b, func (n int, b []byte, a *[]BB, i int) (int, error) { return (*a)[i].UnmarshalPlain(n, b) }); err != nil {
+        if n, a.SubItems, err = bstd.UnmarshalSlice[BB](n, b, func (n int, b []byte, s *BB) (int, error) { return s.UnmarshalPlain(n, b) }); err != nil {
             return
         }
     }
@@ -612,7 +612,7 @@ func (a *A) unmarshal(tn int, b []byte, r []uint16, id uint16) (n int, err error
         return
     }
     if ok {
-        if n, a.ComplexData, err = bstd.UnmarshalSlice[[][]C](n, b, func (n int, b []byte) (int, [][]C, error) { return bstd.UnmarshalSlice[[]C](n, b, func (n int, b []byte) (int, []C, error) { return bstd.UnmarshalSlice[C](n, b, func (n int, b []byte, a *[]C, i int) (int, error) { return (*a)[i].UnmarshalPlain(n, b) }) }) }); err != nil {
+        if n, a.ComplexData, err = bstd.UnmarshalSlice[[][]C](n, b, func (n int, b []byte) (int, [][]C, error) { return bstd.UnmarshalSlice[[]C](n, b, func (n int, b []byte) (int, []C, error) { return bstd.UnmarshalSlice[C](n, b, func (n int, b []byte, s *C) (int, error) { return s.UnmarshalPlain(n, b) }) }) }); err != nil {
             return
         }
     }
@@ -629,10 +629,10 @@ func (a *A) UnmarshalPlain(tn int, b []byte) (n int, err error) {
     if n, a.Name, err = bstd.UnmarshalString(n, b); err != nil {
         return
     }
-    if n, a.SubItems, err = bstd.UnmarshalSlice[BB](n, b, func (n int, b []byte, a *[]BB, i int) (int, error) { return (*a)[i].UnmarshalPlain(n, b) }); err != nil {
+    if n, a.SubItems, err = bstd.UnmarshalSlice[BB](n, b, func (n int, b []byte, s *BB) (int, error) { return s.UnmarshalPlain(n, b) }); err != nil {
         return
     }
-    if n, a.ComplexData, err = bstd.UnmarshalSlice[[][]C](n, b, func (n int, b []byte) (int, [][]C, error) { return bstd.UnmarshalSlice[[]C](n, b, func (n int, b []byte) (int, []C, error) { return bstd.UnmarshalSlice[C](n, b, func (n int, b []byte, a *[]C, i int) (int, error) { return (*a)[i].UnmarshalPlain(n, b) }) }) }); err != nil {
+    if n, a.ComplexData, err = bstd.UnmarshalSlice[[][]C](n, b, func (n int, b []byte) (int, [][]C, error) { return bstd.UnmarshalSlice[[]C](n, b, func (n int, b []byte) (int, []C, error) { return bstd.UnmarshalSlice[C](n, b, func (n int, b []byte, s *C) (int, error) { return s.UnmarshalPlain(n, b) }) }) }); err != nil {
         return
     }
     return

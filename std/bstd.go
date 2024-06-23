@@ -166,14 +166,14 @@ func UnmarshalSlice[T any](n int, b []byte, unmarshaler interface{}) (int, []T, 
 		for i := 0; i < s; i++ {
 			n, t, err = p(n, b)
 			if err != nil {
-				return 0, nil, fmt.Errorf("at index %d: %s", i, err.Error())
+				return 0, nil, err
 			}
 
 			ts[i] = t
 		}
-	case func(n int, b []byte, a *[]T, i int) (int, error):
+	case func(n int, b []byte, v *T) (int, error):
 		for i := 0; i < s; i++ {
-			n, err = p(n, b, &ts, i)
+			n, err = p(n, b, &ts[i])
 			if err != nil {
 				return 0, nil, fmt.Errorf("at index %d: %s", i, err.Error())
 			}
@@ -197,35 +197,26 @@ func SkipMap(n int, b []byte, kSkipper SkipFunc, vSkipper SkipFunc) (int, error)
 }
 
 func SizeMap[K comparable, V any](m map[K]V, kSizer interface{}, vSizer interface{}) (s int) {
-	v := len(slice)
-	s += 4 + SizeUVarint(uint64(v))
+	s += 4 + SizeUVarint(uint64(len(m)))
 
 	for k, v := range m {
-	switch p := kSizer.(type) {
-	case func() int:
-		for i := 0; i < v; i++ {
+		switch p := kSizer.(type) {
+		case func() int:
 			s += p()
+		case func(K) int:
+			s += p(k)
+		default:
+			panic("[benc " + benc.BencVersion + "]: invalid `kSizer` provided in `SizeMap`")
 		}
-	case func(T) int:
-		for _, t := range slice {
-			s += p(t)
-		}
-	default:
-		panic("[benc " + benc.BencVersion + "]: invalid `kSizer` provided in `SizeMap`")
-	}
 
-	switch p := vSizer.(type) {
-	case func() int:
-		for i := 0; i < v; i++ {
+		switch p := vSizer.(type) {
+		case func() int:
 			s += p()
+		case func(V) int:
+			s += p(v)
+		default:
+			panic("[benc " + benc.BencVersion + "]: invalid `vSizer` provided in `SizeMap`")
 		}
-	case func(T) int:
-		for _, t := range slice {
-			s += p(t)
-		}
-	default:
-		panic("[benc " + benc.BencVersion + "]: invalid `vSizer` provided in `SizeMap`")
-	}
 	}
 	return s + SizeUVarint(uint64(len(m)))
 }
@@ -235,10 +226,10 @@ func MarshalMap[K comparable, V any](n int, b []byte, m map[K]V, kMarshaler Mars
 	n += 4
 
 	sn := n
-	n = MarshalUVarint(n, b, uint64(len(slice)))
-	for _, t := range slice {
-		n = kMarshaler(n, b, t)
-		n = vMarshaler(n, b, t)
+	n = MarshalUVarint(n, b, uint64(len(m)))
+	for k, v := range m {
+		n = kMarshaler(n, b, k)
+		n = vMarshaler(n, b, v)
 	}
 
 	_ = u[3]
@@ -261,40 +252,6 @@ func UnmarshalMap[K comparable, V any](n int, b []byte, kUnmarshaler interface{}
 	var v V
 	ts := make(map[K]V, s)
 
-	switch p := kUnmarshaler.(type) {
-	case func(n int, b []byte) (int, K, error):
-		for i := 0; i < s; i++ {
-			n, t, err = p(n, b)
-			if err != nil {
-				return 0, nil, fmt.Errorf("(key) at index %d: %s", i, err.Error())
-			}
-
-			ts[i] = t
-		}
-	case func(n int, b []byte, a *[]T, i int) (int, error):
-		for i := 0; i < s; i++ {
-			n, err = p(n, b, &ts, i)
-			if err != nil {
-				return 0, nil, fmt.Errorf("(key) at index %d: %s", i, err.Error())
-			}
-		}
-	default:
-		panic("[benc " + benc.BencVersion + "]: invalid `kUnmarshaler` provided in `UnmarshalMap`")
-	}
-
-	return n, ts, nil
-
-	n, us, err := UnmarshalUVarint(n, b)
-	if err != nil {
-		return 0, nil, err
-	}
-	s := int(us)
-
-	var k K
-	var v V
-
-	ts := make(map[K]V, s)
-
 	for i := 0; i < s; i++ {
 		switch p := kUnmarshaler.(type) {
 		case func(n int, b []byte) (int, K, error):
@@ -302,29 +259,34 @@ func UnmarshalMap[K comparable, V any](n int, b []byte, kUnmarshaler interface{}
 			if err != nil {
 				return 0, nil, fmt.Errorf("(key) at index %d: %s", i, err.Error())
 			}
-			case func(n int, b []byte, a *[]T, i int) (int, error):
-			for i := 0; i < s; i++ {
-				n, err = p(n, b, &ts, i)
-				if err != nil {
-					return 0, nil, fmt.Errorf("at index %d: %s", i, err.Error())
-				}
+		case func(n int, b []byte, k *K) (int, error):
+			n, err = p(n, b, &k)
+			if err != nil {
+				return 0, nil, fmt.Errorf("(key) at index %d: %s", i, err.Error())
 			}
+		default:
+			panic("[benc " + benc.BencVersion + "]: invalid `kUnmarshaler` provided in `UnmarshalMap`")
 		}
 
-		n, k, err = kUnmarshaler(n, b)
-		if err != nil {
-			return n, nil, fmt.Errorf("(key) at index %d: %s", i, err.Error())
+		switch p := vUnmarshaler.(type) {
+		case func(n int, b []byte) (int, V, error):
+			n, v, err = p(n, b)
+			if err != nil {
+				return 0, nil, fmt.Errorf("(value) at index %d: %s", i, err.Error())
+			}
+		case func(n int, b []byte, v *V) (int, error):
+			n, err = p(n, b, &v)
+			if err != nil {
+				return 0, nil, fmt.Errorf("(value) at index %d: %s", i, err.Error())
+			}
+		default:
+			panic("[benc " + benc.BencVersion + "]: invalid `kUnmarshaler` provided in `UnmarshalMap`")
 		}
 
-		n, val, err = vUnmarshaler(n, b)
-		if err != nil {
-			return n, nil, fmt.Errorf("(value) at index %d: %s", i, err.Error())
-		}
+		ts[k] = v
+	}
 
-		ts[k] = val
-	}*/
-
-	return n, nil, nil
+	return n, ts, nil
 }
 
 //
@@ -735,6 +697,10 @@ func MarshalUVarint(n int, b []byte, v uint64) int {
 }
 
 func UnmarshalUVarint(n int, buf []byte) (int, uint64, error) {
+	if len(buf)-n < 1 {
+		return 0, 0, benc.ErrBufTooSmall
+	}
+
 	var x uint64
 	var s uint
 	for i, b := range buf[n:] {

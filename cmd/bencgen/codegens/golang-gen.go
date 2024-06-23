@@ -78,7 +78,7 @@ func getUnmarshalFunc(name string, field parser.Field, plain bool) string {
 	fieldName := toUpper(field.Name)
 
 	if field.Type.IsArray {
-		return fmt.Sprintf("bstd.UnmarshalSlice[%s](n, b, %s)", utils.FormatType(field.Type.Type), getElemUnmarshalFunc(field.Type.Type, utils.FormatType(field.Type)))
+		return fmt.Sprintf("bstd.UnmarshalSlice[%s](n, b, %s)", utils.FormatType(field.Type.Type), getElemUnmarshalFunc(field.Type.Type))
 	}
 	if field.Type.CtrName != "" && plain {
 		return fmt.Sprintf("%s.%s.UnmarshalPlain(n, b)", name, fieldName)
@@ -88,13 +88,12 @@ func getUnmarshalFunc(name string, field parser.Field, plain bool) string {
 	return fmt.Sprintf("bstd.Unmarshal%s(n, b)", typeString)
 }
 
-func getElemUnmarshalFunc(t *parser.Type, arr string) string {
+func getElemUnmarshalFunc(t *parser.Type) string {
 	if t.IsArray {
-		arr := utils.FormatType(t)
-		return fmt.Sprintf("func (n int, b []byte) (int, %s, error) { return bstd.UnmarshalSlice[%s](n, b, %s) }", arr, utils.FormatType(t.Type), getElemUnmarshalFunc(t.Type, arr))
+		return fmt.Sprintf("func (n int, b []byte) (int, %s, error) { return bstd.UnmarshalSlice[%s](n, b, %s) }", utils.FormatType(t), utils.FormatType(t.Type), getElemUnmarshalFunc(t.Type))
 	}
 	if t.CtrName != "" {
-		return fmt.Sprintf("func (n int, b []byte, a *%s, i int) (int, error) { return (*a)[i].UnmarshalPlain(n, b) }", arr)
+		return fmt.Sprintf("func (n int, b []byte, s *%s) (int, error) { return s.UnmarshalPlain(n, b) }", toUpper(t.CtrName))
 	}
 	return "bstd.Unmarshal" + t.UT.String()
 }
