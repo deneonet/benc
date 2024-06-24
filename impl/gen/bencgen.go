@@ -89,20 +89,20 @@ func HandleCompatibility(n int, b []byte, r []uint16, id uint16) (int, bool, err
 func SkipTag(n int, b []byte) (int, error) {
 	lb := len(b)
 	if lb-n < 2 {
-		return n, benc.ErrBufTooSmall
+		return 0, benc.ErrBufTooSmall
 	}
 
 	l := b[n]&0x80 != 0
-	n++
+	n += 2
 
 	if l {
 		if lb-n < 1 {
 			return 0, benc.ErrBufTooSmall
 		}
 
-		return n + 2, nil
+		return n + 1, nil
 	}
-	return n + 1, nil
+	return n, nil
 }
 
 func MarshalTag(n int, b []byte, t byte, id uint16) int {
@@ -127,18 +127,18 @@ func MarshalTag(n int, b []byte, t byte, id uint16) int {
 func UnmarshalTag(n int, b []byte) (int, uint16, byte, error) {
 	lb := len(b)
 	if lb-n < 2 {
-		return n, 0, 0, benc.ErrBufTooSmall
+		return 0, 0, 0, benc.ErrBufTooSmall
 	}
 
 	l := b[n]&0x80 != 0
 	typ := b[n] & 0x7F
-	n++
+	n += 2
 
 	if l {
 		if lb-n < 1 {
-			return n, 0, 0, benc.ErrBufTooSmall
+			return 0, 0, 0, benc.ErrBufTooSmall
 		}
-		return n + 2, uint16(b[n])<<8 | uint16(b[n+1]), typ, nil
+		return n + 1, uint16(b[n-1])<<8 | uint16(b[n]), typ, nil
 	}
-	return n + 1, uint16(b[n]), typ, nil
+	return n, uint16(b[n-1]), typ, nil
 }

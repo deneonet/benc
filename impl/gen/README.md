@@ -9,4 +9,4 @@ go get go.kine.bz/benc/impl/gen
 ```
 
 ## Tests
-Tests coverage is 100%
+Code coverage of `bencgen.go` is 100%

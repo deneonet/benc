@@ -83,6 +83,24 @@ func TestTags(t *testing.T) {
 	if ty != 50 && id != 256 {
 		t.Fatalf("6: no match %d %d", ty, id)
 	}
+
+	MarshalTag(0, buf, 50, 256)
+	if buf[0] != 50 && buf[1] != 1 && buf[2] != 0 {
+		t.Fatal("7: no match")
+	}
+	ts := make([]byte, 2)
+	ts[0] = buf[0]
+	ts[1] = buf[1]
+
+	_, err = SkipTag(0, ts)
+	if err != benc.ErrBufTooSmall {
+		t.Fatal("1: expected benc.ErrBufTooSmall")
+	}
+
+	_, _, _, err = UnmarshalTag(0, ts)
+	if err != benc.ErrBufTooSmall {
+		t.Fatal("2: expected benc.ErrBufTooSmall")
+	}
 }
 
 func TestHandleCompatibility_Basic(t *testing.T) {
@@ -134,7 +152,7 @@ func TestHandleCompatibility_Basic(t *testing.T) {
 	}
 }
 
-func TestHandleCompatibility_Advanced(t *testing.T) {
+func TestHandleCompatibility_Types(t *testing.T) {
 	buf := make([]byte, 2)
 	MarshalTag(0, buf, Fixed8, 1)
 
@@ -248,6 +266,18 @@ func TestHandleCompatibility_Advanced(t *testing.T) {
 	}
 	if err != ErrEof {
 		t.Fatal("1: expected ErrEof")
+	}
+
+	buf = make([]byte, 2+2+1)
+	MarshalTag(0, buf, Fixed8, 1)
+	MarshalTag(3, buf, Fixed16, 2)
+
+	n, ok, _ := HandleCompatibility(0, buf, []uint16{1}, 0)
+	if ok {
+		t.Fatal("1: unexpected `ok`")
+	}
+	if n != 3 {
+		t.Fatal("1: expected n of 3")
 	}
 
 	MarshalTag(0, buf, 0, 1)
