@@ -15,9 +15,9 @@ I have to sometimes change PCs, so I created this repo, and made it public, if s
 
 ## Todos:
 - Fix bcd
-- Implement maps to bencgen
-- Finish byte slice
+- ~~Implement maps to bencgen~~
+- ~~Finish byte slice~~
 - mdv rework
-- Add bencgen tests
-- Add more tests (testing)
+- ~~Add bencgen tests~~
+- ~~Add more tests (testing)~~
 - Write README for root, bstd and mdv
