@@ -3,6 +3,7 @@ package bstd
 import (
 	"errors"
 	"fmt"
+	"math"
 	"math/rand"
 	"reflect"
 	"testing"
@@ -329,6 +330,31 @@ func TestMaps_2(t *testing.T) {
 
 func TestEmptyString(t *testing.T) {
 	str := ""
+
+	s := SizeString(str)
+	buf := make([]byte, s)
+	MarshalString(0, buf, str)
+
+	if err := SkipOnce_Verify(buf, SkipString); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	_, retStr, err := UnmarshalString(0, buf)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	if !reflect.DeepEqual(retStr, str) {
+		t.Logf("org %v\ndec %v", str, retStr)
+		t.Fatal("no match!")
+	}
+}
+
+func TestLongString(t *testing.T) {
+	str := ""
+	for i := 0; i < math.MaxUint16+1; i++ {
+		str += "H"
+	}
 
 	s := SizeString(str)
 	buf := make([]byte, s)
