@@ -4,9 +4,12 @@ import (
 	"go.kine.bz/benc/cmd/bencgen/parser"
 )
 
-func FormatType(t *parser.Type) string {
+func FormatTypeGolang(t *parser.Type) string {
 	if t.IsArray {
-		return "[]" + FormatType(t.Type)
+		return "[]" + FormatTypeGolang(t.Type)
+	}
+	if t.IsMap {
+		return "map[" + FormatTypeGolang(t.Key) + "]" + FormatTypeGolang(t.Type)
 	}
 
 	if t.CtrName != "" {

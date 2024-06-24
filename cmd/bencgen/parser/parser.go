@@ -46,10 +46,12 @@ type Node interface{}
 
 type (
 	Type struct {
+		Key      *Type
 		Type     *Type
 		UT       lexer.Token
 		CtrName  string
 		IsArray  bool
+		IsMap    bool
 		IsUnsafe bool
 	}
 	HeaderStmt struct {
@@ -112,6 +114,15 @@ func (p *Parser) expectType() *Type {
 		p.nextToken()
 		p.expect(lexer.CLOSE_BRACKET)
 		return &Type{IsArray: true, Type: p.expectType()}
+	}
+
+	if p.match(lexer.OPEN_ARROW) {
+		p.nextToken()
+		key := p.expectType()
+		p.expect(lexer.COMMA)
+		t := p.expectType()
+		p.expect(lexer.CLOSE_ARROW)
+		return &Type{IsMap: true, Key: key, Type: t}
 	}
 
 	if p.match(lexer.IDENT) {

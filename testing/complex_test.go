@@ -1,4 +1,4 @@
-//go:generate bencgen --in schemas/complex.benc --out generated/complex --lang go
+//go:generate bencgen --in schemas/complex_data.benc --out generated/complex_data --lang go
 
 package tests
 
@@ -7,118 +7,57 @@ import (
 	"reflect"
 	"testing"
 
-	"go.kine.bz/benc/testing/generated/complex"
+	"go.kine.bz/benc/testing/generated/complex_data"
 )
 
 func TestComplex(t *testing.T) {
-	data := complex.A{
-		Id:   123456789,
-		Name: "Example Structure",
-		SubItems: []complex.BB{
+	data := complex_data.ComplexData{
+		Id:    12345,
+		Title: "Example Complex Data",
+		Items: []complex_data.SubItem{
 			{
-				IsActive: true,
-				Details: [][]complex.C{
+				Sub_id:      1,
+				Description: "SubItem 1",
+				Sub_items: []complex_data.SubSubItem{
 					{
-						{
-							Value: 12.34,
-							Measurements: []complex.D{
-								{
-									Timestamp: 1616161616,
-									Note:      "Measurement 1",
-									Events: []complex.E{
-										{EID: 1, Description: "Event 1"},
-										{EID: 2, Description: "Event 2"},
-									},
-								},
-								{
-									Timestamp: 1616161617,
-									Note:      "Measurement 2",
-									Events: []complex.E{
-										{EID: 3, Description: "Event 3"},
-									},
-								},
-							},
-						},
-						{
-							Value: 56.78,
-							Measurements: []complex.D{
-								{
-									Timestamp: 1616161618,
-									Note:      "Measurement 3",
-									Events: []complex.E{
-										{EID: 4, Description: "Event 4"},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			{
-				IsActive: false,
-				Details: [][]complex.C{
-					{
-						{
-							Value: 90.12,
-							Measurements: []complex.D{
-								{
-									Timestamp: 1616161619,
-									Note:      "Measurement 4",
-									Events: []complex.E{
-										{EID: 5, Description: "Event 5"},
-									},
-								},
-							},
-						},
+						Sub_sub_id:   "subsub1",
+						Sub_sub_data: []byte{0x01, 0x02, 0x03},
 					},
 				},
 			},
 		},
-		ComplexData: [][][]complex.C{
-			{
+		Metadata: map[string]int32{
+			"key1": 10,
+			"key2": 20,
+		},
+		Sub_data: complex_data.SubComplexData{
+			Sub_id:    999,
+			Sub_title: "Sub Complex Data",
+			Sub_binary_data: [][]byte{
+				{0x11, 0x22, 0x33},
+				{0x44, 0x55, 0x66},
+			},
+			Sub_items: []complex_data.SubItem{
 				{
-					{
-						Value: 101.23,
-						Measurements: []complex.D{
-							{
-								Timestamp: 1616161620,
-								Note:      "Complex Measurement 1",
-								Events: []complex.E{
-									{EID: 6, Description: "Complex Event 1"},
-								},
-							},
-						},
-					},
-					{
-						Value: 202.34,
-						Measurements: []complex.D{
-							{
-								Timestamp: 1616161621,
-								Note:      "Complex Measurement 2",
-								Events: []complex.E{
-									{EID: 7, Description: "Complex Event 2"},
-									{EID: 8, Description: "Complex Event 3"},
-								},
-							},
-						},
-					},
-				},
-				{
-					{
-						Value: 303.45,
-						Measurements: []complex.D{
-							{
-								Timestamp: 1616161622,
-								Note:      "Complex Measurement 3",
-								Events: []complex.E{
-									{EID: 9, Description: "Complex Event 4"},
-								},
-							},
+					Sub_id:      2,
+					Description: "SubItem 2",
+					Sub_items: []complex_data.SubSubItem{
+						{
+							Sub_sub_id:   "subsub2",
+							Sub_sub_data: []byte{0xAA, 0xBB, 0xCC},
 						},
 					},
 				},
 			},
+			Sub_metadata: map[string]string{
+				"meta1": "value1",
+				"meta2": "value2",
+			},
 		},
+		Large_binary_data: [][]byte{
+			{0xFF, 0xEE, 0xDD},
+		},
+		Huge_list: []int64{1000000, 2000000, 3000000},
 	}
 
 	s := data.Size()
@@ -126,7 +65,7 @@ func TestComplex(t *testing.T) {
 	data.Marshal(b)
 	fmt.Println(b)
 
-	var retData complex.A
+	var retData complex_data.ComplexData
 	if err := retData.Unmarshal(b); err != nil {
 		t.Fatal(err)
 	}
@@ -137,122 +76,63 @@ func TestComplex(t *testing.T) {
 }
 
 func BenchmarkComplex(b *testing.B) {
-	data := complex.A{
-		Id:   123456789,
-		Name: "Example Structure",
-		SubItems: []complex.BB{
+	data := complex_data.ComplexData{
+		Id:    12345,
+		Title: "Example Complex Data",
+		Items: []complex_data.SubItem{
 			{
-				IsActive: true,
-				Details: [][]complex.C{
+				Sub_id:      1,
+				Description: "SubItem 1",
+				Sub_items: []complex_data.SubSubItem{
 					{
-						{
-							Value: 12.34,
-							Measurements: []complex.D{
-								{
-									Timestamp: 1616161616,
-									Note:      "Measurement 1",
-									Events: []complex.E{
-										{EID: 1, Description: "Event 1"},
-										{EID: 2, Description: "Event 2"},
-									},
-								},
-								{
-									Timestamp: 1616161617,
-									Note:      "Measurement 2",
-									Events: []complex.E{
-										{EID: 3, Description: "Event 3"},
-									},
-								},
-							},
-						},
-						{
-							Value: 56.78,
-							Measurements: []complex.D{
-								{
-									Timestamp: 1616161618,
-									Note:      "Measurement 3",
-									Events: []complex.E{
-										{EID: 4, Description: "Event 4"},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			{
-				IsActive: false,
-				Details: [][]complex.C{
-					{
-						{
-							Value: 90.12,
-							Measurements: []complex.D{
-								{
-									Timestamp: 1616161619,
-									Note:      "Measurement 4",
-									Events: []complex.E{
-										{EID: 5, Description: "Event 5"},
-									},
-								},
-							},
-						},
+						Sub_sub_id:   "subsub1",
+						Sub_sub_data: []byte{0x01, 0x02, 0x03},
 					},
 				},
 			},
 		},
-		ComplexData: [][][]complex.C{
-			{
+		Metadata: map[string]int32{
+			"key1": 10,
+			"key2": 20,
+		},
+		Sub_data: complex_data.SubComplexData{
+			Sub_id:    999,
+			Sub_title: "Sub Complex Data",
+			Sub_binary_data: [][]byte{
+				{0x11, 0x22, 0x33},
+				{0x44, 0x55, 0x66},
+			},
+			Sub_items: []complex_data.SubItem{
 				{
-					{
-						Value: 101.23,
-						Measurements: []complex.D{
-							{
-								Timestamp: 1616161620,
-								Note:      "Complex Measurement 1",
-								Events: []complex.E{
-									{EID: 6, Description: "Complex Event 1"},
-								},
-							},
-						},
-					},
-					{
-						Value: 202.34,
-						Measurements: []complex.D{
-							{
-								Timestamp: 1616161621,
-								Note:      "Complex Measurement 2",
-								Events: []complex.E{
-									{EID: 7, Description: "Complex Event 2"},
-									{EID: 8, Description: "Complex Event 3"},
-								},
-							},
-						},
-					},
-				},
-				{
-					{
-						Value: 303.45,
-						Measurements: []complex.D{
-							{
-								Timestamp: 1616161622,
-								Note:      "Complex Measurement 3",
-								Events: []complex.E{
-									{EID: 9, Description: "Complex Event 4"},
-								},
-							},
+					Sub_id:      2,
+					Description: "SubItem 2",
+					Sub_items: []complex_data.SubSubItem{
+						{
+							Sub_sub_id:   "subsub2",
+							Sub_sub_data: []byte{0xAA, 0xBB, 0xCC},
 						},
 					},
 				},
 			},
+			Sub_metadata: map[string]string{
+				"meta1": "value1",
+				"meta2": "value2",
+			},
 		},
+		Large_binary_data: [][]byte{
+			{0xFF, 0xEE, 0xDD},
+		},
+		Huge_list: []int64{1000000, 2000000, 3000000},
 	}
+	b.ReportAllocs()
+	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
 		s := data.Size()
 		buf := make([]byte, s)
 		data.Marshal(buf)
 
-		var retData complex.A
+		var retData complex_data.ComplexData
 		if err := retData.Unmarshal(buf); err != nil {
 			b.Fatal(err)
 		}

@@ -297,6 +297,36 @@ func TestMaps(t *testing.T) {
 	}
 }
 
+func TestMaps_2(t *testing.T) {
+	m := make(map[int32]string)
+	m[1] = "mapvalue1"
+	m[2] = "mapvalue2"
+	m[3] = "mapvalue3"
+	m[4] = "mapvalue4"
+	m[5] = "mapvalue5"
+
+	s := SizeMap(m, SizeInt32, SizeString)
+	buf := make([]byte, s)
+	MarshalMap(0, buf, m, MarshalInt32, MarshalString)
+	fmt.Println(buf)
+
+	if err := SkipOnce_Verify(buf, func(n int, b []byte) (int, error) {
+		return SkipMap(n, b)
+	}); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	_, retMap, err := UnmarshalMap[int32, string](0, buf, UnmarshalInt32, UnmarshalString)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	if !reflect.DeepEqual(retMap, m) {
+		t.Logf("org %v\ndec %v", m, retMap)
+		t.Fatal("no match!")
+	}
+}
+
 func TestEmptyString(t *testing.T) {
 	str := ""
 

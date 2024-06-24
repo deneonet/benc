@@ -1,0 +1,31 @@
+header complex_data;
+
+ctr ComplexData {
+    int64 id = 1;
+    string title = 2;
+    []SubItem items = 3;
+    <string, int32> metadata = 4;
+    SubComplexData sub_data = 5;
+    []bytes large_binary_data = 6;
+    []int64 huge_list = 7;
+}
+
+ctr SubItem {
+    int32 sub_id = 1;
+    string description = 2;
+    []SubSubItem sub_items = 3;
+}
+
+ctr SubSubItem {
+    string sub_sub_id = 1;
+    bytes sub_sub_data = 2;
+}
+
+ctr SubComplexData {
+    int32 sub_id = 1;
+    string sub_title = 2;
+    []bytes sub_binary_data = 3;
+    []SubItem sub_items = 4;
+    <string, string> sub_metadata = 5;
+}
+

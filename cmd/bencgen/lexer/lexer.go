@@ -47,6 +47,9 @@ const (
 	OPEN_BRACE    // {
 	CLOSE_BRACE   // }
 
+	OPEN_ARROW  // <
+	CLOSE_ARROW // >
+
 	CTR       // container
 	COMMA     // ,
 	EQUALS    // =
@@ -88,6 +91,9 @@ var tokens = []string{
 	CLOSE_BRACKET: "]",
 	OPEN_BRACE:    "{",
 	CLOSE_BRACE:   "}",
+
+	OPEN_ARROW:  "<",
+	CLOSE_ARROW: ">",
 
 	COMMA:     ",",
 	EQUALS:    "=",
@@ -212,6 +218,10 @@ func (l *Lexer) Lex() (Position, Token, string) {
 			return l.pos, OPEN_BRACE, "{"
 		case '}':
 			return l.pos, CLOSE_BRACE, "}"
+		case '<':
+			return l.pos, OPEN_ARROW, "<"
+		case '>':
+			return l.pos, CLOSE_ARROW, ">"
 		case ',':
 			return l.pos, COMMA, ","
 		case '=':

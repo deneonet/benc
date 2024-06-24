@@ -21,6 +21,10 @@ func getSizeFunc(name string, field parser.Field, plain bool) string {
 	if field.Type.IsArray {
 		return fmt.Sprintf("bstd.SizeSlice(%s.%s, %s)", name, fieldName, getElemSizeFunc(field.Type.Type))
 	}
+	if field.Type.IsMap {
+		return fmt.Sprintf("bstd.SizeMap(%s.%s, %s, %s)", name, fieldName, getElemSizeFunc(field.Type.Key), getElemSizeFunc(field.Type.Type))
+	}
+
 	if field.Type.CtrName != "" {
 		if plain {
 			return fmt.Sprintf("%s.%s.SizePlain()", name, fieldName)
@@ -39,8 +43,12 @@ func getSizeFunc(name string, field parser.Field, plain bool) string {
 
 func getElemSizeFunc(t *parser.Type) string {
 	if t.IsArray {
-		return fmt.Sprintf("func (s %s) int { return bstd.SizeSlice(s, %s) }", utils.FormatType(t), getElemSizeFunc(t.Type))
+		return fmt.Sprintf("func (s %s) int { return bstd.SizeSlice(s, %s) }", utils.FormatTypeGolang(t), getElemSizeFunc(t.Type))
 	}
+	if t.IsMap {
+		return fmt.Sprintf("func (s %s) int { return bstd.SizeMap(s, %s, %s) }", utils.FormatTypeGolang(t), getElemSizeFunc(t.Key), getElemSizeFunc(t.Type))
+	}
+
 	if t.CtrName != "" {
 		return fmt.Sprintf("func (s %s) int { return s.SizePlain() }", toUpper(t.CtrName))
 	}
@@ -53,6 +61,10 @@ func getMarshalFunc(name string, field parser.Field, plain bool) string {
 	if field.Type.IsArray {
 		return fmt.Sprintf("bstd.MarshalSlice(n, b, %s.%s, %s)", name, fieldName, getElemMarshalFunc(field.Type.Type))
 	}
+	if field.Type.IsMap {
+		return fmt.Sprintf("bstd.MarshalMap(n, b, %s.%s, %s, %s)", name, fieldName, getElemMarshalFunc(field.Type.Key), getElemMarshalFunc(field.Type.Type))
+	}
+
 	if field.Type.CtrName != "" {
 		if plain {
 			return fmt.Sprintf("%s.%s.MarshalPlain(n, b)", name, fieldName)
@@ -66,8 +78,12 @@ func getMarshalFunc(name string, field parser.Field, plain bool) string {
 
 func getElemMarshalFunc(t *parser.Type) string {
 	if t.IsArray {
-		return fmt.Sprintf("func (n int, b []byte, s %s) int { return bstd.MarshalSlice(n, b, s, %s) }", utils.FormatType(t), getElemMarshalFunc(t.Type))
+		return fmt.Sprintf("func (n int, b []byte, s %s) int { return bstd.MarshalSlice(n, b, s, %s) }", utils.FormatTypeGolang(t), getElemMarshalFunc(t.Type))
 	}
+	if t.IsMap {
+		return fmt.Sprintf("func (n int, b []byte, s %s) int { return bstd.MarshalMap(n, b, s, %s, %s) }", utils.FormatTypeGolang(t), getElemMarshalFunc(t.Key), getElemMarshalFunc(t.Type))
+	}
+
 	if t.CtrName != "" {
 		return fmt.Sprintf("func (n int, b []byte, s %s) int { return s.MarshalPlain(n, b) }", toUpper(t.CtrName))
 	}
@@ -78,8 +94,12 @@ func getUnmarshalFunc(name string, field parser.Field, plain bool) string {
 	fieldName := toUpper(field.Name)
 
 	if field.Type.IsArray {
-		return fmt.Sprintf("bstd.UnmarshalSlice[%s](n, b, %s)", utils.FormatType(field.Type.Type), getElemUnmarshalFunc(field.Type.Type))
+		return fmt.Sprintf("bstd.UnmarshalSlice[%s](n, b, %s)", utils.FormatTypeGolang(field.Type.Type), getElemUnmarshalFunc(field.Type.Type))
 	}
+	if field.Type.IsMap {
+		return fmt.Sprintf("bstd.UnmarshalMap[%s, %s](n, b, %s, %s)", utils.FormatTypeGolang(field.Type.Key), utils.FormatTypeGolang(field.Type.Type), getElemUnmarshalFunc(field.Type.Key), getElemUnmarshalFunc(field.Type.Type))
+	}
+
 	if field.Type.CtrName != "" && plain {
 		return fmt.Sprintf("%s.%s.UnmarshalPlain(n, b)", name, fieldName)
 	}
@@ -90,8 +110,12 @@ func getUnmarshalFunc(name string, field parser.Field, plain bool) string {
 
 func getElemUnmarshalFunc(t *parser.Type) string {
 	if t.IsArray {
-		return fmt.Sprintf("func (n int, b []byte) (int, %s, error) { return bstd.UnmarshalSlice[%s](n, b, %s) }", utils.FormatType(t), utils.FormatType(t.Type), getElemUnmarshalFunc(t.Type))
+		return fmt.Sprintf("func (n int, b []byte) (int, %s, error) { return bstd.UnmarshalSlice[%s](n, b, %s) }", utils.FormatTypeGolang(t), utils.FormatTypeGolang(t.Type), getElemUnmarshalFunc(t.Type))
 	}
+	if t.IsMap {
+		return fmt.Sprintf("func (n int, b []byte) (int, %s, error) { return bstd.UnmarshalMap[%s, %s](n, b, %s, %s) }", utils.FormatTypeGolang(t), utils.FormatTypeGolang(t.Key), utils.FormatTypeGolang(t.Type), getElemUnmarshalFunc(t.Key), getElemUnmarshalFunc(t.Type))
+	}
+
 	if t.CtrName != "" {
 		return fmt.Sprintf("func (n int, b []byte, s *%s) (int, error) { return s.UnmarshalPlain(n, b) }", toUpper(t.CtrName))
 	}
@@ -149,7 +173,7 @@ func (gen GoGenerator) GenStruct(ctrDeclarations []string, stmt *parser.CtrStmt)
 				continue
 			}*/
 
-		gen.generated += fmt.Sprintf("    %s %s\n", fieldName, utils.FormatType(field.Type))
+		gen.generated += fmt.Sprintf("    %s %s\n", fieldName, utils.FormatTypeGolang(field.Type))
 	}
 	return gen.generated + "}\n\n"
 }
