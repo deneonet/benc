@@ -1,24 +1,22 @@
-//go:generate bencgen --in schemas/complex_data.benc --out generated/complex_data --lang go
+//go:generate bencgen --in ../schemas/complex_data.benc --out ./ --file complex_data_test --lang go
 
-package tests
+package complex_data
 
 import (
 	"fmt"
 	"reflect"
 	"testing"
-
-	"go.kine.bz/benc/testing/generated/complex_data"
 )
 
 func TestComplex(t *testing.T) {
-	data := complex_data.ComplexData{
+	data := ComplexData{
 		Id:    12345,
 		Title: "Example Complex Data",
-		Items: []complex_data.SubItem{
+		Items: []SubItem{
 			{
 				Sub_id:      1,
 				Description: "SubItem 1",
-				Sub_items: []complex_data.SubSubItem{
+				Sub_items: []SubSubItem{
 					{
 						Sub_sub_id:   "subsub1",
 						Sub_sub_data: []byte{0x01, 0x02, 0x03},
@@ -30,18 +28,18 @@ func TestComplex(t *testing.T) {
 			"key1": 10,
 			"key2": 20,
 		},
-		Sub_data: complex_data.SubComplexData{
+		Sub_data: SubComplexData{
 			Sub_id:    999,
 			Sub_title: "Sub Complex Data",
 			Sub_binary_data: [][]byte{
 				{0x11, 0x22, 0x33},
 				{0x44, 0x55, 0x66},
 			},
-			Sub_items: []complex_data.SubItem{
+			Sub_items: []SubItem{
 				{
 					Sub_id:      2,
 					Description: "SubItem 2",
-					Sub_items: []complex_data.SubSubItem{
+					Sub_items: []SubSubItem{
 						{
 							Sub_sub_id:   "subsub2",
 							Sub_sub_data: []byte{0xAA, 0xBB, 0xCC},
@@ -65,7 +63,7 @@ func TestComplex(t *testing.T) {
 	data.Marshal(b)
 	fmt.Println(b)
 
-	var retData complex_data.ComplexData
+	var retData ComplexData
 	if err := retData.Unmarshal(b); err != nil {
 		t.Fatal(err)
 	}
@@ -76,14 +74,14 @@ func TestComplex(t *testing.T) {
 }
 
 func BenchmarkComplex(b *testing.B) {
-	data := complex_data.ComplexData{
+	data := ComplexData{
 		Id:    12345,
 		Title: "Example Complex Data",
-		Items: []complex_data.SubItem{
+		Items: []SubItem{
 			{
 				Sub_id:      1,
 				Description: "SubItem 1",
-				Sub_items: []complex_data.SubSubItem{
+				Sub_items: []SubSubItem{
 					{
 						Sub_sub_id:   "subsub1",
 						Sub_sub_data: []byte{0x01, 0x02, 0x03},
@@ -95,18 +93,18 @@ func BenchmarkComplex(b *testing.B) {
 			"key1": 10,
 			"key2": 20,
 		},
-		Sub_data: complex_data.SubComplexData{
+		Sub_data: SubComplexData{
 			Sub_id:    999,
 			Sub_title: "Sub Complex Data",
 			Sub_binary_data: [][]byte{
 				{0x11, 0x22, 0x33},
 				{0x44, 0x55, 0x66},
 			},
-			Sub_items: []complex_data.SubItem{
+			Sub_items: []SubItem{
 				{
 					Sub_id:      2,
 					Description: "SubItem 2",
-					Sub_items: []complex_data.SubSubItem{
+					Sub_items: []SubSubItem{
 						{
 							Sub_sub_id:   "subsub2",
 							Sub_sub_data: []byte{0xAA, 0xBB, 0xCC},
@@ -132,7 +130,7 @@ func BenchmarkComplex(b *testing.B) {
 		buf := make([]byte, s)
 		data.Marshal(buf)
 
-		var retData complex_data.ComplexData
+		var retData ComplexData
 		if err := retData.Unmarshal(buf); err != nil {
 			b.Fatal(err)
 		}

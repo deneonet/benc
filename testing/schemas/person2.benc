@@ -1,20 +1,20 @@
-header person2;
+header person;
 
-ctr Person {
+ctr Person2 {
     reserved 3;
     
     byte age = 1;
     string name = 2;
-    Child child = 4;
+    Child2 child = 4;
 }
 
-ctr Child {
+ctr Child2 {
     byte age = 1;
     string name = 2;
-    Parents parents = 3;
+    Parents2 parents = 3;
 }
 
-ctr Parents {
+ctr Parents2 {
     string mother = 1;
     string father = 2;
 }

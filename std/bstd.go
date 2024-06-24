@@ -9,9 +9,7 @@ import (
 	"golang.org/x/exp/constraints"
 )
 
-type SkipFunc func(n int, b []byte) (int, error)
 type MarshalFunc[T any] func(n int, b []byte, t T) int
-type UnmarshalFunc[T any] func(n int, b []byte) (int, T, error)
 
 // For unsafe string too
 func SkipString(n int, b []byte) (int, error) {
