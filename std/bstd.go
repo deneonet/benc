@@ -2,7 +2,6 @@ package bstd
 
 import (
 	"encoding/binary"
-	"fmt"
 	"math"
 	"unsafe"
 
@@ -94,6 +93,9 @@ func UnmarshalUnsafeString(n int, b []byte) (int, string, error) {
 		return 0, "", err
 	}
 	s := int(us)
+	if s == 0 {
+		return n, "", nil
+	}
 
 	if len(b)-n < s {
 		return n, "", benc.ErrBufTooSmall
@@ -104,13 +106,20 @@ func UnmarshalUnsafeString(n int, b []byte) (int, string, error) {
 //
 
 func SkipSlice(n int, b []byte) (int, error) {
-	if len(b)-n < 4 {
+	lb := len(b)
+	if lb-n < 4 {
 		return 0, benc.ErrBufTooSmall
 	}
 
 	u := b[n : n+4]
 	_ = u[3]
-	return n + int(uint32(u[0])|uint32(u[1])<<8|uint32(u[2])<<16|uint32(u[3])<<24) + 4, nil
+	s := int(uint32(u[0]) | uint32(u[1])<<8 | uint32(u[2])<<16 | uint32(u[3])<<24)
+	n += 4
+
+	if lb-n < s {
+		return n, benc.ErrBufTooSmall
+	}
+	return n + s, nil
 }
 
 func SizeSlice[T any](slice []T, sizer interface{}) (s int) {
@@ -143,7 +152,7 @@ func MarshalSlice[T any](n int, b []byte, slice []T, marshaler MarshalFunc[T]) i
 	}
 
 	_ = u[3]
-	v32 := uint32(sn - n)
+	v32 := uint32(n - sn)
 	u[0] = byte(v32)
 	u[1] = byte(v32 >> 8)
 	u[2] = byte(v32 >> 16)
@@ -175,7 +184,7 @@ func UnmarshalSlice[T any](n int, b []byte, unmarshaler interface{}) (int, []T, 
 		for i := 0; i < s; i++ {
 			n, err = p(n, b, &ts[i])
 			if err != nil {
-				return 0, nil, fmt.Errorf("at index %d: %s", i, err.Error())
+				return 0, nil, err
 			}
 		}
 	default:
@@ -186,14 +195,21 @@ func UnmarshalSlice[T any](n int, b []byte, unmarshaler interface{}) (int, []T, 
 }
 
 // SkipMap = SkipSlice
-func SkipMap(n int, b []byte, kSkipper SkipFunc, vSkipper SkipFunc) (int, error) {
-	if len(b)-n < 4 {
+func SkipMap(n int, b []byte) (int, error) {
+	lb := len(b)
+	if lb-n < 4 {
 		return 0, benc.ErrBufTooSmall
 	}
 
 	u := b[n : n+4]
 	_ = u[3]
-	return n + int(uint32(u[0])|uint32(u[1])<<8|uint32(u[2])<<16|uint32(u[3])<<24) + 4, nil
+	s := int(uint32(u[0]) | uint32(u[1])<<8 | uint32(u[2])<<16 | uint32(u[3])<<24)
+	n += 4
+
+	if lb-n < s {
+		return n, benc.ErrBufTooSmall
+	}
+	return n + s, nil
 }
 
 func SizeMap[K comparable, V any](m map[K]V, kSizer interface{}, vSizer interface{}) (s int) {
@@ -218,7 +234,7 @@ func SizeMap[K comparable, V any](m map[K]V, kSizer interface{}, vSizer interfac
 			panic("[benc " + benc.BencVersion + "]: invalid `vSizer` provided in `SizeMap`")
 		}
 	}
-	return s + SizeUVarint(uint64(len(m)))
+	return s
 }
 
 func MarshalMap[K comparable, V any](n int, b []byte, m map[K]V, kMarshaler MarshalFunc[K], vMarshaler MarshalFunc[V]) int {
@@ -233,7 +249,7 @@ func MarshalMap[K comparable, V any](n int, b []byte, m map[K]V, kMarshaler Mars
 	}
 
 	_ = u[3]
-	v32 := uint32(sn - n)
+	v32 := uint32(n - sn)
 	u[0] = byte(v32)
 	u[1] = byte(v32 >> 8)
 	u[2] = byte(v32 >> 16)
@@ -257,12 +273,12 @@ func UnmarshalMap[K comparable, V any](n int, b []byte, kUnmarshaler interface{}
 		case func(n int, b []byte) (int, K, error):
 			n, k, err = p(n, b)
 			if err != nil {
-				return 0, nil, fmt.Errorf("(key) at index %d: %s", i, err.Error())
+				return 0, nil, err
 			}
 		case func(n int, b []byte, k *K) (int, error):
 			n, err = p(n, b, &k)
 			if err != nil {
-				return 0, nil, fmt.Errorf("(key) at index %d: %s", i, err.Error())
+				return 0, nil, err
 			}
 		default:
 			panic("[benc " + benc.BencVersion + "]: invalid `kUnmarshaler` provided in `UnmarshalMap`")
@@ -272,12 +288,12 @@ func UnmarshalMap[K comparable, V any](n int, b []byte, kUnmarshaler interface{}
 		case func(n int, b []byte) (int, V, error):
 			n, v, err = p(n, b)
 			if err != nil {
-				return 0, nil, fmt.Errorf("(value) at index %d: %s", i, err.Error())
+				return 0, nil, err
 			}
 		case func(n int, b []byte, v *V) (int, error):
 			n, err = p(n, b, &v)
 			if err != nil {
-				return 0, nil, fmt.Errorf("(value) at index %d: %s", i, err.Error())
+				return 0, nil, err
 			}
 		default:
 			panic("[benc " + benc.BencVersion + "]: invalid `kUnmarshaler` provided in `UnmarshalMap`")
@@ -321,7 +337,6 @@ func SkipBytes(n int, b []byte) (int, error) {
 		return 0, err
 	}
 	s := int(us)
-
 	if len(b)-n < s {
 		return n, benc.ErrBufTooSmall
 	}
@@ -705,18 +720,18 @@ func UnmarshalUVarint(n int, buf []byte) (int, uint64, error) {
 	var s uint
 	for i, b := range buf[n:] {
 		if i == binary.MaxVarintLen64 {
-			return n, 0, benc.ErrOverflow
+			return 0, 0, benc.ErrOverflow
 		}
 		if b < 0x80 {
 			if i == binary.MaxVarintLen64-1 && b > 1 {
-				return n, 0, benc.ErrOverflow
+				return 0, 0, benc.ErrOverflow
 			}
 			return n + i + 1, x | uint64(b)<<s, nil
 		}
 		x |= uint64(b&0x7f) << s
 		s += 7
 	}
-	return n, 0, benc.ErrBufTooSmall
+	return 0, 0, benc.ErrBufTooSmall
 }
 
 //

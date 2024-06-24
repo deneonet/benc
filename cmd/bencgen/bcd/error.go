@@ -1,5 +1,6 @@
 package bcd
 
+/*
 import (
 	"fmt"
 	"os"
@@ -12,3 +13,4 @@ func (b *Bcd) error(m string) {
 	fmt.Println(errorMessage)
 	os.Exit(-1)
 }
+*/

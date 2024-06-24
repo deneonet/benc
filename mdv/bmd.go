@@ -1,5 +1,6 @@
 package bmd
 
+/*
 import (
 	"fmt"
 	"math"
@@ -1533,3 +1534,4 @@ func DecodeZigZag[T constraints.Unsigned](t T) T {
 	}
 	return t >> 1
 }
+*/

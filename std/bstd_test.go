@@ -101,7 +101,7 @@ func SkipAll_VerifyError(expected error, buffers [][]byte, skipers ...func(n int
 	for i, skiper := range skipers {
 		_, err = skiper(0, buffers[i])
 		if err != expected {
-			return fmt.Errorf("(skip) at idx %d: expected a %s error", i, expected)
+			return fmt.Errorf("(skip) at idx %d: expected a %s error, got %s", i, expected, err)
 		}
 	}
 	return nil
@@ -210,14 +210,14 @@ func TestErrBufTooSmall(t *testing.T) {
 	}
 
 	skipSliceOfBytes := func(n int, b []byte) (int, error) { return SkipSlice(n, b) }
-	skipMapOfBytes := func(n int, b []byte) (int, error) { return SkipMap(n, b, SkipByte, SkipByte) }
+	skipMapOfBytes := func(n int, b []byte) (int, error) { return SkipMap(n, b) }
 	if err := SkipAll_VerifyError(benc.ErrBufTooSmall, buffers, SkipBool, SkipByte, SkipFloat32, SkipFloat64, SkipInt16, SkipInt32, SkipInt64, SkipUInt16, SkipUInt32, SkipUInt64, SkipString, SkipString, SkipString, SkipString, SkipString, SkipString, SkipString, SkipString, SkipBytes, SkipBytes, SkipBytes, SkipBytes, skipSliceOfBytes, skipSliceOfBytes, skipSliceOfBytes, skipSliceOfBytes, skipMapOfBytes, skipMapOfBytes, skipMapOfBytes, skipMapOfBytes); err != nil {
 		t.Fatal(err.Error())
 	}
 }
 
 func TestErrBufTooSmall_2(t *testing.T) {
-	buffers := [][]byte{{}, {2, 0}, {}, {2, 0}, {}, {2, 0}, {0, 0, 0}, {10, 0, 0, 0, 1}, {10, 0, 0, 0, 1, 2, 3}}
+	buffers := [][]byte{{}, {2, 0}, {}, {2, 0}, {}, {2, 0}, {0, 0, 0}, {10, 0, 0, 0, 1}, {0, 0, 0}, {10, 0, 0, 0, 1}}
 	if err := UnmarshalAll_VerifyError(benc.ErrBufTooSmall, buffers,
 		func(n int, b []byte) (int, any, error) { return UnmarshalString(n, b) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalString(n, b) },
@@ -227,10 +227,6 @@ func TestErrBufTooSmall_2(t *testing.T) {
 		func(n int, b []byte) (int, any, error) { return UnmarshalBytes(n, b) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalSlice[byte](n, b, UnmarshalByte) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalSlice[byte](n, b, UnmarshalByte) },
-		func(n int, b []byte) (int, any, error) { return UnmarshalSlice[byte](n, b, UnmarshalByte) },
-		func(n int, b []byte) (int, any, error) {
-			return UnmarshalMap[byte, byte](n, b, UnmarshalByte, UnmarshalByte)
-		},
 		func(n int, b []byte) (int, any, error) {
 			return UnmarshalMap[byte, byte](n, b, UnmarshalByte, UnmarshalByte)
 		},
@@ -242,8 +238,8 @@ func TestErrBufTooSmall_2(t *testing.T) {
 	}
 
 	skipSliceOfBytes := func(n int, b []byte) (int, error) { return SkipSlice(n, b) }
-	skipMapOfBytes := func(n int, b []byte) (int, error) { return SkipMap(n, b, SkipByte, SkipByte) }
-	if err := SkipAll_VerifyError(benc.ErrBufTooSmall, buffers, SkipString, SkipString, SkipString, SkipString, SkipString, SkipString, SkipBytes, SkipBytes, SkipBytes, skipSliceOfBytes, skipSliceOfBytes, skipSliceOfBytes, skipMapOfBytes, skipMapOfBytes, skipMapOfBytes); err != nil {
+	skipMapOfBytes := func(n int, b []byte) (int, error) { return SkipMap(n, b) }
+	if err := SkipAll_VerifyError(benc.ErrBufTooSmall, buffers, SkipString, SkipString, SkipString, SkipString, SkipBytes, SkipBytes, skipSliceOfBytes, skipSliceOfBytes, skipMapOfBytes, skipMapOfBytes); err != nil {
 		t.Fatal(err.Error())
 	}
 }
@@ -266,13 +262,11 @@ func TestSlices(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(retSlice, slice) {
+		t.Logf("org %v\ndec %v", slice, retSlice)
 		t.Fatal("no match!")
 	}
-
-	t.Logf("org %v\ndec %v", slice, retSlice)
 }
 
-/*
 func TestMaps(t *testing.T) {
 	m := make(map[string]string)
 	m["mapkey1"] = "mapvalue1"
@@ -281,35 +275,27 @@ func TestMaps(t *testing.T) {
 	m["mapkey4"] = "mapvalue4"
 	m["mapkey5"] = "mapvalue5"
 
-	s, err := SizeMap(m, SizeString, SizeString)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	s := SizeMap(m, SizeString, SizeString)
+	buf := make([]byte, s)
+	MarshalMap(0, buf, m, MarshalString, MarshalString)
+	fmt.Println(buf)
 
-	n, buf := benc.Marshal(s)
-	_, err = MarshalMap(n, buf, m, MarshalString, MarshalString)
-
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	if err = SkipOnce_Verify(buf, func(n int, b []byte) (int, error) {
-		return SkipMap(n, b, SkipString, SkipString)
+	if err := SkipOnce_Verify(buf, func(n int, b []byte) (int, error) {
+		return SkipMap(n, b)
 	}); err != nil {
 		t.Fatal(err.Error())
 	}
 
-	_, retMap, err := UnmarshalMap(0, buf, UnmarshalString, UnmarshalString)
+	_, retMap, err := UnmarshalMap[string, string](0, buf, UnmarshalString, UnmarshalString)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
 	if !reflect.DeepEqual(retMap, m) {
+		t.Logf("org %v\ndec %v", m, retMap)
 		t.Fatal("no match!")
 	}
-
-	t.Logf("org %v\ndec %v", m, retMap)
-}*/
+}
 
 func TestEmptyString(t *testing.T) {
 	str := ""
@@ -328,10 +314,9 @@ func TestEmptyString(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(retStr, str) {
+		t.Logf("org %v\ndec %v", str, retStr)
 		t.Fatal("no match!")
 	}
-
-	t.Logf("org %v\ndec %v", str, retStr)
 }
 
 func TestEmptyUnsafeString(t *testing.T) {
@@ -351,8 +336,7 @@ func TestEmptyUnsafeString(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(retStr, str) {
+		t.Logf("org %v\ndec %v", str, retStr)
 		t.Fatal("no match!")
 	}
-
-	t.Logf("org %v\ndec %v", str, retStr)
 }

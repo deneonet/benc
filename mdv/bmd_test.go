@@ -1,5 +1,6 @@
 package bmd
 
+/*
 import (
 	"bytes"
 	"errors"
@@ -802,3 +803,4 @@ func TestMessageFraming(t *testing.T) {
 		t.Fatal("i is not 2!")
 	}
 }
+*/
