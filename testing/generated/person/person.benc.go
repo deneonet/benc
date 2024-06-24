@@ -116,27 +116,11 @@ func (person *Person) unmarshal(tn int, b []byte, r []uint16, id uint16) (n int,
             return
         }
     }
-    if n, ok, err = bgenimpl.HandleCompatibility(n, b, personRIds, 3); err != nil {
-        if err == bgenimpl.ErrEof {
-            return n, nil
-        }
+    if n, err = person.Parents.unmarshal(n, b, personRIds, 3); err != nil {
         return
     }
-    if ok {
-        if n, err = person.Parents.unmarshal(n, b, personRIds, 3); err != nil {
-            return
-        }
-    }
-    if n, ok, err = bgenimpl.HandleCompatibility(n, b, personRIds, 4); err != nil {
-        if err == bgenimpl.ErrEof {
-            return n, nil
-        }
+    if n, err = person.Child.unmarshal(n, b, personRIds, 4); err != nil {
         return
-    }
-    if ok {
-        if n, err = person.Child.unmarshal(n, b, personRIds, 4); err != nil {
-            return
-        }
     }
     n += 2
     return
@@ -263,16 +247,8 @@ func (child *Child) unmarshal(tn int, b []byte, r []uint16, id uint16) (n int, e
             return
         }
     }
-    if n, ok, err = bgenimpl.HandleCompatibility(n, b, childRIds, 3); err != nil {
-        if err == bgenimpl.ErrEof {
-            return n, nil
-        }
+    if n, err = child.Parents.unmarshal(n, b, childRIds, 3); err != nil {
         return
-    }
-    if ok {
-        if n, err = child.Parents.unmarshal(n, b, childRIds, 3); err != nil {
-            return
-        }
     }
     n += 2
     return

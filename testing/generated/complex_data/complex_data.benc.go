@@ -157,16 +157,8 @@ func (complexData *ComplexData) unmarshal(tn int, b []byte, r []uint16, id uint1
             return
         }
     }
-    if n, ok, err = bgenimpl.HandleCompatibility(n, b, complexDataRIds, 5); err != nil {
-        if err == bgenimpl.ErrEof {
-            return n, nil
-        }
+    if n, err = complexData.Sub_data.unmarshal(n, b, complexDataRIds, 5); err != nil {
         return
-    }
-    if ok {
-        if n, err = complexData.Sub_data.unmarshal(n, b, complexDataRIds, 5); err != nil {
-            return
-        }
     }
     if n, ok, err = bgenimpl.HandleCompatibility(n, b, complexDataRIds, 6); err != nil {
         if err == bgenimpl.ErrEof {

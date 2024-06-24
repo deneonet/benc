@@ -266,12 +266,12 @@ func (gen GoGenerator) GenUnmarshal(stmt *parser.CtrStmt) string {
 
 	for _, field := range stmt.Fields {
 		fieldName := toUpper(field.Name)
-		gen.generated += fmt.Sprintf("    if n, ok, err = bgenimpl.HandleCompatibility(n, b, %sRIds, %d); err != nil {\n        if err == bgenimpl.ErrEof {\n            return n, nil\n        }\n        return\n    }\n", privStmtName, field.Id)
 		if field.Type.CtrName != "" {
-			gen.generated += fmt.Sprintf("    if ok {\n        if n, err = %s.%s.unmarshal(n, b, %sRIds, %d); err != nil {\n            return\n        }\n    }\n", privStmtName, fieldName, privStmtName, field.Id)
+			gen.generated += fmt.Sprintf("    if n, err = %s.%s.unmarshal(n, b, %sRIds, %d); err != nil {\n        return\n    }\n", privStmtName, fieldName, privStmtName, field.Id)
 			continue
 		}
 		t := getUnmarshalFunc(privStmtName, field, false)
+		gen.generated += fmt.Sprintf("    if n, ok, err = bgenimpl.HandleCompatibility(n, b, %sRIds, %d); err != nil {\n        if err == bgenimpl.ErrEof {\n            return n, nil\n        }\n        return\n    }\n", privStmtName, field.Id)
 		gen.generated += fmt.Sprintf("    if ok {\n        if n, %s.%s, err = %s; err != nil {\n            return\n        }\n    }\n", privStmtName, fieldName, t)
 	}
 	return gen.generated + "    n += 2\n    return\n}\n\n"
