@@ -37,7 +37,7 @@ func main() {
 	mystr := "My string"
 
 	// Calculate the size needed
-	s := idv.Size(id, func() int {
+	s := bidv.Size(id, func() int {
 		return std.SizeString(mystr)
 	})
 
@@ -45,13 +45,13 @@ func main() {
 	buf := make([]byte, s)
 
 	// Marshal ID into buffer
-	n := idv.Marshal(0, buf, id)
+	n := bidv.Marshal(0, buf, id)
 
 	// Marshal string into buffer
 	_ = std.MarshalString(n, buf, mystr)
 
 	// Unmarshal ID and string
-	_, deserMyStr, err := idv.Unmarshal(0, buf, id, std.UnmarshalString)
+	_, deserMyStr, err := bidv.Unmarshal(0, buf, id, std.UnmarshalString)
 	if err != nil {
 		panic(err)
 	}
