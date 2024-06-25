@@ -21,7 +21,7 @@ Benc IDV provides four primary functions:
 
 ## Basic Type Example
 
-Marshaling a string with the ID of `1`:
+Marshaling and Unmarshalling a string with the ID of `1`:
 
 ```go
 package main
@@ -51,7 +51,7 @@ func main() {
 	_ = std.MarshalString(n, buf, mystr)
 
 	// Unmarshal ID and string
-	_, deserMyStr, err := idv.Unmarshal(0, buf, std.UnmarshalString)
+	_, deserMyStr, err := idv.Unmarshal(0, buf, id, std.UnmarshalString)
 	if err != nil {
 		panic(err)
 	}
