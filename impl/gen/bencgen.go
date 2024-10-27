@@ -4,8 +4,8 @@ import (
 	"errors"
 	"slices"
 
-	"go.kine.bz/benc"
-	bstd "go.kine.bz/benc/std"
+	"github.com/deneonet/benc"
+	bstd "github.com/deneonet/benc/std"
 )
 
 var ErrEof = errors.New("reached end of decoding")
@@ -13,12 +13,13 @@ var ErrInvalidType = errors.New("the type decoded is invalid")
 
 const (
 	Container byte = iota + 2
-	Array
 	Bytes
+	Varint
 	Fixed8
 	Fixed16
 	Fixed32
 	Fixed64
+	ArrayMap
 )
 
 func skipByType(tn int, b []byte, t byte) (n int, err error) {
@@ -26,8 +27,10 @@ func skipByType(tn int, b []byte, t byte) (n int, err error) {
 	switch t {
 	case Bytes:
 		n, err = bstd.SkipBytes(n, b)
-	case Array:
+	case ArrayMap:
 		n, err = bstd.SkipSlice(n, b)
+	case Varint:
+		n, err = bstd.SkipVarint(n, b)
 	case Container:
 		for b[n] != 1 || b[n+1] != 1 {
 			n, _, t, err = UnmarshalTag(n, b)

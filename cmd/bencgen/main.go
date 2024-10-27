@@ -7,8 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"go.kine.bz/benc/cmd/bencgen/codegens"
-	"go.kine.bz/benc/cmd/bencgen/parser"
+	"github.com/deneonet/benc/cmd/bencgen/bcd"
+	"github.com/deneonet/benc/cmd/bencgen/codegens"
+	"github.com/deneonet/benc/cmd/bencgen/parser"
 )
 
 var iFlag = flag.String("in", "", "the input .benc file")
@@ -62,8 +63,8 @@ func main() {
 	parser := parser.NewParser(file, string(content))
 	nodes := parser.Parse()
 
-	/*bcd := bcd.NewBcd(nodes, *iFlag)
-	bcd.Analyze(*fFlag)*/
+	bcd := bcd.NewBcd(nodes, *iFlag)
+	bcd.Analyze(*fFlag)
 
 	outCode := codegens.Generate(generator, nodes)
 

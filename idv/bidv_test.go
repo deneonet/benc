@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"go.kine.bz/benc"
-	bstd "go.kine.bz/benc/std"
+	"github.com/deneonet/benc"
+	bstd "github.com/deneonet/benc/std"
 )
 
 type Test struct {
@@ -28,7 +28,7 @@ func (t *Test) Unmarshal(tn int, b []byte) (n int, err error) {
 }
 
 func TestBasic(t *testing.T) {
-	var id uint64 = 10
+	var id uint = 10
 	str := "Hello World!"
 	s := Size(id, bstd.SizeString(str))
 	b := make([]byte, s)
@@ -82,7 +82,7 @@ func TestStruct(t *testing.T) {
 }
 
 func TestErrBufTooSmall(t *testing.T) {
-	var id uint64 = 10
+	var id uint = 10
 	_, err := Skip(0, []byte{}, id, bstd.SkipString)
 	if err != benc.ErrBufTooSmall {
 		t.Fatal(err)
@@ -95,7 +95,7 @@ func TestErrBufTooSmall(t *testing.T) {
 }
 
 func TestErrIdMismatch(t *testing.T) {
-	var id uint64 = 10
+	var id uint = 10
 	str := "Hello World!"
 	s := Size(id, bstd.SizeString(str))
 	b := make([]byte, s)

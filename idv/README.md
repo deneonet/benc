@@ -4,11 +4,11 @@ The Benc ID Validation (Benc IDV) provides a suite of methods for prefixing Benc
 
 ## Installation
 ```bash
-go get go.kine.bz/benc/idv
+go get github.com/deneonet/benc/idv
 ```
 
 ## Tests
-The code coverage of `bidv.go` is 100% (~97% when including uncalled panics).
+The code coverage of `bidv.go` is 100% (~97% with uncalled panics).
 
 ## Usage
 
@@ -19,17 +19,18 @@ Benc IDV provides four primary functions:
 - **Marshal**: Marshals `id` into the buffer at a given offset `n`.
 - **Unmarshal**: Unmarshals and validates the deserialized ID, then unmarshals the requested type.
 
-## Basic Type Example
+## Example
 
-Marshaling and Unmarshalling a string with the ID of `1`:
+Marshaling and Unmarshalling a string with the ID of `1`:  
+See [bstd examples](../std/README.md#complex-data-type-example)
 
 ```go
 package main
 
 import (
 	"fmt"
-	"go.kine.bz/benc/idv"
-	"go.kine.bz/benc/std"
+	"github.com/deneonet/benc/idv"
+	"github.com/deneonet/benc/std"
 )
 
 func main() {
@@ -37,9 +38,7 @@ func main() {
 	mystr := "My string"
 
 	// Calculate the size needed
-	s := bidv.Size(id, func() int {
-		return std.SizeString(mystr)
-	})
+	s := bidv.Size(id, bstd.SizeString(mystr))
 
 	// Create buffer
 	buf := make([]byte, s)
@@ -48,10 +47,10 @@ func main() {
 	n := bidv.Marshal(0, buf, id)
 
 	// Marshal string into buffer
-	_ = std.MarshalString(n, buf, mystr)
+	_ = bstd.MarshalString(n, buf, mystr)
 
 	// Unmarshal ID and string
-	_, deserMyStr, err := bidv.Unmarshal(0, buf, id, std.UnmarshalString)
+	_, deserMyStr, err := bidv.Unmarshal[string](0, buf, id, bstd.UnmarshalString)
 	if err != nil {
 		panic(err)
 	}

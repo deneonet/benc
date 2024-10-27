@@ -3,6 +3,7 @@ package lexer
 import (
 	"bufio"
 	"io"
+	"strings"
 	"unicode"
 )
 
@@ -21,10 +22,12 @@ const (
 	INT64
 	INT32
 	INT16
+	INT
 
 	UINT64
 	UINT32
 	UINT16
+	UINT
 
 	BYTES
 	STRING
@@ -37,9 +40,6 @@ const (
 	// types
 
 	UNSAFE // @unsafe
-	BYTES2 // @bytes
-	BYTES4 // @bytes4
-	BYTES8 // @bytes8
 	// type attributes
 
 	OPEN_BRACKET  // [
@@ -68,10 +68,12 @@ var tokens = []string{
 	INT64: "Int64",
 	INT32: "Int32",
 	INT16: "Int16",
+	INT:   "Int",
 
 	UINT64: "UInt64",
 	UINT32: "UInt32",
 	UINT16: "UInt16",
+	UINT:   "UInt",
 
 	FLOAT32: "Float32",
 	FLOAT64: "Float64",
@@ -83,9 +85,6 @@ var tokens = []string{
 	STRING: "String",
 
 	UNSAFE: "Unsafe",
-	BYTES2: "Bytes2",
-	BYTES4: "Bytes4",
-	BYTES8: "Bytes8",
 
 	OPEN_BRACKET:  "[",
 	CLOSE_BRACKET: "]",
@@ -108,10 +107,12 @@ var keywords = map[string]Token{
 	"int64": INT64,
 	"int32": INT32,
 	"int16": INT16,
+	"int":   INT,
 
 	"uint64": UINT64,
 	"uint32": UINT32,
 	"uint16": UINT16,
+	"uint":   UINT,
 
 	"float32": FLOAT32,
 	"float64": FLOAT64,
@@ -123,9 +124,6 @@ var keywords = map[string]Token{
 	"string": STRING,
 
 	"@unsafe": UNSAFE,
-	"@bytes2": BYTES2,
-	"@bytes4": BYTES4,
-	"@bytes8": BYTES8,
 }
 
 func (t Token) String() string {
@@ -140,12 +138,16 @@ func (t Token) Golang() string {
 		return "int32"
 	case INT16:
 		return "int16"
+	case INT:
+		return "int"
 	case UINT64:
 		return "uint64"
 	case UINT32:
 		return "uint32"
 	case UINT16:
 		return "uint16"
+	case UINT:
+		return "uint"
 	case FLOAT32:
 		return "float32"
 	case FLOAT64:
@@ -225,7 +227,7 @@ func (l *Lexer) Lex() (Position, Token, string) {
 		case ',':
 			return l.pos, COMMA, ","
 		case '=':
-			return l.pos, EQUALS, ","
+			return l.pos, EQUALS, "="
 		case ';':
 			return l.pos, SEMICOLON, ";"
 		default:
@@ -252,8 +254,7 @@ func (l *Lexer) Lex() (Position, Token, string) {
 
 			if r == '@' {
 				startPos := l.pos
-				lit := l.lexIdent()
-				lit = "@" + lit
+				lit := l.lexAtPrefixedIdent()
 				if token, ok := keywords[lit]; ok {
 					return startPos, token, lit
 				}
@@ -274,48 +275,48 @@ func (l *Lexer) backup() {
 	if err := l.reader.UnreadRune(); err != nil {
 		panic(err)
 	}
-
 	l.pos.Column--
 }
 
 func (l *Lexer) lexNumber() string {
-	var lit string
+	var sb strings.Builder
 	for {
 		r, _, err := l.reader.ReadRune()
-		if err != nil {
-			if err == io.EOF {
-				return lit
-			}
-		}
-
-		l.pos.Column++
-
-		if unicode.IsDigit(r) {
-			lit = lit + string(r)
-		} else {
+		if err != nil || !unicode.IsDigit(r) {
 			l.backup()
-			return lit
+			break
 		}
+		l.pos.Column++
+		sb.WriteRune(r)
 	}
+	return sb.String()
 }
 
 func (l *Lexer) lexIdent() string {
-	var lit string
+	var sb strings.Builder
 	for {
 		r, _, err := l.reader.ReadRune()
-		if err != nil {
-			if err == io.EOF {
-				return lit
-			}
-		}
-
-		l.pos.Column++
-
-		if unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' {
-			lit = lit + string(r)
-		} else {
+		if err != nil || !(unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_') {
 			l.backup()
-			return lit
+			break
 		}
+		l.pos.Column++
+		sb.WriteRune(r)
 	}
+	return sb.String()
+}
+
+func (l *Lexer) lexAtPrefixedIdent() string {
+	var sb strings.Builder
+	sb.WriteRune('@')
+	for {
+		r, _, err := l.reader.ReadRune()
+		if err != nil || !(unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_') {
+			l.backup()
+			break
+		}
+		l.pos.Column++
+		sb.WriteRune(r)
+	}
+	return sb.String()
 }

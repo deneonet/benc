@@ -1,4 +1,4 @@
-module go.kine.bz/benc
+module github.com/deneonet/benc
 
 go 1.22
 

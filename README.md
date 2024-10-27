@@ -1,23 +1,25 @@
-# benc dev
+# Benc
 
-I have to sometimes change PCs, so I created this repo, and made it public, if someone is interested in the development of benc.
+![go workflow](https://github.com/deneonet/benc/actions/workflows/go.yml/badge.svg)
+[![go report card](https://goreportcard.com/badge/github.com/deneonet/benc)](https://goreportcard.com/report/github.com/deneonet/benc)
+[![go reference](https://pkg.go.dev/badge/github.com/deneonet/benc.svg)](https://pkg.go.dev/github.com/deneonet/benc)
 
-## Disclaimers:
-- .md files (like README) may contain false information, unfinished statements or invalid URLs.
-- Code is unfinished and could be broken, some parts may be just for testing. Code will change.
+The fastest serializer in pure Golang, with the option for backward/forward compatibile generated code.
 
-## Changes since v1.0.9:
-- Made a code generator (see cmd/bencgen)
-- Implementation for bencgen (see impl/gen), for `forward and backward compatibility`
-- Implemented varint marshalling (much faster and better than the Max size system Benc currently uses)
-- Mod Path changed (github.com/deneonet/benc) to go.kine.bz/benc (cleaner imports, I own the domain, so its unique)
-- Strucure changes, probably going to remove Message Framing too (already done)
+This module is split into four main packages:
 
-## Todos:
-- Fix bcd
-- ~~Implement maps to bencgen~~
-- ~~Finish byte slice~~
-- mdv rework
-- ~~Add bencgen tests~~
-- ~~Add more tests (testing)~~
-- Write README for root, bstd and mdv
+- **[cmd/bencgen](cmd/bencgen/README.md)** - the code-generator for benc
+- **[impl/gen](impl/gen/README.md)** - the implementation for bencgen, for handling backward and forward compatibility
+- **[std](std/README.md)** - the benc standard, raw serialization
+- **[idv](idv/README.md)** - the benc ID validation, raw serialization with ID prefixing
+
+### [Security](SECURITY.md)
+### [Benchmarks](https://github.com/alecthomas/go_serialization_benchmarks)
+
+### benc.go
+
+`benc.go` provides methods to do buffer reusing and to verify the marshal/unmarshal process.
+
+## License
+
+[MIT](https://choosealicense.com/licenses/mit/)

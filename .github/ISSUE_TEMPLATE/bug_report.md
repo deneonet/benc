@@ -23,8 +23,8 @@ A clear and concise description of what you expected to happen.
 **Golang version:**
 Enter `go version` into your terminal, and paste the output here.
 
-**BENC version:**
-Enter the version of BENC you are using.
+**Benc version:**
+Enter the version of Benc you are using.
 
 **Additional context**
 Add any other context about the problem here.

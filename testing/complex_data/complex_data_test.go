@@ -4,13 +4,13 @@
 package complex_data
 
 import (
-    "go.kine.bz/benc/std"
-    "go.kine.bz/benc/impl/gen"
+    "github.com/deneonet/benc/std"
+    "github.com/deneonet/benc/impl/gen"
 )
 
 // Struct - ComplexData
 type ComplexData struct {
-    Id int64
+    Id int
     Title string
     Items []SubItem
     Metadata map[string]int32
@@ -29,7 +29,7 @@ func (complexData *ComplexData) Size() int {
 
 // Nested Size - ComplexData
 func (complexData *ComplexData) size(id uint16) (s int) {
-    s += bstd.SizeInt64() + 2
+    s += bstd.SizeInt(complexData.Id) + 2
     s += bstd.SizeString(complexData.Title) + 2
     s += bstd.SizeSlice(complexData.Items, func (s SubItem) int { return s.SizePlain() }) + 2
     s += bstd.SizeMap(complexData.Metadata, bstd.SizeString, bstd.SizeInt32) + 2
@@ -47,7 +47,7 @@ func (complexData *ComplexData) size(id uint16) (s int) {
 
 // SizePlain - ComplexData
 func (complexData *ComplexData) SizePlain() (s int) {
-    s += bstd.SizeInt64()
+    s += bstd.SizeInt(complexData.Id)
     s += bstd.SizeString(complexData.Title)
     s += bstd.SizeSlice(complexData.Items, func (s SubItem) int { return s.SizePlain() })
     s += bstd.SizeMap(complexData.Metadata, bstd.SizeString, bstd.SizeInt32)
@@ -65,18 +65,18 @@ func (complexData *ComplexData) Marshal(b []byte) {
 // Nested Marshal - ComplexData
 func (complexData *ComplexData) marshal(tn int, b []byte, id uint16) (n int) {
     n = bgenimpl.MarshalTag(tn, b, bgenimpl.Container, id)
-    n = bgenimpl.MarshalTag(n, b, bgenimpl.Fixed64, 1)
-    n = bstd.MarshalInt64(n, b, complexData.Id)
+    n = bgenimpl.MarshalTag(n, b, bgenimpl.Varint, 1)
+    n = bstd.MarshalInt(n, b, complexData.Id)
     n = bgenimpl.MarshalTag(n, b, bgenimpl.Bytes, 2)
     n = bstd.MarshalString(n, b, complexData.Title)
-    n = bgenimpl.MarshalTag(n, b, bgenimpl.Array, 3)
+    n = bgenimpl.MarshalTag(n, b, bgenimpl.ArrayMap, 3)
     n = bstd.MarshalSlice(n, b, complexData.Items, func (n int, b []byte, s SubItem) int { return s.MarshalPlain(n, b) })
-    n = bgenimpl.MarshalTag(n, b, bgenimpl.Array, 4)
+    n = bgenimpl.MarshalTag(n, b, bgenimpl.ArrayMap, 4)
     n = bstd.MarshalMap(n, b, complexData.Metadata, bstd.MarshalString, bstd.MarshalInt32)
     n = complexData.Sub_data.marshal(n, b, 5)
-    n = bgenimpl.MarshalTag(n, b, bgenimpl.Array, 6)
+    n = bgenimpl.MarshalTag(n, b, bgenimpl.ArrayMap, 6)
     n = bstd.MarshalSlice(n, b, complexData.Large_binary_data, bstd.MarshalBytes)
-    n = bgenimpl.MarshalTag(n, b, bgenimpl.Array, 7)
+    n = bgenimpl.MarshalTag(n, b, bgenimpl.ArrayMap, 7)
     n = bstd.MarshalSlice(n, b, complexData.Huge_list, bstd.MarshalInt64)
 
     n += 2
@@ -88,7 +88,7 @@ func (complexData *ComplexData) marshal(tn int, b []byte, id uint16) (n int) {
 // MarshalPlain - ComplexData
 func (complexData *ComplexData) MarshalPlain(tn int, b []byte) (n int) {
     n = tn
-    n = bstd.MarshalInt64(n, b, complexData.Id)
+    n = bstd.MarshalInt(n, b, complexData.Id)
     n = bstd.MarshalString(n, b, complexData.Title)
     n = bstd.MarshalSlice(n, b, complexData.Items, func (n int, b []byte, s SubItem) int { return s.MarshalPlain(n, b) })
     n = bstd.MarshalMap(n, b, complexData.Metadata, bstd.MarshalString, bstd.MarshalInt32)
@@ -120,7 +120,7 @@ func (complexData *ComplexData) unmarshal(tn int, b []byte, r []uint16, id uint1
         return
     }
     if ok {
-        if n, complexData.Id, err = bstd.UnmarshalInt64(n, b); err != nil {
+        if n, complexData.Id, err = bstd.UnmarshalInt(n, b); err != nil {
             return
         }
     }
@@ -189,7 +189,7 @@ func (complexData *ComplexData) unmarshal(tn int, b []byte, r []uint16, id uint1
 // UnmarshalPlain - ComplexData
 func (complexData *ComplexData) UnmarshalPlain(tn int, b []byte) (n int, err error) {
     n = tn
-    if n, complexData.Id, err = bstd.UnmarshalInt64(n, b); err != nil {
+    if n, complexData.Id, err = bstd.UnmarshalInt(n, b); err != nil {
         return
     }
     if n, complexData.Title, err = bstd.UnmarshalString(n, b); err != nil {
@@ -262,7 +262,7 @@ func (subItem *SubItem) marshal(tn int, b []byte, id uint16) (n int) {
     n = bstd.MarshalInt32(n, b, subItem.Sub_id)
     n = bgenimpl.MarshalTag(n, b, bgenimpl.Bytes, 2)
     n = bstd.MarshalString(n, b, subItem.Description)
-    n = bgenimpl.MarshalTag(n, b, bgenimpl.Array, 3)
+    n = bgenimpl.MarshalTag(n, b, bgenimpl.ArrayMap, 3)
     n = bstd.MarshalSlice(n, b, subItem.Sub_items, func (n int, b []byte, s SubSubItem) int { return s.MarshalPlain(n, b) })
 
     n += 2
@@ -516,11 +516,11 @@ func (subComplexData *SubComplexData) marshal(tn int, b []byte, id uint16) (n in
     n = bstd.MarshalInt32(n, b, subComplexData.Sub_id)
     n = bgenimpl.MarshalTag(n, b, bgenimpl.Bytes, 2)
     n = bstd.MarshalString(n, b, subComplexData.Sub_title)
-    n = bgenimpl.MarshalTag(n, b, bgenimpl.Array, 3)
+    n = bgenimpl.MarshalTag(n, b, bgenimpl.ArrayMap, 3)
     n = bstd.MarshalSlice(n, b, subComplexData.Sub_binary_data, bstd.MarshalBytes)
-    n = bgenimpl.MarshalTag(n, b, bgenimpl.Array, 4)
+    n = bgenimpl.MarshalTag(n, b, bgenimpl.ArrayMap, 4)
     n = bstd.MarshalSlice(n, b, subComplexData.Sub_items, func (n int, b []byte, s SubItem) int { return s.MarshalPlain(n, b) })
-    n = bgenimpl.MarshalTag(n, b, bgenimpl.Array, 5)
+    n = bgenimpl.MarshalTag(n, b, bgenimpl.ArrayMap, 5)
     n = bstd.MarshalMap(n, b, subComplexData.Sub_metadata, bstd.MarshalString, bstd.MarshalString)
 
     n += 2

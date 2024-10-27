@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 	"slices"
-	"strings"
 
-	"go.kine.bz/benc/cmd/bencgen/parser"
+	"github.com/deneonet/benc/cmd/bencgen/parser"
+	"github.com/deneonet/benc/cmd/bencgen/utils"
 )
 
 type GeneratorLanguage string
@@ -19,23 +19,15 @@ func (lang GeneratorLanguage) String() string {
 	switch lang {
 	case GenGolang:
 		return "golang"
+	default:
+		return "invalid"
 	}
-	return "invalid"
-}
-
-func toUpper(s string) string {
-	return strings.ToUpper(s[:1]) + s[1:]
-}
-
-func toLower(s string) string {
-	return strings.ToLower(s[:1]) + s[1:]
 }
 
 type Generator interface {
 	File() string
 	Lang() GeneratorLanguage
 	GenHeader(stmt *parser.HeaderStmt) string
-	/* GenerateHeaderEnd() string */
 	GenStruct(ctrDeclarations []string, stmt *parser.CtrStmt) string
 	GenReservedIds(stmt *parser.CtrStmt) string
 	GenSize(stmt *parser.CtrStmt) string
@@ -49,21 +41,17 @@ type Generator interface {
 func NewGenerator(lang GeneratorLanguage, file string) Generator {
 	switch lang {
 	case GenGolang:
-		return GoGenerator{
-			file:      file,
-			generated: "",
-		}
+		return NewGoGenerator(file)
+	default:
+		return nil
 	}
-	return nil
 }
 
-func createError(g Generator, m string) {
-	errorMessage := "\n\033[1;31m[bencgen] Error:\033[0m\n"
-	errorMessage += fmt.Sprintf("    \033[1;37mFile:\033[0m %s\n", g.File())
-	errorMessage += fmt.Sprintf("    \033[1;37mMessage:\033[0m %s\n", m)
-	errorMessage += fmt.Sprintf("    \033[1;37mLanguage:\033[0m %s\n", g.Lang().String())
-	fmt.Println(errorMessage)
-	os.Exit(-1)
+func logErrorAndExit(g Generator, msg string) {
+	fmt.Printf("\n\033[1;31m[bencgen] Error:\033[0m\n"+
+		"    \033[1;37mFile:\033[0m %s\n"+
+		"    \033[1;37mMessage:\033[0m %s\n", g.File(), msg)
+	os.Exit(1)
 }
 
 var unallowedNames = []string{"b", "n", "id", "r"}
@@ -76,14 +64,8 @@ func Generate(gen Generator, nodes []parser.Node) string {
 	for _, node := range nodes {
 		switch stmt := node.(type) {
 		case *parser.CtrStmt:
-			if slices.Contains(ctrDeclarations, stmt.Name) {
-				createError(gen, "Multiple containers with the same name \"%s\"."+stmt.Name)
-			}
+			validateCtrStmt(gen, stmt, ctrDeclarations)
 			ctrDeclarations = append(ctrDeclarations, stmt.Name)
-
-			if len(stmt.Fields) == 0 {
-				createError(gen, "Empty container \"%s\"."+stmt.Name)
-			}
 		}
 	}
 
@@ -91,57 +73,74 @@ func Generate(gen Generator, nodes []parser.Node) string {
 		switch stmt := node.(type) {
 		case *parser.HeaderStmt:
 			if containsHeader {
-				createError(gen, "Multiple `header` declarations.")
+				logErrorAndExit(gen, "Multiple `header` declarations.")
 			}
 			res += gen.GenHeader(stmt)
 			containsHeader = true
 		case *parser.CtrStmt:
 			if !containsHeader {
-				createError(gen, "A `header` was not declared.")
+				logErrorAndExit(gen, "A `header` was not declared.")
 			}
-
-			var ids []uint16
-			var lId uint16
-
-			private := toLower(stmt.Name)
-
-			if slices.Contains(unallowedNames, private) {
-				createError(gen, fmt.Sprintf("Unallowed container name \"%s\".", stmt.Name))
-			}
-
-			var fieldNames []string
-			for _, field := range stmt.Fields {
-				if field.Id == 0 {
-					createError(gen, fmt.Sprintf("Field \"%s\" has an ID of \"0\" on \"%s\".", field.Name, stmt.Name))
-				}
-
-				if slices.Contains(ids, field.Id) {
-					createError(gen, fmt.Sprintf("Multiple fields with the same ID \"%d\" on \"%s\".", field.Id, stmt.Name))
-				}
-
-				if lId > field.Id {
-					createError(gen, fmt.Sprintf("Fields must be ordered by their IDs in ascending order on \"%s\".", stmt.Name))
-				}
-
-				if slices.Contains(fieldNames, field.Name) {
-					createError(gen, fmt.Sprintf("Multiple fields with the same name \"%s\" on \"%s\".", field.Name, stmt.Name))
-				}
-
-				lId = field.Id
-				ids = append(ids, field.Id)
-				fieldNames = append(fieldNames, field.Name)
-			}
-
-			res += gen.GenStruct(ctrDeclarations, stmt)
-			res += gen.GenReservedIds(stmt)
-			res += gen.GenSize(stmt)
-			res += gen.GenSizePlain(stmt)
-			res += gen.GenMarshal(stmt)
-			res += gen.GenMarshalPlain(stmt)
-			res += gen.GenUnmarshal(stmt)
-			res += gen.GenUnmarshalPlain(stmt)
+			validateContainerFields(gen, stmt, ctrDeclarations)
+			res += generateContainerCode(gen, stmt, ctrDeclarations)
 		}
 	}
 
 	return res
+}
+
+func validateCtrStmt(gen Generator, stmt *parser.CtrStmt, ctrDeclarations []string) {
+	if slices.Contains(ctrDeclarations, stmt.Name) {
+		logErrorAndExit(gen, fmt.Sprintf("Multiple containers with the same name \"%s\".", stmt.Name))
+	}
+	if len(stmt.Fields) == 0 {
+		logErrorAndExit(gen, fmt.Sprintf("Empty container \"%s\".", stmt.Name))
+	}
+}
+
+func validateContainerFields(gen Generator, stmt *parser.CtrStmt, ctrDeclarations []string) {
+	var ids []uint16
+	var lastID uint16
+	var fieldNames []string
+
+	for _, field := range stmt.Fields {
+		if ctr, found := utils.FindUndeclaredContainers(ctrDeclarations, field.Type); found {
+			logErrorAndExit(gen, fmt.Sprintf("Container \"%s\" not declared on \"%s\" (\"%s\").", ctr, stmt.Name, field.Name))
+		}
+
+		if field.Id == 0 {
+			logErrorAndExit(gen, fmt.Sprintf("Field \"%s\" has an ID of \"0\" on \"%s\".", field.Name, stmt.Name))
+		}
+
+		if slices.Contains(ids, field.Id) {
+			logErrorAndExit(gen, fmt.Sprintf("Multiple fields with the same ID \"%d\" on \"%s\".", field.Id, stmt.Name))
+		}
+
+		if lastID > field.Id {
+			logErrorAndExit(gen, fmt.Sprintf("Fields must be ordered by their IDs in ascending order on \"%s\".", stmt.Name))
+		}
+
+		if slices.Contains(fieldNames, field.Name) {
+			logErrorAndExit(gen, fmt.Sprintf("Multiple fields with the same name \"%s\" on \"%s\".", field.Name, stmt.Name))
+		}
+
+		if slices.Contains(unallowedNames, utils.ToLower(stmt.Name)) {
+			logErrorAndExit(gen, fmt.Sprintf("Unallowed container name \"%s\".", stmt.Name))
+		}
+
+		lastID = field.Id
+		ids = append(ids, field.Id)
+		fieldNames = append(fieldNames, field.Name)
+	}
+}
+
+func generateContainerCode(gen Generator, stmt *parser.CtrStmt, ctrDeclarations []string) string {
+	return gen.GenStruct(ctrDeclarations, stmt) +
+		gen.GenReservedIds(stmt) +
+		gen.GenSize(stmt) +
+		gen.GenSizePlain(stmt) +
+		gen.GenMarshal(stmt) +
+		gen.GenMarshalPlain(stmt) +
+		gen.GenUnmarshal(stmt) +
+		gen.GenUnmarshalPlain(stmt)
 }

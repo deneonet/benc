@@ -3,12 +3,11 @@ package bidv
 import (
 	"fmt"
 
-	"go.kine.bz/benc"
-	bstd "go.kine.bz/benc/std"
+	bstd "github.com/deneonet/benc/std"
 )
 
 const (
-	Int16 uint64 = iota + 2
+	Int16 uint = iota + 2
 	Int32
 	Int64
 	UInt16
@@ -27,7 +26,7 @@ const (
 const AllowedStartId = 16
 
 // Returns the nickname for the standard IDs for all data types
-func GetDefaultIdNickname(id uint64) string {
+func GetDefaultIdNickname(id uint) string {
 	switch id {
 	case Int16:
 		return "Int16"
@@ -58,7 +57,7 @@ func GetDefaultIdNickname(id uint64) string {
 	case ByteSlice:
 		return "Byte slice"
 	default:
-		return "Invalid"
+		return "N/A"
 	}
 }
 
@@ -67,8 +66,8 @@ var GetIdNickname = GetDefaultIdNickname
 type SkipFunc func(n int, b []byte) (int, error)
 type MarshalFunc[T any] func(n int, b []byte, t T) int
 
-func Skip(n int, b []byte, id uint64, skipper SkipFunc) (int, error) {
-	n, dId, err := bstd.UnmarshalUVarint(n, b)
+func Skip(n int, b []byte, id uint, skipper SkipFunc) (int, error) {
+	n, dId, err := bstd.UnmarshalUint(n, b)
 	if err != nil {
 		return 0, err
 	}
@@ -82,16 +81,16 @@ func Skip(n int, b []byte, id uint64, skipper SkipFunc) (int, error) {
 	return skipper(n, b)
 }
 
-func Size(id uint64, s int) int {
-	return bstd.SizeUVarint(id) + s
+func Size(id uint, s int) int {
+	return bstd.SizeUint(id) + s
 }
 
-func Marshal(n int, b []byte, id uint64) int {
-	return bstd.MarshalUVarint(n, b, id)
+func Marshal(n int, b []byte, id uint) int {
+	return bstd.MarshalUint(n, b, id)
 }
 
-func Unmarshal[T any](tn int, b []byte, id uint64, unmarshaler any) (n int, t T, err error) {
-	n, dId, err := bstd.UnmarshalUVarint(tn, b)
+func Unmarshal[T any](tn int, b []byte, id uint, unmarshaler any) (n int, t T, err error) {
+	n, dId, err := bstd.UnmarshalUint(tn, b)
 	if err != nil {
 		n = 0
 		return
@@ -111,7 +110,7 @@ func Unmarshal[T any](tn int, b []byte, id uint64, unmarshaler any) (n int, t T,
 	case func(n int, b []byte, v *T) (int, error):
 		n, err = p(n, b, &t)
 	default:
-		panic("[benc " + benc.BencVersion + "]: invalid `unmarshaler` provided in `bidv.Unmarshal`")
+		panic("benc: invalid `unmarshaler` provided in `bidv.Unmarshal`")
 	}
 	return
 }

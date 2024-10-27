@@ -8,7 +8,7 @@ import (
 	"reflect"
 	"testing"
 
-	"go.kine.bz/benc"
+	"github.com/deneonet/benc"
 )
 
 func SizeAll(sizers ...func() int) int {
@@ -115,7 +115,7 @@ func TestDataTypes(t *testing.T) {
 	}
 
 	testBs := []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
-	s := SizeAll(SizeBool, SizeBool, SizeByte, SizeFloat32, SizeFloat64, SizeInt16, SizeInt32, SizeInt64, SizeUInt16, SizeUInt32, SizeUInt64,
+	s := SizeAll(SizeBool, SizeBool, SizeByte, SizeFloat32, SizeFloat64, SizeInt16, SizeInt32, SizeInt64, SizeUint16, SizeUint32, SizeUint64,
 		sizeTestStr, sizeTestStr, func() int {
 			return SizeBytes(testBs)
 		})
@@ -130,9 +130,9 @@ func TestDataTypes(t *testing.T) {
 		func(n int, b []byte, v any) int { return MarshalInt16(n, b, v.(int16)) },
 		func(n int, b []byte, v any) int { return MarshalInt32(n, b, v.(int32)) },
 		func(n int, b []byte, v any) int { return MarshalInt64(n, b, v.(int64)) },
-		func(n int, b []byte, v any) int { return MarshalUInt16(n, b, v.(uint16)) },
-		func(n int, b []byte, v any) int { return MarshalUInt32(n, b, v.(uint32)) },
-		func(n int, b []byte, v any) int { return MarshalUInt64(n, b, v.(uint64)) },
+		func(n int, b []byte, v any) int { return MarshalUint16(n, b, v.(uint16)) },
+		func(n int, b []byte, v any) int { return MarshalUint32(n, b, v.(uint32)) },
+		func(n int, b []byte, v any) int { return MarshalUint64(n, b, v.(uint64)) },
 		func(n int, b []byte, v any) int { return MarshalString(n, b, v.(string)) },
 		func(n int, b []byte, v any) int { return MarshalUnsafeString(n, b, v.(string)) },
 		func(n int, b []byte, v any) int { return MarshalBytes(n, b, v.([]byte)) },
@@ -141,7 +141,7 @@ func TestDataTypes(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	if err = SkipAll(buf, SkipBool, SkipBool, SkipByte, SkipFloat32, SkipFloat64, SkipInt16, SkipInt32, SkipInt64, SkipUInt16, SkipUInt32, SkipUInt64, SkipString, SkipString, SkipBytes); err != nil {
+	if err = SkipAll(buf, SkipBool, SkipBool, SkipByte, SkipFloat32, SkipFloat64, SkipInt16, SkipInt32, SkipInt64, SkipUint16, SkipUint32, SkipUint64, SkipString, SkipString, SkipBytes); err != nil {
 		t.Fatal(err.Error())
 	}
 
@@ -154,9 +154,9 @@ func TestDataTypes(t *testing.T) {
 		func(n int, b []byte) (int, any, error) { return UnmarshalInt16(n, b) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalInt32(n, b) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalInt64(n, b) },
-		func(n int, b []byte) (int, any, error) { return UnmarshalUInt16(n, b) },
-		func(n int, b []byte) (int, any, error) { return UnmarshalUInt32(n, b) },
-		func(n int, b []byte) (int, any, error) { return UnmarshalUInt64(n, b) },
+		func(n int, b []byte) (int, any, error) { return UnmarshalUint16(n, b) },
+		func(n int, b []byte) (int, any, error) { return UnmarshalUint32(n, b) },
+		func(n int, b []byte) (int, any, error) { return UnmarshalUint64(n, b) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalString(n, b) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalUnsafeString(n, b) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalBytes(n, b) },
@@ -175,9 +175,9 @@ func TestErrBufTooSmall(t *testing.T) {
 		func(n int, b []byte) (int, any, error) { return UnmarshalInt16(n, b) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalInt32(n, b) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalInt64(n, b) },
-		func(n int, b []byte) (int, any, error) { return UnmarshalUInt16(n, b) },
-		func(n int, b []byte) (int, any, error) { return UnmarshalUInt32(n, b) },
-		func(n int, b []byte) (int, any, error) { return UnmarshalUInt64(n, b) },
+		func(n int, b []byte) (int, any, error) { return UnmarshalUint16(n, b) },
+		func(n int, b []byte) (int, any, error) { return UnmarshalUint32(n, b) },
+		func(n int, b []byte) (int, any, error) { return UnmarshalUint64(n, b) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalString(n, b) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalString(n, b) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalString(n, b) },
@@ -212,7 +212,7 @@ func TestErrBufTooSmall(t *testing.T) {
 
 	skipSliceOfBytes := func(n int, b []byte) (int, error) { return SkipSlice(n, b) }
 	skipMapOfBytes := func(n int, b []byte) (int, error) { return SkipMap(n, b) }
-	if err := SkipAll_VerifyError(benc.ErrBufTooSmall, buffers, SkipBool, SkipByte, SkipFloat32, SkipFloat64, SkipInt16, SkipInt32, SkipInt64, SkipUInt16, SkipUInt32, SkipUInt64, SkipString, SkipString, SkipString, SkipString, SkipString, SkipString, SkipString, SkipString, SkipBytes, SkipBytes, SkipBytes, SkipBytes, skipSliceOfBytes, skipSliceOfBytes, skipSliceOfBytes, skipSliceOfBytes, skipMapOfBytes, skipMapOfBytes, skipMapOfBytes, skipMapOfBytes); err != nil {
+	if err := SkipAll_VerifyError(benc.ErrBufTooSmall, buffers, SkipBool, SkipByte, SkipFloat32, SkipFloat64, SkipInt16, SkipInt32, SkipInt64, SkipUint16, SkipUint32, SkipUint64, SkipString, SkipString, SkipString, SkipString, SkipString, SkipString, SkipString, SkipString, SkipBytes, SkipBytes, SkipBytes, SkipBytes, skipSliceOfBytes, skipSliceOfBytes, skipSliceOfBytes, skipSliceOfBytes, skipMapOfBytes, skipMapOfBytes, skipMapOfBytes, skipMapOfBytes); err != nil {
 		t.Fatal(err.Error())
 	}
 }

@@ -24,7 +24,7 @@ The code generator for benc, handling both forward and backward compatibility.
 
 1. Install `bencgen`:
 ```bash
-go install go.kine.bz/benc/cmd/bencgen
+go install github.com/deneonet/benc/cmd/bencgen
 ```
 
 ## Usage
@@ -35,7 +35,7 @@ Arguments:
 - `--out`: The output directory (optional)
 - `--lang`: The [language](#languages) to compile into (required)
 - `--file`: The output file name (optional)
-- `--force`: Disables the breaking changes detector (optional, not recommended for production)
+- `--force`: Disables the breaking changes detector (optional, not recommended, when the schema is already in-use in e.g. a software)
 
 ## Generating Example
 
@@ -76,7 +76,7 @@ After generating, a file called `out/person.benc.go` will be created. To marshal
 package main
 
 import (
-	"go.kine.bz/benc"
+	"github.com/deneonet/benc"
 	person ".../out"
 )
 
@@ -98,13 +98,11 @@ func main() {
 		},
 	}
 
-	b, err := benc.MarshalCtr(&data)
-	if err != nil {
-		panic(err)
-	}
+	buf := make([]byte, data.Size())
+	data.Marshal(buf)
 
 	var retData person.Person
-	if err = benc.UnmarshalCtr(&retData); err != nil {
+	if err := retData.Unmarshal(buf); err != nil {
 		panic(err)
 	}
 }
@@ -114,7 +112,6 @@ func main() {
 
 BCD detects breaking changes, such as:
 - A field exists but is marked as reserved.
-- A field never existed but is marked as reserved.
 - A field was removed but is not marked as reserved.
 - The type of a field changed, but its ID stayed the same.
 
@@ -128,11 +125,11 @@ To maintain your benc schema, follow these rules:
 
 ### Reserving IDs
 
-Using the `person` schema from [earlier](#generating-example), if we remove the `parents` field, which had ID `3`, ID `3` must be marked as reserved:
+Using the `person` schema from [earlier](#generating-example), if we remove the `parents` field, which had `3`as ID, then ID `3` must be marked as reserved:
 
-`person2.benc`:
+`person.benc`:
 ```plaintext
-header person2;
+header person;
 
 ctr Person {
     reserved 3; # reserved the parents field ID
@@ -157,7 +154,7 @@ ctr Parents {
 ## Examples and Tests
 
 See all tests [here](../../testing).  
-See tests specifically about forward and backward compatibility [here](../../testing/bfc/person_test.go).
+See tests specifically about forward and backward compatibility [here](../../testing/person/main_person_test.go).
 
 ## Header
 
@@ -172,15 +169,17 @@ A header consists of: `header` IDENTIFIER `;`
 A field consists of: [TYPE](#types) IDENTIFIER `=` ID `;`
 
 - The ID may not be larger than `65535`.
-- A field with type `string` or `bytes` may have type attributes.
+- A field with type `string` or `bytes` may have [type attributes](#type-attributes).
 
 ### Examples
 
 Field:
-`string name = 1;`
-
+`string name = 1;`  
 Type Attributes:
-`string @unsafe name = 1;`
+`@unsafe string name = 1;`
+
+!-> Type Attributes must be placed before the type, e.g. for an array:   
+`[] @unsafe string names = 1;`
 
 ### Type Attributes
 

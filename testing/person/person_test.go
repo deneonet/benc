@@ -4,8 +4,8 @@
 package person
 
 import (
-    "go.kine.bz/benc/std"
-    "go.kine.bz/benc/impl/gen"
+    "github.com/deneonet/benc/std"
+    "github.com/deneonet/benc/impl/gen"
 )
 
 // Struct - Person

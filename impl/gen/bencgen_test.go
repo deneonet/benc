@@ -3,8 +3,8 @@ package bgenimpl
 import (
 	"testing"
 
-	"go.kine.bz/benc"
-	bstd "go.kine.bz/benc/std"
+	"github.com/deneonet/benc"
+	bstd "github.com/deneonet/benc/std"
 )
 
 func TestTags(t *testing.T) {
@@ -257,7 +257,7 @@ func TestHandleCompatibility_Types(t *testing.T) {
 	}
 
 	buf = make([]byte, 2+4+1+2)
-	MarshalTag(0, buf, Array, 1)
+	MarshalTag(0, buf, ArrayMap, 1)
 	bstd.MarshalSlice(2, buf, []byte{1, 2}, bstd.MarshalByte)
 
 	_, ok, err = HandleCompatibility(0, buf, []uint16{1}, 0)

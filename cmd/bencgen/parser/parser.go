@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"go.kine.bz/benc/cmd/bencgen/lexer"
+	"github.com/deneonet/benc/cmd/bencgen/lexer"
 )
 
 type Parser struct {
@@ -15,65 +15,6 @@ type Parser struct {
 	token lexer.Token
 	lit   string
 	pos   lexer.Position
-}
-
-func highlightError(text string, lineNumber, columnNumber int) string {
-	lines := strings.Split(text, "\n")
-
-	if lineNumber <= 0 || lineNumber > len(lines) {
-		return "Invalid line number <- report"
-	}
-
-	line := lines[lineNumber-1]
-	if columnNumber <= 0 || columnNumber > len(line) {
-		return "Invalid column number <- report"
-	}
-
-	highlightedLine := fmt.Sprintf("%s\033[1;31m%c\033[0m%s", line[:columnNumber-1], line[columnNumber-1], line[columnNumber:])
-	arrow := strings.Repeat(" ", columnNumber-1+6+len(fmt.Sprintf("%d%d", lineNumber, columnNumber))) + "\033[1;31m^\033[0m"
-	return highlightedLine + "\n" + arrow
-}
-
-func (p *Parser) error(m string) {
-	errorMessage := "\n\033[1;31m[bencgen] Error:\033[0m\n"
-	errorMessage += fmt.Sprintf("    \033[1;37m%d:%d\033[0m %s\n", p.pos.Line, p.pos.Column, highlightError(p.lexer.Content, p.pos.Line, p.pos.Column))
-	errorMessage += fmt.Sprintf("    \033[1;37mMessage:\033[0m %s\n", m)
-	fmt.Println(errorMessage)
-	os.Exit(-1)
-}
-
-type Node interface{}
-
-type (
-	Type struct {
-		Key      *Type
-		Type     *Type
-		UT       lexer.Token
-		CtrName  string
-		IsArray  bool
-		IsMap    bool
-		IsUnsafe bool
-	}
-	HeaderStmt struct {
-		Name string
-	}
-	CtrStmt struct {
-		Name        string
-		Fields      []Field
-		ReservedIds []uint16
-	}
-	Field struct {
-		Id   uint16
-		Name string
-		Type *Type
-	}
-)
-
-func (f *Field) GetUnsafeStr() string {
-	if f.Type.IsUnsafe {
-		return "Unsafe"
-	}
-	return ""
 }
 
 func NewParser(reader io.Reader, fc string) *Parser {
@@ -110,33 +51,102 @@ func (p *Parser) expect(expected lexer.Token) {
 }
 
 func (p *Parser) expectType() *Type {
-	if p.match(lexer.OPEN_BRACKET) {
+	switch {
+	case p.match(lexer.OPEN_BRACKET):
 		p.nextToken()
 		p.expect(lexer.CLOSE_BRACKET)
-		return &Type{IsArray: true, Type: p.expectType()}
-	}
+		return &Type{IsArray: true, ChildType: p.expectType()}
 
-	if p.match(lexer.OPEN_ARROW) {
+	case p.match(lexer.OPEN_ARROW):
 		p.nextToken()
 		key := p.expectType()
 		p.expect(lexer.COMMA)
-		t := p.expectType()
+		val := p.expectType()
 		p.expect(lexer.CLOSE_ARROW)
-		return &Type{IsMap: true, Key: key, Type: t}
-	}
+		return &Type{IsMap: true, MapKeyType: key, ChildType: val}
 
-	if p.match(lexer.IDENT) {
+	case p.match(lexer.IDENT):
 		ctrName := p.lit
 		p.nextToken()
 		return &Type{CtrName: ctrName}
+
+	case p.match(lexer.UNSAFE):
+		p.nextToken()
+		typ := p.token
+		p.nextToken()
+		if typ != lexer.STRING {
+			p.error("`@unsafe` can only be applied to `string` types")
+		}
+		return &Type{IsUnsafe: true, TokenType: typ}
+
+	default:
+		if p.mMatch(lexer.STRING, lexer.BYTES, lexer.INT, lexer.INT16, lexer.INT32, lexer.INT64, lexer.UINT, lexer.UINT16, lexer.UINT32, lexer.UINT64, lexer.FLOAT32, lexer.FLOAT64, lexer.BYTE, lexer.BOOL) {
+			typ := p.token
+			p.nextToken()
+			return &Type{TokenType: typ}
+		}
+		p.error("Unexpected token, expected a type")
+		return nil
+	}
+}
+
+func highlightError(text string, lineNumber, columnNumber int) string {
+	lines := strings.Split(text, "\n")
+
+	if lineNumber <= 0 || lineNumber > len(lines) {
+		return "Invalid line number <- report"
 	}
 
-	typ := p.token
-	if !p.mMatch(lexer.STRING, lexer.BYTES, lexer.INT16, lexer.INT32, lexer.INT64, lexer.UINT16, lexer.UINT32, lexer.UINT64, lexer.FLOAT32, lexer.FLOAT64, lexer.BYTE, lexer.BOOL) {
-		p.error(fmt.Sprintf("Unexpected token: `%s`. Expected: A Type", p.token))
+	line := lines[lineNumber-1]
+	if columnNumber <= 0 || columnNumber > len(line) {
+		return "Invalid column number <- report"
 	}
-	p.nextToken()
-	return &Type{UT: typ}
+
+	highlightedLine := fmt.Sprintf("%s\033[1;31m%c\033[0m%s", line[:columnNumber], line[columnNumber], line[columnNumber+1:])
+	arrow := strings.Repeat(" ", columnNumber-1+6+len(fmt.Sprintf("%d:%d", lineNumber, columnNumber))) + "\033[1;31m^\033[0m"
+	return highlightedLine + "\n" + arrow
+}
+
+func (p *Parser) error(m string) {
+	errorMessage := "\n\033[1;31m[bencgen] Error:\033[0m\n"
+	errorMessage += fmt.Sprintf("    \033[1;37m%d:%d\033[0m %s\n", p.pos.Line, p.pos.Column, highlightError(p.lexer.Content, p.pos.Line, p.pos.Column))
+	errorMessage += fmt.Sprintf("    \033[1;37mMessage:\033[0m %s\n", m)
+	fmt.Println(errorMessage)
+	os.Exit(-1)
+}
+
+type Node interface{}
+
+type (
+	Type struct {
+		TokenType  lexer.Token
+		MapKeyType *Type
+		ChildType  *Type
+		CtrName    string
+		IsUnsafe   bool
+		IsArray    bool
+		IsMap      bool
+	}
+	HeaderStmt struct {
+		Name string
+	}
+	CtrStmt struct {
+		Name        string
+		Fields      []Field
+		ReservedIds []uint16
+	}
+	Field struct {
+		Id   uint16
+		Name string
+		Type *Type
+	}
+)
+
+func (f *Field) GetUnsafeStr() string {
+	if f.Type.IsUnsafe {
+		return "Unsafe"
+	}
+	return ""
 }
 
 func (p *Parser) Parse() []Node {
@@ -155,8 +165,8 @@ func (p *Parser) parseStatement() Node {
 	case p.match(lexer.CTR):
 		return p.parseCtrStmt()
 	default:
-		p.error(fmt.Sprintf("Unexpected token: `%s`. Expected: A container or a header", p.token))
-		panic("")
+		p.error(fmt.Sprintf("Unexpected token: `%s`. Expected: `Container or Header`", p.token))
+		return nil
 	}
 }
 
@@ -174,11 +184,8 @@ func (p *Parser) parseCtrStmt() Node {
 	p.expect(lexer.IDENT)
 	p.expect(lexer.OPEN_BRACE)
 
-	var fields []Field
 	reservedIds := p.parseReservedIds()
-	for !p.match(lexer.CLOSE_BRACE) {
-		fields = append(fields, p.parseField())
-	}
+	fields := p.parseFields()
 
 	p.expect(lexer.CLOSE_BRACE)
 	return &CtrStmt{Name: name, ReservedIds: reservedIds, Fields: fields}
@@ -194,36 +201,33 @@ func (p *Parser) parseReservedIds() []uint16 {
 
 func (p *Parser) parseIdList() []uint16 {
 	var ids []uint16
-	id, err := strconv.ParseUint(p.lit, 10, 16)
-	p.expect(lexer.NUMBER)
-	if err != nil {
-		p.error("Error parsing reserved ID: " + err.Error())
-	}
-
-	ids = append(ids, uint16(id))
-	for p.match(lexer.COMMA) {
-		p.nextToken()
-
+	for {
 		id, err := strconv.ParseUint(p.lit, 10, 16)
 		p.expect(lexer.NUMBER)
 		if err != nil {
 			p.error("Error parsing reserved ID: " + err.Error())
 		}
-
 		ids = append(ids, uint16(id))
-	}
 
+		if !p.match(lexer.COMMA) {
+			break
+		}
+		p.nextToken()
+	}
 	p.expect(lexer.SEMICOLON)
 	return ids
 }
 
+func (p *Parser) parseFields() []Field {
+	var fields []Field
+	for !p.match(lexer.CLOSE_BRACE) {
+		fields = append(fields, p.parseField())
+	}
+	return fields
+}
+
 func (p *Parser) parseField() Field {
 	t := p.expectType()
-
-	/*unsafe, maxSize := p.parseTypeAttrs()
-	if (maxSize > 0 || unsafe) && typ != lexer.STRING && typ != lexer.BYTES {
-		p.error(fmt.Sprintf("Type attributes (@...) are not allowed on type `%s`", typ.String()))
-	}*/
 
 	n := p.lit
 	p.expect(lexer.IDENT)
@@ -237,25 +241,4 @@ func (p *Parser) parseField() Field {
 
 	p.expect(lexer.SEMICOLON)
 	return Field{Id: uint16(id), Name: n, Type: t}
-}
-
-func (p *Parser) parseTypeAttrs() (unsafe bool, maxSize int) {
-	for {
-		switch p.token {
-		case lexer.UNSAFE:
-			p.nextToken()
-			unsafe = true
-		case lexer.BYTES2:
-			p.nextToken()
-			maxSize = 2
-		case lexer.BYTES4:
-			p.nextToken()
-			maxSize = 4
-		case lexer.BYTES8:
-			p.nextToken()
-			maxSize = 8
-		default:
-			return
-		}
-	}
 }

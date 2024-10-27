@@ -11,8 +11,6 @@ var ErrOverflow = errors.New("varint overflows a 64-bit integer")
 var ErrVerifyUnmarshal = errors.New("check for a mistake in the unmarshal process")
 var ErrVerifyMarshal = errors.New("check for a mistake in calculating the size or in the marshal process")
 
-const BencVersion = "v1.1.0"
-
 const (
 	Bytes2 int = 2
 	Bytes4 int = 4
