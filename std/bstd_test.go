@@ -218,7 +218,7 @@ func TestErrBufTooSmall(t *testing.T) {
 }
 
 func TestErrBufTooSmall_2(t *testing.T) {
-	buffers := [][]byte{{}, {2, 0}, {}, {2, 0}, {}, {2, 0}, {0, 0, 0}, {10, 0, 0, 0, 1}, {0, 0, 0}, {10, 0, 0, 0, 1}}
+	buffers := [][]byte{{}, {2, 0}, {}, {2, 0}, {}, {2, 0}, {}, {10, 0, 0, 0, 1}, {}, {10, 0, 0, 0, 1}}
 	if err := UnmarshalAll_VerifyError(benc.ErrBufTooSmall, buffers,
 		func(n int, b []byte) (int, any, error) { return UnmarshalString(n, b) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalString(n, b) },

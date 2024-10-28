@@ -106,19 +106,17 @@ func UnmarshalUnsafeString(n int, b []byte) (int, string, error) {
 
 func SkipSlice(n int, b []byte) (int, error) {
 	lb := len(b)
-	if lb-n < 4 {
-		return 0, benc.ErrBufTooSmall
-	}
 
-	u := b[n : n+4]
-	_ = u[3]
-	s := int(uint32(u[0]) | uint32(u[1])<<8 | uint32(u[2])<<16 | uint32(u[3])<<24)
-	n += 4
+	for {
+		if lb-n < 4 {
+			return 0, benc.ErrBufTooSmall
+		}
 
-	if lb-n < s {
-		return n, benc.ErrBufTooSmall
+		if b[n] == 1 && b[n+1] == 1 && b[n+2] == 1 && b[n+3] == 1 {
+			return n + 4, nil
+		}
+		n++
 	}
-	return n + s, nil
 }
 
 func SizeSlice[T any](slice []T, sizer interface{}) (s int) {
@@ -141,26 +139,22 @@ func SizeSlice[T any](slice []T, sizer interface{}) (s int) {
 }
 
 func MarshalSlice[T any](n int, b []byte, slice []T, marshaler MarshalFunc[T]) int {
-	u := b[n : n+4]
-	n += 4
-
-	sn := n
 	n = MarshalUint(n, b, uint(len(slice)))
 	for _, t := range slice {
 		n = marshaler(n, b, t)
 	}
 
+	u := b[n : n+4]
 	_ = u[3]
-	v32 := uint32(n - sn)
-	u[0] = byte(v32)
-	u[1] = byte(v32 >> 8)
-	u[2] = byte(v32 >> 16)
-	u[3] = byte(v32 >> 24)
-	return n
+	u[0] = byte(1)
+	u[1] = byte(1)
+	u[2] = byte(1)
+	u[3] = byte(1)
+	return n + 4
 }
 
 func UnmarshalSlice[T any](n int, b []byte, unmarshaler interface{}) (int, []T, error) {
-	n, us, err := UnmarshalUint(n+4, b)
+	n, us, err := UnmarshalUint(n, b)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -190,25 +184,23 @@ func UnmarshalSlice[T any](n int, b []byte, unmarshaler interface{}) (int, []T, 
 		panic("benc: invalid `unmarshaler` provided in `UnmarshalSlice`")
 	}
 
-	return n, ts, nil
+	return n + 4, ts, nil
 }
 
 // SkipMap = SkipSlice
 func SkipMap(n int, b []byte) (int, error) {
 	lb := len(b)
-	if lb-n < 4 {
-		return 0, benc.ErrBufTooSmall
-	}
 
-	u := b[n : n+4]
-	_ = u[3]
-	s := int(uint32(u[0]) | uint32(u[1])<<8 | uint32(u[2])<<16 | uint32(u[3])<<24)
-	n += 4
+	for {
+		if lb-n < 4 {
+			return 0, benc.ErrBufTooSmall
+		}
 
-	if lb-n < s {
-		return n, benc.ErrBufTooSmall
+		if b[n] == 1 && b[n+1] == 1 && b[n+2] == 1 && b[n+3] == 1 {
+			return n + 4, nil
+		}
+		n++
 	}
-	return n + s, nil
 }
 
 func SizeMap[K comparable, V any](m map[K]V, kSizer interface{}, vSizer interface{}) (s int) {
@@ -233,31 +225,27 @@ func SizeMap[K comparable, V any](m map[K]V, kSizer interface{}, vSizer interfac
 			panic("benc: invalid `vSizer` provided in `SizeMap`")
 		}
 	}
-	return s
+	return
 }
 
 func MarshalMap[K comparable, V any](n int, b []byte, m map[K]V, kMarshaler MarshalFunc[K], vMarshaler MarshalFunc[V]) int {
-	u := b[n : n+4]
-	n += 4
-
-	sn := n
 	n = MarshalUint(n, b, uint(len(m)))
 	for k, v := range m {
 		n = kMarshaler(n, b, k)
 		n = vMarshaler(n, b, v)
 	}
 
+	u := b[n : n+4]
 	_ = u[3]
-	v32 := uint32(n - sn)
-	u[0] = byte(v32)
-	u[1] = byte(v32 >> 8)
-	u[2] = byte(v32 >> 16)
-	u[3] = byte(v32 >> 24)
-	return n
+	u[0] = byte(1)
+	u[1] = byte(1)
+	u[2] = byte(1)
+	u[3] = byte(1)
+	return n + 4
 }
 
 func UnmarshalMap[K comparable, V any](n int, b []byte, kUnmarshaler interface{}, vUnmarshaler interface{}) (int, map[K]V, error) {
-	n, us, err := UnmarshalUint(n+4, b)
+	n, us, err := UnmarshalUint(n, b)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -301,7 +289,7 @@ func UnmarshalMap[K comparable, V any](n int, b []byte, kUnmarshaler interface{}
 		ts[k] = v
 	}
 
-	return n, ts, nil
+	return n + 4, ts, nil
 }
 
 //
