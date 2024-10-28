@@ -375,7 +375,7 @@ func SkipVarint(n int, buf []byte) (int, error) {
 			if i == maxVarintLen-1 && b > 1 {
 				return 0, benc.ErrOverflow
 			}
-			return i + 1, nil
+			return n + i + 1, nil
 		}
 	}
 	return 0, benc.ErrBufTooSmall
@@ -415,10 +415,6 @@ func MarshalInt(n int, b []byte, sv int) int {
 //
 // If a error is returned, n (the int returned) equals zero ( 0 ).
 func UnmarshalInt(n int, buf []byte) (int, int, error) {
-	if len(buf)-n < 1 {
-		return 0, 0, benc.ErrBufTooSmall
-	}
-
 	var x uint
 	var s uint
 	for i, b := range buf[n:] {
@@ -469,10 +465,6 @@ func MarshalUint(n int, b []byte, v uint) int {
 //
 // If a error is returned, n (the int returned) equals zero ( 0 ).
 func UnmarshalUint(n int, buf []byte) (int, uint, error) {
-	if len(buf)-n < 1 {
-		return 0, 0, benc.ErrBufTooSmall
-	}
-
 	var x uint
 	var s uint
 	for i, b := range buf[n:] {

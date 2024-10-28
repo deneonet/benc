@@ -73,7 +73,7 @@ func getMarshalFunc(name string, field parser.Field, plain bool) string {
 		}
 		return fmt.Sprintf("%s.%s.marshal(n, b, %d)", name, fieldName, field.Id)
 	default:
-		return fmt.Sprintf("bstd.Marshal%s(n, b, %s.%s)", field.Type.TokenType.String(), name, fieldName)
+		return fmt.Sprintf("bstd.Marshal%s%s(n, b, %s.%s)", field.GetUnsafeStr(), field.Type.TokenType.String(), name, fieldName)
 	}
 }
 
@@ -86,7 +86,7 @@ func getElemMarshalFunc(t *parser.Type) string {
 	case t.CtrName != "":
 		return fmt.Sprintf("func (n int, b []byte, s %s) int { return s.MarshalPlain(n, b) }", utils.ToUpper(t.CtrName))
 	default:
-		return "bstd.Marshal" + t.TokenType.String()
+		return "bstd.Marshal" + t.GetUnsafeStr() + t.TokenType.String()
 	}
 }
 
@@ -100,7 +100,7 @@ func getUnmarshalFunc(name string, field parser.Field, plain bool) string {
 	case field.Type.CtrName != "" && plain:
 		return fmt.Sprintf("%s.%s.UnmarshalPlain(n, b)", name, fieldName)
 	default:
-		return fmt.Sprintf("bstd.Unmarshal%s(n, b)", field.Type.TokenType.String())
+		return fmt.Sprintf("bstd.Unmarshal%s%s(n, b)", field.GetUnsafeStr(), field.Type.TokenType.String())
 	}
 }
 
@@ -113,7 +113,7 @@ func getElemUnmarshalFunc(t *parser.Type) string {
 	case t.CtrName != "":
 		return fmt.Sprintf("func (n int, b []byte, s *%s) (int, error) { return s.UnmarshalPlain(n, b) }", utils.ToUpper(t.CtrName))
 	default:
-		return "bstd.Unmarshal" + t.TokenType.String()
+		return "bstd.Unmarshal" + t.GetUnsafeStr() + t.TokenType.String()
 	}
 }
 

@@ -142,6 +142,13 @@ type (
 	}
 )
 
+func (t *Type) GetUnsafeStr() string {
+	if t.IsUnsafe {
+		return "Unsafe"
+	}
+	return ""
+}
+
 func (f *Field) GetUnsafeStr() string {
 	if f.Type.IsUnsafe {
 		return "Unsafe"

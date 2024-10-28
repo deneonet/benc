@@ -11,7 +11,7 @@ func TestTags(t *testing.T) {
 	buf := []byte{0, 0, 0}
 	MarshalTag(0, buf, 2, 2)
 	if buf[0] != 2 && buf[1] != 2 {
-		t.Fatal("1: no match")
+		t.Fatal("no match")
 	}
 
 	_, id, ty, err := UnmarshalTag(0, buf)
@@ -32,7 +32,7 @@ func TestTags(t *testing.T) {
 		t.Fatal(err)
 	}
 	if n != 2 {
-		t.Fatal("1: expected n of 2")
+		t.Fatal("expected n of 2")
 	}
 
 	_, id, ty, err = UnmarshalTag(0, buf)
@@ -45,7 +45,7 @@ func TestTags(t *testing.T) {
 
 	_, _, _, err = UnmarshalTag(0, []byte{})
 	if err != benc.ErrBufTooSmall {
-		t.Fatal("1: expected ErrBufTooSmall")
+		t.Fatal("expected ErrBufTooSmall")
 	}
 
 	_, _, _, err = UnmarshalTag(0, []byte{1})
@@ -73,7 +73,7 @@ func TestTags(t *testing.T) {
 		t.Fatal(err)
 	}
 	if n != 3 {
-		t.Fatal("1: expected n of 3")
+		t.Fatal("expected n of 3")
 	}
 
 	_, id, ty, err = UnmarshalTag(0, buf)
@@ -94,7 +94,7 @@ func TestTags(t *testing.T) {
 
 	_, err = SkipTag(0, ts)
 	if err != benc.ErrBufTooSmall {
-		t.Fatal("1: expected benc.ErrBufTooSmall")
+		t.Fatal("expected benc.ErrBufTooSmall")
 	}
 
 	_, _, _, err = UnmarshalTag(0, ts)
@@ -106,7 +106,7 @@ func TestTags(t *testing.T) {
 func TestHandleCompatibility_Basic(t *testing.T) {
 	_, _, err := HandleCompatibility(0, []byte{}, []uint16{}, 0)
 	if err != ErrEof {
-		t.Fatal("1: expected ErrEof")
+		t.Fatal("expected ErrEof")
 	}
 
 	_, _, err = HandleCompatibility(0, []byte{1}, []uint16{}, 0)
@@ -122,10 +122,10 @@ func TestHandleCompatibility_Basic(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !ok {
-		t.Fatal("1: expected `ok`")
+		t.Fatal("expected `ok`")
 	}
 	if n != 2 {
-		t.Fatal("1: expected n of 2")
+		t.Fatal("expected n of 2")
 	}
 
 	n, ok, err = HandleCompatibility(0, buf, []uint16{}, 9)
@@ -133,7 +133,7 @@ func TestHandleCompatibility_Basic(t *testing.T) {
 		t.Fatal(err)
 	}
 	if ok {
-		t.Fatal("1: unexpected `ok`")
+		t.Fatal("unexpected `ok`")
 	}
 	if n != 0 {
 		t.Fatal("2: expected n of 0")
@@ -145,7 +145,7 @@ func TestHandleCompatibility_Basic(t *testing.T) {
 		t.Fatal(err)
 	}
 	if ok {
-		t.Fatal("1: unexpected `ok`")
+		t.Fatal("unexpected `ok`")
 	}
 	if n != 0 {
 		t.Fatal("2: expected n of 0")
@@ -158,37 +158,46 @@ func TestHandleCompatibility_Types(t *testing.T) {
 
 	_, ok, err := HandleCompatibility(0, buf, []uint16{1}, 0)
 	if ok {
-		t.Fatal("1: unexpected `ok`")
+		t.Fatal("unexpected `ok`")
 	}
 	if err != ErrEof {
-		t.Fatal("1: expected ErrEof")
+		t.Fatal("expected ErrEof")
 	}
 
 	MarshalTag(0, buf, Fixed16, 1)
 	_, ok, err = HandleCompatibility(0, buf, []uint16{1}, 0)
 	if ok {
-		t.Fatal("1: unexpected `ok`")
+		t.Fatal("unexpected `ok`")
 	}
 	if err != ErrEof {
-		t.Fatal("1: expected ErrEof")
+		t.Fatal("expected ErrEof")
 	}
 
 	MarshalTag(0, buf, Fixed32, 1)
 	_, ok, err = HandleCompatibility(0, buf, []uint16{1}, 0)
 	if ok {
-		t.Fatal("1: unexpected `ok`")
+		t.Fatal("unexpected `ok`")
 	}
 	if err != ErrEof {
-		t.Fatal("1: expected ErrEof")
+		t.Fatal("expected ErrEof")
 	}
 
 	MarshalTag(0, buf, Fixed64, 1)
 	_, ok, err = HandleCompatibility(0, buf, []uint16{1}, 0)
 	if ok {
-		t.Fatal("1: unexpected `ok`")
+		t.Fatal("unexpected `ok`")
 	}
 	if err != ErrEof {
-		t.Fatal("1: expected ErrEof")
+		t.Fatal("expected ErrEof")
+	}
+
+	MarshalTag(0, buf, Varint, 1)
+	_, ok, err = HandleCompatibility(0, buf, []uint16{1}, 0)
+	if ok {
+		t.Fatal("unexpected `ok`")
+	}
+	if err != benc.ErrBufTooSmall {
+		t.Fatal("expected ErrBufTooSmall")
 	}
 
 	buf = make([]byte, 2+2)
@@ -198,10 +207,10 @@ func TestHandleCompatibility_Types(t *testing.T) {
 
 	_, ok, err = HandleCompatibility(0, buf, []uint16{1}, 0)
 	if ok {
-		t.Fatal("1: unexpected `ok`")
+		t.Fatal("unexpected `ok`")
 	}
 	if err != ErrEof {
-		t.Fatal("1: expected ErrEof")
+		t.Fatal("expected ErrEof")
 	}
 
 	buf = make([]byte, 2+2+1)
@@ -212,10 +221,10 @@ func TestHandleCompatibility_Types(t *testing.T) {
 
 	_, ok, err = HandleCompatibility(0, buf, []uint16{1}, 0)
 	if ok {
-		t.Fatal("1: unexpected `ok`")
+		t.Fatal("unexpected `ok`")
 	}
 	if err != ErrInvalidType {
-		t.Fatal("1: expected ErrInvalidType")
+		t.Fatal("expected ErrInvalidType")
 	}
 
 	buf = make([]byte, 2+1)
@@ -224,10 +233,10 @@ func TestHandleCompatibility_Types(t *testing.T) {
 
 	_, ok, err = HandleCompatibility(0, buf, []uint16{1}, 0)
 	if ok {
-		t.Fatal("1: unexpected `ok`")
+		t.Fatal("unexpected `ok`")
 	}
 	if err != benc.ErrBufTooSmall {
-		t.Fatal("1: expected benc.ErrBufTooSmall")
+		t.Fatal("expected benc.ErrBufTooSmall")
 	}
 
 	buf = make([]byte, 2+2+2+1)
@@ -238,10 +247,10 @@ func TestHandleCompatibility_Types(t *testing.T) {
 
 	_, ok, err = HandleCompatibility(0, buf, []uint16{1}, 0)
 	if ok {
-		t.Fatal("1: unexpected `ok`")
+		t.Fatal("unexpected `ok`")
 	}
 	if err != ErrEof {
-		t.Fatal("1: expected ErrEof")
+		t.Fatal("expected ErrEof")
 	}
 
 	buf = make([]byte, 2+1+2)
@@ -250,10 +259,10 @@ func TestHandleCompatibility_Types(t *testing.T) {
 
 	_, ok, err = HandleCompatibility(0, buf, []uint16{1}, 0)
 	if ok {
-		t.Fatal("1: unexpected `ok`")
+		t.Fatal("unexpected `ok`")
 	}
 	if err != ErrEof {
-		t.Fatal("1: expected ErrEof")
+		t.Fatal("expected ErrEof")
 	}
 
 	buf = make([]byte, 2+4+1+2)
@@ -262,10 +271,10 @@ func TestHandleCompatibility_Types(t *testing.T) {
 
 	_, ok, err = HandleCompatibility(0, buf, []uint16{1}, 0)
 	if ok {
-		t.Fatal("1: unexpected `ok`")
+		t.Fatal("unexpected `ok`")
 	}
 	if err != ErrEof {
-		t.Fatal("1: expected ErrEof")
+		t.Fatal("expected ErrEof")
 	}
 
 	buf = make([]byte, 2+2+1)
@@ -274,18 +283,18 @@ func TestHandleCompatibility_Types(t *testing.T) {
 
 	n, ok, _ := HandleCompatibility(0, buf, []uint16{1}, 0)
 	if ok {
-		t.Fatal("1: unexpected `ok`")
+		t.Fatal("unexpected `ok`")
 	}
 	if n != 3 {
-		t.Fatal("1: expected n of 3")
+		t.Fatal("expected n of 3")
 	}
 
 	MarshalTag(0, buf, 0, 1)
 	_, ok, err = HandleCompatibility(0, buf, []uint16{1}, 0)
 	if ok {
-		t.Fatal("1: unexpected `ok`")
+		t.Fatal("unexpected `ok`")
 	}
 	if err != ErrInvalidType {
-		t.Fatal("1: expected ErrInvalidType")
+		t.Fatal("expected ErrInvalidType")
 	}
 }
