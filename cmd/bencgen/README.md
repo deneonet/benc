@@ -169,7 +169,7 @@ A header consists of: `header` IDENTIFIER `;`
 A field consists of: [TYPE](#types) IDENTIFIER `=` ID `;`
 
 - The ID may not be larger than `65535`.
-- A field with type `string` or `bytes` may have [type attributes](#type-attributes).
+- A field with type `string` may have [type attributes](#type-attributes).
 
 ### Examples
 
@@ -178,18 +178,12 @@ Field:
 Type Attributes:
 `@unsafe string name = 1;`
 
-!-> Type Attributes must be placed before the type, e.g. for an array:   
+**!!** Type Attributes **must** be placed before the type, e.g. for an array:   
 `[] @unsafe string names = 1;`
 
-### Type Attributes
-
-- **unsafe** (only in Go): Uses the `unsafe` package, allowing faster unmarshal operations.
-- **bytes2**: Sets the max size of the field to 2 bytes (`65535` characters/bytes).
-- **bytes4**: Like `bytes2` but with 4 bytes (`4294967295` characters/bytes).
-- **bytes8**: Like `bytes2` but with 8 bytes (`9223372036854775807` characters/bytes).
-
-Multiple `unsafe` type attributes are ignored.  
-Multiple `bytes...` type attributes are ignored; the last one specified wins.
+#### Type Attributes
+- **unsafe** (only in Go): Uses the `unsafe` package, allowing faster unmarshal operations.  
+Multiple `unsafe` type attributes are ignored.
 
 ## Types
 
@@ -208,7 +202,7 @@ Multiple `bytes...` type attributes are ignored; the last one specified wins.
 | `bool` | `bool` |
 | `string` | `string` |
 | `[]T` | `[]T` |
-| `map[K]V` | `map[K]V` |
+| `<K, V>` | `map[K]V` |
 
 The name of another container is also a type (`Container`).
 
