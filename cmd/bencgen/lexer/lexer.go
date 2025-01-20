@@ -70,10 +70,10 @@ var tokens = []string{
 	INT16: "Int16",
 	INT:   "Int",
 
-	UINT64: "UInt64",
-	UINT32: "UInt32",
-	UINT16: "UInt16",
-	UINT:   "UInt",
+	UINT64: "Uint64",
+	UINT32: "Uint32",
+	UINT16: "Uint16",
+	UINT:   "Uint",
 
 	FLOAT32: "Float32",
 	FLOAT64: "Float64",
