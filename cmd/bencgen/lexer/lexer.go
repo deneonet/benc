@@ -50,6 +50,7 @@ const (
 	OPEN_ARROW  // <
 	CLOSE_ARROW // >
 
+	ENUM      // enum
 	CTR       // container
 	COMMA     // ,
 	EQUALS    // =
@@ -64,6 +65,7 @@ var tokens = []string{
 	RESERVED: "Reserved",
 	IDENT:    "Identifier",
 	CTR:      "Container",
+	ENUM:     "Enum",
 
 	INT64: "Int64",
 	INT32: "Int32",
@@ -103,6 +105,7 @@ var keywords = map[string]Token{
 	"reserved": RESERVED,
 	"header":   HEADER,
 	"ctr":      CTR,
+	"enum":     ENUM,
 
 	"int64": INT64,
 	"int32": INT32,

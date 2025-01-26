@@ -135,6 +135,10 @@ type (
 		Fields      []Field
 		ReservedIds []uint16
 	}
+	EnumStmt struct {
+		Name   string
+		Fields []string
+	}
 	Field struct {
 		Id   uint16
 		Name string
@@ -171,8 +175,10 @@ func (p *Parser) parseStatement() Node {
 		return p.parseHeaderStmt()
 	case p.match(lexer.CTR):
 		return p.parseCtrStmt()
+	case p.match(lexer.ENUM):
+		return p.parseEnumStmt()
 	default:
-		p.error(fmt.Sprintf("Unexpected token: `%s`. Expected: `Container or Header`", p.token))
+		p.error(fmt.Sprintf("Unexpected token: `%s`. Expected: `Container, Enum or Header`", p.token))
 		return nil
 	}
 }
@@ -196,6 +202,35 @@ func (p *Parser) parseCtrStmt() Node {
 
 	p.expect(lexer.CLOSE_BRACE)
 	return &CtrStmt{Name: name, ReservedIds: reservedIds, Fields: fields}
+}
+
+func (p *Parser) parseEnumStmt() Node {
+	p.expect(lexer.ENUM)
+	name := p.lit
+	p.expect(lexer.IDENT)
+	p.expect(lexer.OPEN_BRACE)
+
+	fields := p.parseEnumFields()
+
+	p.expect(lexer.CLOSE_BRACE)
+	return &EnumStmt{Name: name, Fields: fields}
+}
+
+func (p *Parser) parseEnumFields() []string {
+	var fields []string
+	for !p.match(lexer.CLOSE_BRACE) {
+		fields = append(fields, p.parseEnumField())
+	}
+	return fields
+}
+
+func (p *Parser) parseEnumField() string {
+	ident := p.lit
+	p.expect(lexer.IDENT)
+	if !p.match(lexer.CLOSE_BRACE) {
+		p.expect(lexer.COMMA)
+	}
+	return ident
 }
 
 func (p *Parser) parseReservedIds() []uint16 {

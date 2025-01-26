@@ -8,6 +8,12 @@ import (
     "github.com/deneonet/benc/impl/gen"
 )
 
+// Enum - Yo
+type Yo int
+const (
+    YoHello Yo = iota
+)
+
 // Struct - UintTest
 type UintTest struct {
     Ui64 uint64
@@ -16,6 +22,7 @@ type UintTest struct {
     Ui32 uint32
     Ui16 uint16
     Ui uint
+    Yo Yo
 }
 
 // Reserved Ids - UintTest
@@ -34,6 +41,7 @@ func (uintTest *UintTest) size(id uint16) (s int) {
     s += bstd.SizeUint32() + 2
     s += bstd.SizeUint16() + 2
     s += bstd.SizeUint(uintTest.Ui) + 2
+    s += bstd.SizeInt(uintTest.Yo)
 
     if id > 255 {
         s += 5
@@ -51,6 +59,7 @@ func (uintTest *UintTest) SizePlain() (s int) {
     s += bstd.SizeUint32()
     s += bstd.SizeUint16()
     s += bstd.SizeUint(uintTest.Ui)
+    s += bstd.SizeInt(uintTest.Yo)
     return
 }
 
@@ -74,6 +83,7 @@ func (uintTest *UintTest) marshal(tn int, b []byte, id uint16) (n int) {
     n = bstd.MarshalUint16(n, b, uintTest.Ui16)
     n = bgenimpl.MarshalTag(n, b, bgenimpl.Varint, 7)
     n = bstd.MarshalUint(n, b, uintTest.Ui)
+    n = bstd.MarshalInt(n, b, uintTest.Yo)
 
     n += 2
     b[n-2] = 1
@@ -90,6 +100,7 @@ func (uintTest *UintTest) MarshalPlain(tn int, b []byte) (n int) {
     n = bstd.MarshalUint32(n, b, uintTest.Ui32)
     n = bstd.MarshalUint16(n, b, uintTest.Ui16)
     n = bstd.MarshalUint(n, b, uintTest.Ui)
+    n = bstd.MarshalInt(n, b, uintTest.Yo)
     return n
 }
 
@@ -174,6 +185,17 @@ func (uintTest *UintTest) unmarshal(tn int, b []byte, r []uint16, id uint16) (n 
             return
         }
     }
+    if n, ok, err = bgenimpl.HandleCompatibility(n, b, uintTestRIds, 8); err != nil {
+        if err == bgenimpl.ErrEof {
+            return n, nil
+        }
+        return
+    }
+    if ok {
+        if n, uintTest.Yo, err = bstd.UnmarshalEOF(n, b); err != nil {
+            return
+        }
+    }
     n += 2
     return
 }
@@ -197,6 +219,9 @@ func (uintTest *UintTest) UnmarshalPlain(tn int, b []byte) (n int, err error) {
         return
     }
     if n, uintTest.Ui, err = bstd.UnmarshalUint(n, b); err != nil {
+        return
+    }
+    if n, uintTest.Yo, err = bstd.UnmarshalInt(n, b); err != nil {
         return
     }
     return

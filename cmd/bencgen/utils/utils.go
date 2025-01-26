@@ -50,19 +50,19 @@ func CompareTypes(t1 *parser.Type, t2 *parser.Type) bool {
 	return compareTypes(t1, t2)
 }
 
-func FindUndeclaredContainers(ctrDeclarations []string, t *parser.Type) (string, bool) {
-	if t.CtrName != "" && !slices.Contains(ctrDeclarations, t.CtrName) {
+func FindUndeclaredContainersOrEnums(declarations []string, t *parser.Type) (string, bool) {
+	if t.CtrName != "" && !slices.Contains(declarations, t.CtrName) {
 		return t.CtrName, true
 	}
 
 	if t.ChildType != nil {
-		if ctr, notFound := FindUndeclaredContainers(ctrDeclarations, t.ChildType); notFound {
+		if ctr, notFound := FindUndeclaredContainersOrEnums(declarations, t.ChildType); notFound {
 			return ctr, true
 		}
 	}
 
 	if t.MapKeyType != nil {
-		if ctr, notFound := FindUndeclaredContainers(ctrDeclarations, t.MapKeyType); notFound {
+		if ctr, notFound := FindUndeclaredContainersOrEnums(declarations, t.MapKeyType); notFound {
 			return ctr, true
 		}
 	}

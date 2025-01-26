@@ -2,6 +2,7 @@ package codegens
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/deneonet/benc/cmd/bencgen/lexer"
@@ -25,15 +26,19 @@ func (gg GoGenerator) Lang() GeneratorLanguage {
 	return GenGolang
 }
 
-func getSizeFunc(name string, field parser.Field, plain bool) string {
+func getSizeFunc(name string, field parser.Field, enumDeclarations []string, plain bool) string {
 	fieldName := utils.ToUpper(field.Name)
 	fieldType := field.Type
 	switch {
 	case field.Type.IsArray:
-		return fmt.Sprintf("bstd.SizeSlice(%s.%s, %s)", name, fieldName, getElemSizeFunc(fieldType.ChildType))
+		return fmt.Sprintf("bstd.SizeSlice(%s.%s, %s)", name, fieldName, getElemSizeFunc(fieldType.ChildType, enumDeclarations))
 	case field.Type.IsMap:
-		return fmt.Sprintf("bstd.SizeMap(%s.%s, %s, %s)", name, fieldName, getElemSizeFunc(fieldType.MapKeyType), getElemSizeFunc(fieldType.ChildType))
+		return fmt.Sprintf("bstd.SizeMap(%s.%s, %s, %s)", name, fieldName, getElemSizeFunc(fieldType.MapKeyType, enumDeclarations), getElemSizeFunc(fieldType.ChildType, enumDeclarations))
 	case field.Type.CtrName != "":
+		if slices.Contains(enumDeclarations, field.Type.CtrName) {
+			return fmt.Sprintf("bstd.SizeInt(%s.%s)", name, fieldName)
+		}
+
 		if plain {
 			return fmt.Sprintf("%s.%s.SizePlain()", name, fieldName)
 		}
@@ -47,27 +52,35 @@ func getSizeFunc(name string, field parser.Field, plain bool) string {
 	}
 }
 
-func getElemSizeFunc(t *parser.Type) string {
+func getElemSizeFunc(t *parser.Type, enumDeclarations []string) string {
 	switch {
 	case t.IsArray:
-		return fmt.Sprintf("func (s %s) int { return bstd.SizeSlice(s, %s) }", utils.BencTypeToGolang(t), getElemSizeFunc(t.ChildType))
+		return fmt.Sprintf("func (s %s) int { return bstd.SizeSlice(s, %s) }", utils.BencTypeToGolang(t), getElemSizeFunc(t.ChildType, enumDeclarations))
 	case t.IsMap:
-		return fmt.Sprintf("func (s %s) int { return bstd.SizeMap(s, %s, %s) }", utils.BencTypeToGolang(t), getElemSizeFunc(t.MapKeyType), getElemSizeFunc(t.ChildType))
+		return fmt.Sprintf("func (s %s) int { return bstd.SizeMap(s, %s, %s) }", utils.BencTypeToGolang(t), getElemSizeFunc(t.MapKeyType, enumDeclarations), getElemSizeFunc(t.ChildType, enumDeclarations))
 	case t.CtrName != "":
+		if slices.Contains(enumDeclarations, t.CtrName) {
+			return "bstd.SizeInt"
+		}
+
 		return fmt.Sprintf("func (s %s) int { return s.SizePlain() }", utils.ToUpper(t.CtrName))
 	default:
 		return "bstd.Size" + t.TokenType.String()
 	}
 }
 
-func getMarshalFunc(name string, field parser.Field, plain bool) string {
+func getMarshalFunc(name string, field parser.Field, enumDeclarations []string, plain bool) string {
 	fieldName := utils.ToUpper(field.Name)
 	switch {
 	case field.Type.IsArray:
-		return fmt.Sprintf("bstd.MarshalSlice(n, b, %s.%s, %s)", name, fieldName, getElemMarshalFunc(field.Type.ChildType))
+		return fmt.Sprintf("bstd.MarshalSlice(n, b, %s.%s, %s)", name, fieldName, getElemMarshalFunc(field.Type.ChildType, enumDeclarations))
 	case field.Type.IsMap:
-		return fmt.Sprintf("bstd.MarshalMap(n, b, %s.%s, %s, %s)", name, fieldName, getElemMarshalFunc(field.Type.MapKeyType), getElemMarshalFunc(field.Type.ChildType))
+		return fmt.Sprintf("bstd.MarshalMap(n, b, %s.%s, %s, %s)", name, fieldName, getElemMarshalFunc(field.Type.MapKeyType, enumDeclarations), getElemMarshalFunc(field.Type.ChildType, enumDeclarations))
 	case field.Type.CtrName != "":
+		if slices.Contains(enumDeclarations, field.Type.CtrName) {
+			return fmt.Sprintf("bstd.MarshalInt(n, b, %s.%s)", name, fieldName)
+		}
+
 		if plain {
 			return fmt.Sprintf("%s.%s.MarshalPlain(n, b)", name, fieldName)
 		}
@@ -77,40 +90,51 @@ func getMarshalFunc(name string, field parser.Field, plain bool) string {
 	}
 }
 
-func getElemMarshalFunc(t *parser.Type) string {
+func getElemMarshalFunc(t *parser.Type, enumDeclarations []string) string {
 	switch {
 	case t.IsArray:
-		return fmt.Sprintf("func (n int, b []byte, s %s) int { return bstd.MarshalSlice(n, b, s, %s) }", utils.BencTypeToGolang(t), getElemMarshalFunc(t.ChildType))
+		return fmt.Sprintf("func (n int, b []byte, s %s) int { return bstd.MarshalSlice(n, b, s, %s) }", utils.BencTypeToGolang(t), getElemMarshalFunc(t.ChildType, enumDeclarations))
 	case t.IsMap:
-		return fmt.Sprintf("func (n int, b []byte, s %s) int { return bstd.MarshalMap(n, b, s, %s, %s) }", utils.BencTypeToGolang(t), getElemMarshalFunc(t.MapKeyType), getElemMarshalFunc(t.ChildType))
+		return fmt.Sprintf("func (n int, b []byte, s %s) int { return bstd.MarshalMap(n, b, s, %s, %s) }", utils.BencTypeToGolang(t), getElemMarshalFunc(t.MapKeyType, enumDeclarations), getElemMarshalFunc(t.ChildType, enumDeclarations))
 	case t.CtrName != "":
+		if slices.Contains(enumDeclarations, t.CtrName) {
+			return "bstd.MarshalInt"
+		}
+
 		return fmt.Sprintf("func (n int, b []byte, s %s) int { return s.MarshalPlain(n, b) }", utils.ToUpper(t.CtrName))
 	default:
 		return "bstd.Marshal" + t.GetUnsafeStr() + t.TokenType.String()
 	}
 }
 
-func getUnmarshalFunc(name string, field parser.Field, plain bool) string {
+func getUnmarshalFunc(name string, field parser.Field, enumDeclarations []string, plain bool) string {
 	fieldName := utils.ToUpper(field.Name)
 	switch {
 	case field.Type.IsArray:
-		return fmt.Sprintf("bstd.UnmarshalSlice[%s](n, b, %s)", utils.BencTypeToGolang(field.Type.ChildType), getElemUnmarshalFunc(field.Type.ChildType))
+		return fmt.Sprintf("bstd.UnmarshalSlice[%s](n, b, %s)", utils.BencTypeToGolang(field.Type.ChildType), getElemUnmarshalFunc(field.Type.ChildType, enumDeclarations))
 	case field.Type.IsMap:
-		return fmt.Sprintf("bstd.UnmarshalMap[%s, %s](n, b, %s, %s)", utils.BencTypeToGolang(field.Type.MapKeyType), utils.BencTypeToGolang(field.Type.ChildType), getElemUnmarshalFunc(field.Type.MapKeyType), getElemUnmarshalFunc(field.Type.ChildType))
+		return fmt.Sprintf("bstd.UnmarshalMap[%s, %s](n, b, %s, %s)", utils.BencTypeToGolang(field.Type.MapKeyType), utils.BencTypeToGolang(field.Type.ChildType), getElemUnmarshalFunc(field.Type.MapKeyType, enumDeclarations), getElemUnmarshalFunc(field.Type.ChildType, enumDeclarations))
 	case field.Type.CtrName != "" && plain:
+		if slices.Contains(enumDeclarations, field.Type.CtrName) {
+			return "bstd.UnmarshalInt(n, b)"
+		}
+
 		return fmt.Sprintf("%s.%s.UnmarshalPlain(n, b)", name, fieldName)
 	default:
 		return fmt.Sprintf("bstd.Unmarshal%s%s(n, b)", field.GetUnsafeStr(), field.Type.TokenType.String())
 	}
 }
 
-func getElemUnmarshalFunc(t *parser.Type) string {
+func getElemUnmarshalFunc(t *parser.Type, enumDeclarations []string) string {
 	switch {
 	case t.IsArray:
-		return fmt.Sprintf("func (n int, b []byte) (int, %s, error) { return bstd.UnmarshalSlice[%s](n, b, %s) }", utils.BencTypeToGolang(t), utils.BencTypeToGolang(t.ChildType), getElemUnmarshalFunc(t.ChildType))
+		return fmt.Sprintf("func (n int, b []byte) (int, %s, error) { return bstd.UnmarshalSlice[%s](n, b, %s) }", utils.BencTypeToGolang(t), utils.BencTypeToGolang(t.ChildType), getElemUnmarshalFunc(t.ChildType, enumDeclarations))
 	case t.IsMap:
-		return fmt.Sprintf("func (n int, b []byte) (int, %s, error) { return bstd.UnmarshalMap[%s, %s](n, b, %s, %s) }", utils.BencTypeToGolang(t), utils.BencTypeToGolang(t.MapKeyType), utils.BencTypeToGolang(t.ChildType), getElemUnmarshalFunc(t.MapKeyType), getElemUnmarshalFunc(t.ChildType))
+		return fmt.Sprintf("func (n int, b []byte) (int, %s, error) { return bstd.UnmarshalMap[%s, %s](n, b, %s, %s) }", utils.BencTypeToGolang(t), utils.BencTypeToGolang(t.MapKeyType), utils.BencTypeToGolang(t.ChildType), getElemUnmarshalFunc(t.MapKeyType, enumDeclarations), getElemUnmarshalFunc(t.ChildType, enumDeclarations))
 	case t.CtrName != "":
+		if slices.Contains(enumDeclarations, t.CtrName) {
+			return "bstd.UnmarshalInt"
+		}
 		return fmt.Sprintf("func (n int, b []byte, s *%s) (int, error) { return s.UnmarshalPlain(n, b) }", utils.ToUpper(t.CtrName))
 	default:
 		return "bstd.Unmarshal" + t.GetUnsafeStr() + t.TokenType.String()
@@ -145,7 +169,7 @@ func joinUint16(ids []uint16) string {
 	return sb.String()
 }
 
-func (gen GoGenerator) GenStruct(ctrDeclarations []string, stmt *parser.CtrStmt) string {
+func (gen GoGenerator) GenStruct(stmt *parser.CtrStmt) string {
 	var sb strings.Builder
 	stmtName := utils.ToUpper(stmt.Name)
 	sb.WriteString(fmt.Sprintf("// Struct - %s\ntype %s struct {\n", stmtName, stmtName))
@@ -156,7 +180,22 @@ func (gen GoGenerator) GenStruct(ctrDeclarations []string, stmt *parser.CtrStmt)
 	return sb.String()
 }
 
-func (gen GoGenerator) GenSize(stmt *parser.CtrStmt) string {
+func (gen GoGenerator) GenEnum(stmt *parser.EnumStmt) string {
+	var sb strings.Builder
+	stmtName := utils.ToUpper(stmt.Name)
+	sb.WriteString(fmt.Sprintf("// Enum - %s\ntype %s int\nconst (\n", stmtName, stmtName))
+	for i, field := range stmt.Fields {
+		if i == 0 {
+			sb.WriteString(fmt.Sprintf("    %s%s %s = iota\n", stmtName, utils.ToUpper(field), stmtName))
+			continue
+		}
+		sb.WriteString(fmt.Sprintf("    %s%s\n", stmtName, utils.ToUpper(field)))
+	}
+	sb.WriteString(")\n\n")
+	return sb.String()
+}
+
+func (gen GoGenerator) GenSize(stmt *parser.CtrStmt, enumDeclarations []string) string {
 	privStmtName := utils.ToLower(stmt.Name)
 	publStmtName := utils.ToUpper(stmt.Name)
 
@@ -170,8 +209,8 @@ func (gen GoGenerator) GenSize(stmt *parser.CtrStmt) string {
 			tagSize = 3
 		}
 
-		sb.WriteString(fmt.Sprintf("    s += %s", getSizeFunc(privStmtName, field, false)))
-		if field.Type.CtrName == "" {
+		sb.WriteString(fmt.Sprintf("    s += %s", getSizeFunc(privStmtName, field, enumDeclarations, false)))
+		if field.Type.CtrName == "" && !slices.Contains(enumDeclarations, field.Type.CtrName) {
 			sb.WriteString(fmt.Sprintf(" + %d\n", tagSize))
 		} else {
 			sb.WriteString("\n")
@@ -182,20 +221,20 @@ func (gen GoGenerator) GenSize(stmt *parser.CtrStmt) string {
 	return sb.String()
 }
 
-func (gen GoGenerator) GenSizePlain(stmt *parser.CtrStmt) string {
+func (gen GoGenerator) GenSizePlain(stmt *parser.CtrStmt, enumDeclarations []string) string {
 	privStmtName := utils.ToLower(stmt.Name)
 	publStmtName := utils.ToUpper(stmt.Name)
 
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("// SizePlain - %s\nfunc (%s *%s) SizePlain() (s int) {\n", stmt.Name, privStmtName, publStmtName))
 	for _, field := range stmt.Fields {
-		sb.WriteString(fmt.Sprintf("    s += %s\n", getSizeFunc(privStmtName, field, true)))
+		sb.WriteString(fmt.Sprintf("    s += %s\n", getSizeFunc(privStmtName, field, enumDeclarations, true)))
 	}
 	sb.WriteString("    return\n}\n\n")
 	return sb.String()
 }
 
-func (gen GoGenerator) GenMarshal(stmt *parser.CtrStmt) string {
+func (gen GoGenerator) GenMarshal(stmt *parser.CtrStmt, enumDeclarations []string) string {
 	privStmtName := utils.ToLower(stmt.Name)
 	publStmtName := utils.ToUpper(stmt.Name)
 
@@ -204,10 +243,10 @@ func (gen GoGenerator) GenMarshal(stmt *parser.CtrStmt) string {
 	sb.WriteString(fmt.Sprintf("// Nested Marshal - %s\nfunc (%s *%s) marshal(tn int, b []byte, id uint16) (n int) {\n    n = bgenimpl.MarshalTag(tn, b, bgenimpl.Container, id)\n", stmt.Name, privStmtName, publStmtName))
 
 	for _, field := range stmt.Fields {
-		if field.Type.CtrName == "" {
+		if field.Type.CtrName == "" && !slices.Contains(enumDeclarations, field.Type.CtrName) {
 			sb.WriteString(fmt.Sprintf("    n = bgenimpl.MarshalTag(n, b, bgenimpl.%s, %d)\n", mapTokenTypeToBgenimplType(field.Type.TokenType), field.Id))
 		}
-		sb.WriteString(fmt.Sprintf("    n = %s\n", getMarshalFunc(privStmtName, field, false)))
+		sb.WriteString(fmt.Sprintf("    n = %s\n", getMarshalFunc(privStmtName, field, enumDeclarations, false)))
 	}
 
 	sb.WriteString("\n    n += 2\n    b[n-2] = 1\n    b[n-1] = 1\n    return\n}\n\n")
@@ -233,20 +272,20 @@ func mapTokenTypeToBgenimplType(t lexer.Token) string {
 	}
 }
 
-func (gen GoGenerator) GenMarshalPlain(stmt *parser.CtrStmt) string {
+func (gen GoGenerator) GenMarshalPlain(stmt *parser.CtrStmt, enumDeclarations []string) string {
 	privStmtName := utils.ToLower(stmt.Name)
 	publStmtName := utils.ToUpper(stmt.Name)
 
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("// MarshalPlain - %s\nfunc (%s *%s) MarshalPlain(tn int, b []byte) (n int) {\n    n = tn\n", stmt.Name, privStmtName, publStmtName))
 	for _, field := range stmt.Fields {
-		sb.WriteString(fmt.Sprintf("    n = %s\n", getMarshalFunc(privStmtName, field, true)))
+		sb.WriteString(fmt.Sprintf("    n = %s\n", getMarshalFunc(privStmtName, field, enumDeclarations, true)))
 	}
 	sb.WriteString("    return n\n}\n\n")
 	return sb.String()
 }
 
-func (gen GoGenerator) GenUnmarshal(stmt *parser.CtrStmt) string {
+func (gen GoGenerator) GenUnmarshal(stmt *parser.CtrStmt, enumDeclarations []string) string {
 	privStmtName := utils.ToLower(stmt.Name)
 	publStmtName := utils.ToUpper(stmt.Name)
 
@@ -256,31 +295,31 @@ func (gen GoGenerator) GenUnmarshal(stmt *parser.CtrStmt) string {
 
 	for _, field := range stmt.Fields {
 		fieldName := utils.ToUpper(field.Name)
-		if field.Type.CtrName != "" {
+		if field.Type.CtrName != "" && !slices.Contains(enumDeclarations, field.Type.CtrName) {
 			sb.WriteString(fmt.Sprintf("    if n, err = %s.%s.unmarshal(n, b, %sRIds, %d); err != nil {\n        return\n    }\n", privStmtName, fieldName, privStmtName, field.Id))
 			continue
 		}
 		sb.WriteString(fmt.Sprintf("    if n, ok, err = bgenimpl.HandleCompatibility(n, b, %sRIds, %d); err != nil {\n        if err == bgenimpl.ErrEof {\n            return n, nil\n        }\n        return\n    }\n", privStmtName, field.Id))
-		sb.WriteString(fmt.Sprintf("    if ok {\n        if n, %s.%s, err = %s; err != nil {\n            return\n        }\n    }\n", privStmtName, fieldName, getUnmarshalFunc(privStmtName, field, false)))
+		sb.WriteString(fmt.Sprintf("    if ok {\n        if n, %s.%s, err = %s; err != nil {\n            return\n        }\n    }\n", privStmtName, fieldName, getUnmarshalFunc(privStmtName, field, enumDeclarations, false)))
 	}
 
 	sb.WriteString("    n += 2\n    return\n}\n\n")
 	return sb.String()
 }
 
-func (gen GoGenerator) GenUnmarshalPlain(stmt *parser.CtrStmt) string {
+func (gen GoGenerator) GenUnmarshalPlain(stmt *parser.CtrStmt, enumDeclarations []string) string {
 	privStmtName := utils.ToLower(stmt.Name)
 	publStmtName := utils.ToUpper(stmt.Name)
 
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("// UnmarshalPlain - %s\nfunc (%s *%s) UnmarshalPlain(tn int, b []byte) (n int, err error) {\n    n = tn\n", stmt.Name, privStmtName, publStmtName))
 	for _, field := range stmt.Fields {
-		if field.Type.CtrName != "" {
-			sb.WriteString(fmt.Sprintf("    if n, err = %s; err != nil {\n        return\n    }\n", getUnmarshalFunc(privStmtName, field, true)))
+		if field.Type.CtrName != "" && !slices.Contains(enumDeclarations, field.Type.CtrName) {
+			sb.WriteString(fmt.Sprintf("    if n, err = %s; err != nil {\n        return\n    }\n", getUnmarshalFunc(privStmtName, field, enumDeclarations, true)))
 			continue
 		}
 
-		sb.WriteString(fmt.Sprintf("    if n, %s.%s, err = %s; err != nil {\n        return\n    }\n", privStmtName, utils.ToUpper(field.Name), getUnmarshalFunc(privStmtName, field, true)))
+		sb.WriteString(fmt.Sprintf("    if n, %s.%s, err = %s; err != nil {\n        return\n    }\n", privStmtName, utils.ToUpper(field.Name), getUnmarshalFunc(privStmtName, field, enumDeclarations, true)))
 	}
 	sb.WriteString("    return\n}\n\n")
 	return sb.String()
