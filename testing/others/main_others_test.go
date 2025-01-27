@@ -1,6 +1,6 @@
-//go:generate bencgen --in ../schemas/uint.benc --out ./ --file uint_test --lang go
+//go:generate bencgen --in ../schemas/others.benc --out ./ --file others_test --lang go
 
-package unsignedInt
+package others
 
 import (
 	"math/rand"
@@ -21,7 +21,7 @@ func TestUint(t *testing.T) {
 	ui64Map[rand.Uint64()] = rand.Uint32()
 	ui64Map[rand.Uint64()] = rand.Uint32()
 
-	data := UintTest{
+	data := OthersTest{
 		Ui64: ui64,
 		Ui32: ui32,
 		Ui16: ui16,
@@ -29,12 +29,15 @@ func TestUint(t *testing.T) {
 
 		Ui64Arr: ui64Arr,
 		Ui64Map: ui64Map,
+
+		ExampleEnum:  ExampleEnumOne,
+		ExampleEnum2: ExampleEnum2Six,
 	}
 
 	buf := make([]byte, data.Size())
 	data.Marshal(buf)
 
-	var deserData UintTest
+	var deserData OthersTest
 	err := deserData.Unmarshal(buf)
 	if err != nil {
 		t.Fatal(err)

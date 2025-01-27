@@ -1,6 +1,9 @@
 package bgenimpl
 
 import (
+	"encoding/binary"
+	"errors"
+	"strconv"
 	"testing"
 
 	"github.com/deneonet/benc"
@@ -296,5 +299,73 @@ func TestHandleCompatibility_Types(t *testing.T) {
 	}
 	if err != ErrInvalidType {
 		t.Fatal("expected ErrInvalidType")
+	}
+}
+
+var maxVarintLenMap = map[int]int{
+	64: binary.MaxVarintLen64,
+	32: binary.MaxVarintLen32,
+}
+
+var maxVarintLen = maxVarintLenMap[strconv.IntSize]
+
+func TestEnums(t *testing.T) {
+	v := 150
+	size := SizeEnum(v)
+	if size != 2 {
+		t.Errorf("expected size 2, got %d", size)
+	}
+
+	buf := []byte{172, 2}
+	n, err := SkipEnum(0, buf)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if n != 2 {
+		t.Errorf("expected offset 2, got %d", n)
+	}
+
+	buf = []byte{172}
+	_, err = SkipEnum(0, buf)
+	if !errors.Is(err, benc.ErrBufTooSmall) {
+		t.Errorf("expected ErrBufTooSmall, got %v", err)
+	}
+
+	buf = make([]byte, 10)
+	n = MarshalEnum(0, buf, 150)
+	if n != 2 {
+		t.Errorf("expected offset 2, got %d", n)
+	}
+	t.Log(buf[1])
+	if buf[0] != 172 || buf[1] != 2 {
+		t.Errorf("unexpected buffer contents: %v", buf[:n])
+	}
+
+	buf = []byte{172, 2}
+	n, v, err = UnmarshalEnum[int](0, buf)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if n != 2 {
+		t.Errorf("expected offset 2, got %d", n)
+	}
+	if v != 150 {
+		t.Errorf("expected value 150, got %d", v)
+	}
+
+	buf = []byte{172}
+	_, _, err = UnmarshalEnum[int](0, buf)
+	if !errors.Is(err, benc.ErrBufTooSmall) {
+		t.Errorf("expected ErrBufTooSmall, got %v", err)
+	}
+
+	buf = make([]byte, maxVarintLen+1)
+	for i := 0; i < maxVarintLen+1; i++ {
+		buf[i] = 0x80
+	}
+	buf[maxVarintLen] = 0x02
+	_, _, err = UnmarshalEnum[int](0, buf)
+	if !errors.Is(err, benc.ErrOverflow) {
+		t.Errorf("expected ErrOverflow, got %v", err)
 	}
 }
