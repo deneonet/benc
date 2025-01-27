@@ -253,7 +253,7 @@ Example of a field with type attributes:
 
 ### Containers Or Enums
 
-A container or enum name refers to another defined structure or container.
+A container or enum name refers to another defined structure.
 
 **Container**:
 
