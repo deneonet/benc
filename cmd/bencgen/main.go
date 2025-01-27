@@ -41,8 +41,8 @@ func main() {
 		return
 	}
 
-	lang := codegens.GeneratorLanguage(*lFlag)
-	generator := codegens.NewGenerator(lang, *iFlag)
+	lang := codegens.GenLang(*lFlag)
+	generator := codegens.NewGen(lang, *iFlag)
 	if generator == nil {
 		printError("Unknown language provided.")
 		return

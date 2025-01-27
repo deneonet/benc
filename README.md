@@ -15,6 +15,7 @@ This module is split into four main packages:
 - **[idv](idv/README.md)** - the benc ID validation, raw serialization with ID prefixing
 
 ### [Security](SECURITY.md)
+
 ### [Benchmarks](https://github.com/alecthomas/go_serialization_benchmarks)
 
 ### benc.go
@@ -23,4 +24,4 @@ This module is split into four main packages:
 
 ## License
 
-[MIT](https://choosealicense.com/licenses/mit/)
+[MIT](LICENSE)

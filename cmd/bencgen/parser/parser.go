@@ -68,7 +68,7 @@ func (p *Parser) expectType() *Type {
 	case p.match(lexer.IDENT):
 		ctrName := p.lit
 		p.nextToken()
-		return &Type{CtrName: ctrName}
+		return &Type{ExtStructure: ctrName}
 
 	case p.match(lexer.UNSAFE):
 		p.nextToken()
@@ -119,13 +119,13 @@ type Node interface{}
 
 type (
 	Type struct {
-		TokenType  lexer.Token
-		MapKeyType *Type
-		ChildType  *Type
-		CtrName    string
-		IsUnsafe   bool
-		IsArray    bool
-		IsMap      bool
+		TokenType    lexer.Token
+		MapKeyType   *Type
+		ChildType    *Type
+		ExtStructure string `json:"ctrName"`
+		IsUnsafe     bool
+		IsArray      bool
+		IsMap        bool
 	}
 	HeaderStmt struct {
 		Name string
@@ -146,18 +146,15 @@ type (
 	}
 )
 
-func (t *Type) GetUnsafeStr() string {
-	if t.IsUnsafe {
-		return "Unsafe"
+func (t *Type) AppendUnsafeIfPresent() string {
+	if !t.IsUnsafe {
+		return ""
 	}
-	return ""
+	return "Unsafe"
 }
 
-func (f *Field) GetUnsafeStr() string {
-	if f.Type.IsUnsafe {
-		return "Unsafe"
-	}
-	return ""
+func (f *Field) AppendUnsafeIfPresent() string {
+	return f.Type.AppendUnsafeIfPresent()
 }
 
 func (p *Parser) Parse() []Node {

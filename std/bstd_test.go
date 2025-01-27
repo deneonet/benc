@@ -11,8 +11,7 @@ import (
 	"github.com/deneonet/benc"
 )
 
-func SizeAll(sizers ...func() int) int {
-	s := 0
+func SizeAll(sizers ...func() int) (s int) {
 	for _, sizer := range sizers {
 		ts := sizer()
 		if ts == 0 {
@@ -20,33 +19,35 @@ func SizeAll(sizers ...func() int) int {
 		}
 		s += ts
 	}
-	return s
+
+	return
 }
 
-func SkipAll(b []byte, skipers ...func(n int, b []byte) (int, error)) error {
+func SkipAll(b []byte, skipers ...func(n int, b []byte) (int, error)) (err error) {
 	n := 0
-	var err error
+
 	for i, skiper := range skipers {
 		n, err = skiper(n, b)
 		if err != nil {
 			return fmt.Errorf("(skip) at idx %d: error: %s", i, err.Error())
 		}
 	}
+
 	if n != len(b) {
-		return errors.New("skip failed: something doesn't match in the marshal- and skip progrss")
+		return errors.New("skip failed: something doesn't match in the marshal- and skip progress")
 	}
 	return nil
 }
 
 func SkipOnce_Verify(b []byte, skiper func(n int, b []byte) (int, error)) error {
-	n := 0
-	var err error
-	n, err = skiper(n, b)
+	n, err := skiper(0, b)
+
 	if err != nil {
 		return fmt.Errorf("skip: error: %s", err.Error())
 	}
+
 	if n != len(b) {
-		return errors.New("skip failed: something doesn't match in the marshal- and skip progrss")
+		return errors.New("skip failed: something doesn't match in the marshal- and skip progress")
 	}
 	return nil
 }
@@ -54,6 +55,7 @@ func SkipOnce_Verify(b []byte, skiper func(n int, b []byte) (int, error)) error 
 func MarshalAll(s int, values []any, marshals ...func(n int, b []byte, v any) int) ([]byte, error) {
 	n := 0
 	b := make([]byte, s)
+
 	for i, marshal := range marshals {
 		n = marshal(n, b, values[i])
 		if n == 0 {
@@ -61,16 +63,21 @@ func MarshalAll(s int, values []any, marshals ...func(n int, b []byte, v any) in
 			return nil, nil
 		}
 	}
+
 	if n != len(b) {
-		return nil, errors.New("marshal failed: something doesn't match in the marshal- and size progrss")
+		return nil, errors.New("marshal failed: something doesn't match in the marshal- and size progress")
 	}
+
 	return b, nil
 }
 
-func UnmarshalAll_Verify(b []byte, values []any, unmarshals ...func(n int, b []byte) (int, any, error)) error {
+func UnmarshalAll(b []byte, values []any, unmarshals ...func(n int, b []byte) (int, any, error)) error {
 	n := 0
-	var v any
-	var err error
+	var (
+		v   any
+		err error
+	)
+
 	for i, unmarshal := range unmarshals {
 		n, v, err = unmarshal(n, b)
 		if err != nil {
@@ -80,9 +87,11 @@ func UnmarshalAll_Verify(b []byte, values []any, unmarshals ...func(n int, b []b
 			return fmt.Errorf("(unmarshal) at idx %d: no match: expected %v, got %v --- (%T - %T)", i, values[i], v, values[i], v)
 		}
 	}
+
 	if n != len(b) {
 		return errors.New("unmarshal failed: something doesn't match in the marshal- and unmarshal progrss")
 	}
+
 	return nil
 }
 
@@ -115,14 +124,32 @@ func TestDataTypes(t *testing.T) {
 	}
 
 	testBs := []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
-	s := SizeAll(SizeBool, SizeBool, SizeByte, SizeFloat32, SizeFloat64, func() int { return SizeInt(math.MaxInt) }, SizeInt16, SizeInt32, SizeInt64, func() int { return SizeUint(math.MaxUint) }, SizeUint16, SizeUint32, SizeUint64,
-		sizeTestStr, sizeTestStr, func() int {
-			return SizeBytes(testBs)
-		})
+	sizeTestBs := func() int {
+		return SizeBytes(testBs)
+	}
 
-	values := []any{true, false, byte(128), rand.Float32(), rand.Float64(), int(math.MaxInt), int16(16), rand.Int31(), rand.Int63(), uint(math.MaxUint), uint16(160), rand.Uint32(), rand.Uint64(), testStr, testStr, testBs}
-	buf, err := MarshalAll(s, values,
-		func(n int, b []byte, v any) int { return MarshalBool(n, b, v.(bool)) },
+	values := []any{
+		true,
+		byte(128),
+		rand.Float32(),
+		rand.Float64(),
+		int(math.MaxInt),
+		int16(16),
+		rand.Int31(),
+		rand.Int63(),
+		uint(math.MaxUint),
+		uint16(160),
+		rand.Uint32(),
+		rand.Uint64(),
+		testStr,
+		testStr,
+		testBs,
+	}
+
+	s := SizeAll(SizeBool, SizeByte, SizeFloat32, SizeFloat64, func() int { return SizeInt(math.MaxInt) }, SizeInt16, SizeInt32, SizeInt64, func() int { return SizeUint(math.MaxUint) }, SizeUint16, SizeUint32, SizeUint64,
+		sizeTestStr, sizeTestStr, sizeTestBs)
+
+	b, err := MarshalAll(s, values,
 		func(n int, b []byte, v any) int { return MarshalBool(n, b, v.(bool)) },
 		func(n int, b []byte, v any) int { return MarshalByte(n, b, v.(byte)) },
 		func(n int, b []byte, v any) int { return MarshalFloat32(n, b, v.(float32)) },
@@ -139,16 +166,16 @@ func TestDataTypes(t *testing.T) {
 		func(n int, b []byte, v any) int { return MarshalUnsafeString(n, b, v.(string)) },
 		func(n int, b []byte, v any) int { return MarshalBytes(n, b, v.([]byte)) },
 	)
+
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	if err = SkipAll(buf, SkipBool, SkipBool, SkipByte, SkipFloat32, SkipFloat64, SkipVarint, SkipInt16, SkipInt32, SkipInt64, SkipVarint, SkipUint16, SkipUint32, SkipUint64, SkipString, SkipString, SkipBytes); err != nil {
+	if err = SkipAll(b, SkipBool, SkipByte, SkipFloat32, SkipFloat64, SkipVarint, SkipInt16, SkipInt32, SkipInt64, SkipVarint, SkipUint16, SkipUint32, SkipUint64, SkipString, SkipString, SkipBytes); err != nil {
 		t.Fatal(err.Error())
 	}
 
-	if err = UnmarshalAll_Verify(buf, values,
-		func(n int, b []byte) (int, any, error) { return UnmarshalBool(n, b) },
+	if err = UnmarshalAll(b, values,
 		func(n int, b []byte) (int, any, error) { return UnmarshalBool(n, b) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalByte(n, b) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalFloat32(n, b) },

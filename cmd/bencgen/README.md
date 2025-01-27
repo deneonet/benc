@@ -1,8 +1,9 @@
 # bencgen
 
-The code generator for benc, handling both forward and backward compatibility.
+A code generator for Benc, ensuring both forward and backward compatibility.
 
-## Table Of Contents
+## Table of Contents
+
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Usage](#usage)
@@ -11,18 +12,21 @@ The code generator for benc, handling both forward and backward compatibility.
 - [Breaking Changes Detector](#breaking-changes-detector-bcd)
 - [Maintaining](#maintaining)
 - [Examples and Tests](#examples-and-tests)
-- [Schema Grammar](#header)
+- [Enums](#enums)
+- [Schema Grammar](#schema-grammar)
 - [Languages](#languages)
 - [License](#license)
 
 ## Requirements
-- Go for installing and executing `bencgen`.
-- [benc standard](../../std/README.md)
-- [bencgen impl](../../impl/gen/README.md)
+
+- Go (for installing and running `bencgen`)
+- [Benc Standard](../../std/README.md)
+- [Bencgen Implementation](../../impl/gen/README.md)
 
 ## Installation
 
-1. Install `bencgen`:
+1. Install `bencgen` using the following command:
+
 ```bash
 go install github.com/deneonet/benc/cmd/bencgen
 ```
@@ -31,46 +35,51 @@ go install github.com/deneonet/benc/cmd/bencgen
 
 Arguments:
 
-- `--in`: The .benc input file (required)
+- `--in`: The input `.benc` file (required)
 - `--out`: The output directory (optional)
-- `--lang`: The [language](#languages) to compile into (required)
-- `--file`: The output file name (optional)
-- `--force`: Disables the breaking changes detector (optional, not recommended, when the schema is already in-use in e.g. a software)
+- `--lang`: The target [language](#languages) to compile into (required)
+- `--file`: The name of the output file (optional)
+- `--force`: Disable the breaking changes detector (optional, not recommended if the schema is in use, e.g., in software)
 
 ## Generating Example
 
-1. Create a .benc file (e.g. `person.benc`).
+1. Create a `.benc` file (e.g., `person.benc`).
 2. Write a schema, for example:
 
-    ```plaintext
-    header person;
+   ```plaintext
+   header person;
 
-    ctr Person {
-        byte age = 1;
-        string name = 2;
-        Parents parents = 3;
-        Child child = 4;
-    }
+   ctr Person {
+       byte age = 1;
+       string name = 2;
+       Parents parents = 3;
+       Child child = 4;
+   }
 
-    ctr Child {
-        byte age = 1;
-        string name = 2;
-        Parents parents = 3;
-    }
+   ctr Child {
+       byte age = 1;
+       string name = 2;
+       Parents parents = 3;
+   }
 
-    ctr Parents {
-        string mother = 1;
-        string father = 2;
-    }
-    ```
+   ctr Parents {
+       string mother = 1;
+       string father = 2;
+   }
+   ```
 
-3. Generate Go code using `bencgen --in person.benc --lang go`.
-4. Find instructions for using the generated code in your selected language:
-    - [Go](#go-usage-example)
+3. Generate Go code with the following command:
+
+```bash
+bencgen --in person.benc --lang go
+```
+
+4. Follow the instructions for using the generated code in the selected language:
+   - [Go Usage Example](#go-usage-example)
 
 ## Go Usage Example
 
-After generating, a file called `out/person.benc.go` will be created. To marshal and unmarshal the person:
+After generating, a file called `out/person.benc.go` will be created. To marshal and unmarshal the `Person` data:
 
 ```go
 package main
@@ -111,28 +120,31 @@ func main() {
 ## Breaking Changes Detector (BCD)
 
 BCD detects breaking changes, such as:
+
 - A field exists but is marked as reserved.
 - A field was removed but is not marked as reserved.
-- The type of a field changed, but its ID stayed the same.
+- The type of a field changed, but its ID remained the same.
 
 ## Maintaining
 
-To maintain your benc schema, follow these rules:
-- Mark a field as reserved when removed.
-- New fields must be appended at the bottom (fields must be ordered by their IDs in ascending order).
-- If the type of a field changes, it requires a new ID, and the old ID must be marked as reserved.
-- Use [BCD](#breaking-changes-detector-bcd) (on by default); it catches and reports compatibility issues.
+To maintain your Benc schema, follow these rules:
+
+- Mark removed fields as reserved.
+- New fields must be appended at the bottom (fields should be ordered by their IDs in ascending order).
+- If the type of a field changes, assign it a new ID and mark the old ID as reserved.
+- Use [BCD](#breaking-changes-detector-bcd) (enabled by default) to catch and report compatibility issues.
 
 ### Reserving IDs
 
-Using the `person` schema from [earlier](#generating-example), if we remove the `parents` field, which had `3`as ID, then ID `3` must be marked as reserved:
+For example, using the `person` schema from the [earlier section](#generating-example), if the `parents` field is removed (ID `3`), mark ID `3` as reserved:
 
 `person.benc`:
+
 ```plaintext
 header person;
 
 ctr Person {
-    reserved 3; # reserved the parents field ID
+    reserved 3;  # Reserved the 'parents' field ID
 
     byte age = 1;
     string name = 2;
@@ -154,63 +166,134 @@ ctr Parents {
 ## Examples and Tests
 
 See all tests [here](../../testing).  
-See tests specifically about forward and backward compatibility [here](../../testing/person/main_person_test.go).
+For tests specifically related to forward and backward compatibility, see [here](../../testing/person/main_person_test.go).
 
-## Header
+## Enums
+
+Enums example:
+
+```plaintext
+header person;
+
+enum JobStatus {
+    Employed,
+    Unemployed
+}
+
+ctr Person {
+    byte age = 1;
+    string name = 2;
+    JobStatus jobStatus = 3;
+}
+```
+
+Enums are treated as named integers. Forward and backward compatibility is preserved even when fields are added or removed from an enum, as the benc protocol doesn't rely on them.
+
+## Schema Grammar
+
+A schema consists of the following components:
+
+### Header
 
 A header consists of: `header` IDENTIFIER `;`
 
-| **Benc** | **Golang** |
-|:--------:|:----------:|
+|   **Benc**   |    **Go**     |
+| :----------: | :-----------: |
 | `header ...` | `package ...` |
 
-## Fields
+### Fields
 
-A field consists of: [TYPE](#types) IDENTIFIER `=` ID `;`
+A field consists of: "[ATTR](#type-attributes) [TYPE](#types) IDENTIFIER = ID ;" || "[CONTAINER_OR_ENUM_NAME](#containers-or-enums) IDENTIFIER = ID ;"
 
-- The ID may not be larger than `65535`.
-- A field with type `string` may have [type attributes](#type-attributes).
+- The ID must be no larger than `65535`.
+- A field of type `string` may have [type attributes](#type-attributes).
 
-### Examples
+Example of a simple field:
 
-Field:
-`string name = 1;`  
-Type Attributes:
-`@unsafe string name = 1;`
+```plaintext
+string name = 1;
+```
 
-**!!** Type Attributes **must** be placed before the type, e.g. for an array:   
-`[] @unsafe string names = 1;`
+Example of a field with type attributes:
+
+```plaintext
+@unsafe string name = 1;
+```
+
+**Note:** Type attributes **must** precede the type, e.g., for arrays:
+
+```plaintext
+[] @unsafe string names = 1;
+```
 
 #### Type Attributes
-- **unsafe** (only in Go): Uses the `unsafe` package, allowing faster unmarshal operations.  
-Multiple `unsafe` type attributes are ignored.
+
+- **unsafe** (Go only): Uses the `unsafe` package, allowing faster unmarshalling operations. Multiple `unsafe` attributes are ignored.
 
 ## Types
 
-| **Benc** | **Golang** |
-|:--------:|:----------:|
-| `byte` | `byte` |
-| `bytes` | `[]byte` |
-| `int`   | `int`   |
-| `int16` | `int16` |
-| `int32` | `int32` |
-| `int64` | `int64` |
-| `uint`   | `uint`   |
-| `uint16` | `uint16` |
-| `uint32` | `uint32` |
-| `uint64` | `uint64` |
+| **Benc**  |  **Go**   |
+| :-------: | :-------: |
+|  `byte`   |  `byte`   |
+|  `bytes`  | `[]byte`  |
+|   `int`   |   `int`   |
+|  `int16`  |  `int16`  |
+|  `int32`  |  `int32`  |
+|  `int64`  |  `int64`  |
+|  `uint`   |  `uint`   |
+| `uint16`  | `uint16`  |
+| `uint32`  | `uint32`  |
+| `uint64`  | `uint64`  |
 | `float32` | `float32` |
 | `float64` | `float64` |
-| `bool` | `bool` |
-| `string` | `string` |
-| `[]T` | `[]T` |
-| `<K, V>` | `map[K]V` |
+|  `bool`   |  `bool`   |
+| `string`  | `string`  |
+|   `[]T`   |   `[]T`   |
+| `<K, V>`  | `map[K]V` |
 
-The name of another container is also a type (`Container`).
+### Containers Or Enums
+
+A container or enum name refers to another defined structure or container.
+
+**Container**:
+
+```
+ctr Person {
+    byte age = 1;
+    string name = 2;
+    Child child = 4;
+}
+```
+
+Reference:
+
+```
+ctr Person2 {
+    Person person = 1;
+}
+```
+
+**Enum**:
+
+```
+enum JobStatus {
+    Employed,
+    Unemployed
+}
+```
+
+Reference:
+
+```
+ctr Person {
+    JobStatus jobStatus = 1;
+}
+```
 
 ## Languages
 
 Valid values for `--lang` are:
+
 - `go`
 
 ## License

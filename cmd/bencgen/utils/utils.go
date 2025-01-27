@@ -36,8 +36,8 @@ func formatTypeHelper(t *parser.Type, useGoFormat bool) string {
 		return "<" + keyFormat + ", " + valueFormat + ">"
 	}
 
-	if t.CtrName != "" {
-		return t.CtrName
+	if t.ExtStructure != "" {
+		return t.ExtStructure
 	}
 
 	if useGoFormat {
@@ -51,8 +51,8 @@ func CompareTypes(t1 *parser.Type, t2 *parser.Type) bool {
 }
 
 func FindUndeclaredContainersOrEnums(declarations []string, t *parser.Type) (string, bool) {
-	if t.CtrName != "" && !slices.Contains(declarations, t.CtrName) {
-		return t.CtrName, true
+	if t.ExtStructure != "" && !slices.Contains(declarations, t.ExtStructure) {
+		return t.ExtStructure, true
 	}
 
 	if t.ChildType != nil {
@@ -78,7 +78,7 @@ func compareTypes(t1 *parser.Type, t2 *parser.Type) bool {
 	return t1.IsArray == t2.IsArray &&
 		t1.IsMap == t2.IsMap &&
 		t1.TokenType == t2.TokenType &&
-		t1.CtrName == t2.CtrName &&
+		t1.ExtStructure == t2.ExtStructure &&
 		compareTypes(t1.MapKeyType, t2.MapKeyType) &&
 		compareTypes(t1.ChildType, t2.ChildType)
 }

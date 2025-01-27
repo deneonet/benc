@@ -145,3 +145,20 @@ func UnmarshalTag(n int, b []byte) (int, uint16, byte, error) {
 	}
 	return n, uint16(b[n-1]), typ, nil
 }
+
+func SkipEnum(n int, b []byte) (int, error) {
+	return bstd.SkipVarint(n, b)
+}
+
+func SizeEnum[T ~int](v T) int {
+	return bstd.SizeInt(int(v))
+}
+
+func MarshalEnum[T ~int](n int, b []byte, v T) int {
+	return bstd.MarshalInt(n, b, int(v))
+}
+
+func UnmarshalEnum[T ~int](n int, b []byte) (int, T, error) {
+	n, v, err := bstd.UnmarshalInt(n, b)
+	return n, T(v), err
+}
