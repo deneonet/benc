@@ -6,6 +6,8 @@ import (
 	"math/rand"
 	"reflect"
 	"testing"
+
+	"github.com/deneonet/benc/testing/person"
 )
 
 func TestUint(t *testing.T) {
@@ -32,6 +34,8 @@ func TestUint(t *testing.T) {
 
 		ExampleEnum:  ExampleEnumOne,
 		ExampleEnum2: ExampleEnum2Six,
+
+		Person2: [][][]person.Person2{{{{Age: 10}}}},
 	}
 
 	buf := make([]byte, data.Size())
