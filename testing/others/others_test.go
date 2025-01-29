@@ -32,6 +32,8 @@ func TestUint(t *testing.T) {
 
 		ExampleEnum:  ExampleEnumOne,
 		ExampleEnum2: ExampleEnum2Six,
+
+		Person2: [][][]person.Person2{{{{Age: 10}}}},
 	}
 
 	buf := make([]byte, data.Size())
