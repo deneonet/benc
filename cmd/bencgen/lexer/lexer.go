@@ -2,7 +2,9 @@ package lexer
 
 import (
 	"bufio"
+	"fmt"
 	"io"
+	"os"
 	"strings"
 	"unicode"
 )
@@ -15,8 +17,14 @@ const (
 	NUMBER
 	IDENT
 
-	HEADER   // header ...
+	USE      // use ...
+	VAR      // var ...
+	CTR      // container ...
+	ENUM     // enum ...
+	DEFINE   // define ...
 	RESERVED // reserved ...
+
+	STR_VALUE // "..."
 
 	// types
 	INT64
@@ -39,7 +47,7 @@ const (
 	BYTE
 	// types
 
-	UNSAFE // @unsafe
+	UNSAFE // unsafe
 	// type attributes
 
 	OPEN_BRACKET  // [
@@ -50,22 +58,23 @@ const (
 	OPEN_ARROW  // <
 	CLOSE_ARROW // >
 
-	ENUM      // enum
-	CTR       // container
 	COMMA     // ,
 	EQUALS    // =
 	SEMICOLON // ;
 )
 
 var tokens = []string{
-	EOF:      "EOF",
-	ILLEGAL:  "Illegal",
-	NUMBER:   "Number",
-	HEADER:   "Header",
-	RESERVED: "Reserved",
-	IDENT:    "Identifier",
-	CTR:      "Container",
-	ENUM:     "Enum",
+	EOF:       "EOF",
+	ILLEGAL:   "Illegal",
+	NUMBER:    "Number",
+	DEFINE:    "Define",
+	RESERVED:  "Reserved",
+	VAR:       "Var",
+	USE:       "Use",
+	IDENT:     "Identifier",
+	STR_VALUE: "String Value",
+	CTR:       "Container",
+	ENUM:      "Enum",
 
 	INT64: "Int64",
 	INT32: "Int32",
@@ -103,9 +112,11 @@ var tokens = []string{
 
 var keywords = map[string]Token{
 	"reserved": RESERVED,
-	"header":   HEADER,
-	"ctr":      CTR,
+	"define":   DEFINE,
+	"var":      VAR,
 	"enum":     ENUM,
+	"use":      USE,
+	"ctr":      CTR,
 
 	"int64": INT64,
 	"int32": INT32,
@@ -126,7 +137,7 @@ var keywords = map[string]Token{
 	"bytes":  BYTES,
 	"string": STRING,
 
-	"@unsafe": UNSAFE,
+	"unsafe": UNSAFE,
 }
 
 func (t Token) String() string {
@@ -186,6 +197,30 @@ func NewLexer(reader io.Reader, content string) *Lexer {
 	}
 }
 
+func (l *Lexer) error(message string) {
+	errorMessage := "\n\033[1;31m[bencgen] Error:\033[0m\n"
+	errorMessage += fmt.Sprintf("    \033[1;37m%d:%d\033[0m %s\n", l.pos.Line, l.pos.Column, highlightError(l.Content, l.pos.Line, l.pos.Column))
+	errorMessage += fmt.Sprintf("    \033[1;37mMessage:\033[0m %s\n", message)
+	fmt.Println(errorMessage)
+	os.Exit(-1)
+}
+
+func highlightError(text string, lineNumber, columnNumber int) string {
+	lines := strings.Split(text, "\n")
+	if lineNumber <= 0 || lineNumber > len(lines) {
+		return "Invalid line number <- report"
+	}
+
+	line := lines[lineNumber-1]
+	if columnNumber <= 0 || columnNumber > len(line) {
+		return "Invalid column number <- report"
+	}
+
+	highlightedLine := fmt.Sprintf("%s\033[1;31m%c\033[0m%s", line[:columnNumber], line[columnNumber], line[columnNumber+1:])
+	arrow := strings.Repeat(" ", columnNumber-1+6+len(fmt.Sprintf("%d:%d", lineNumber, columnNumber))) + "\033[1;31m^\033[0m"
+	return highlightedLine + "\n" + arrow
+}
+
 func (l *Lexer) Lex() (Position, Token, string) {
 	comment := false
 
@@ -233,6 +268,20 @@ func (l *Lexer) Lex() (Position, Token, string) {
 			return l.pos, EQUALS, "="
 		case ';':
 			return l.pos, SEMICOLON, ";"
+		case '"':
+			var sb strings.Builder
+			for {
+				r, _, err := l.reader.ReadRune()
+				if r == '\n' {
+					l.error("String isn't valid (no end, expected: \"...\").")
+				}
+				if err != nil || r == '"' {
+					break
+				}
+				l.pos.Column++
+				sb.WriteRune(r)
+			}
+			return l.pos, STR_VALUE, sb.String()
 		default:
 			if unicode.IsSpace(r) {
 				continue
@@ -253,15 +302,6 @@ func (l *Lexer) Lex() (Position, Token, string) {
 					return startPos, token, lit
 				}
 				return startPos, IDENT, lit
-			}
-
-			if r == '@' {
-				startPos := l.pos
-				lit := l.lexAtPrefixedIdent()
-				if token, ok := keywords[lit]; ok {
-					return startPos, token, lit
-				}
-				return startPos, ILLEGAL, lit
 			}
 
 			return l.pos, ILLEGAL, string(r)
@@ -299,22 +339,7 @@ func (l *Lexer) lexIdent() string {
 	var sb strings.Builder
 	for {
 		r, _, err := l.reader.ReadRune()
-		if err != nil || !(unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_') {
-			l.backup()
-			break
-		}
-		l.pos.Column++
-		sb.WriteRune(r)
-	}
-	return sb.String()
-}
-
-func (l *Lexer) lexAtPrefixedIdent() string {
-	var sb strings.Builder
-	sb.WriteRune('@')
-	for {
-		r, _, err := l.reader.ReadRune()
-		if err != nil || !(unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_') {
+		if err != nil || !(unicode.IsLetter(r) || unicode.IsDigit(r) || r == '.' || r == '_') {
 			l.backup()
 			break
 		}

@@ -67,10 +67,10 @@ func (b *Bcd) buildMsgs(existingMsgs Msgs, force bool) Msgs {
 	newMsgs := Msgs{Msgs: make(map[string]Msg)}
 
 	for _, node := range b.Nodes {
-		if stmt, ok := node.(*parser.CtrStmt); ok {
+		if stmt, ok := node.(*parser.ContainerStmt); ok {
 			fields := make(map[uint16]parser.Field)
 			for _, field := range stmt.Fields {
-				fields[field.Id] = field
+				fields[field.ID] = field
 			}
 
 			if existingMsg, exists := existingMsgs.Msgs[stmt.Name]; !force && exists {
@@ -79,7 +79,7 @@ func (b *Bcd) buildMsgs(existingMsgs Msgs, force bool) Msgs {
 
 			newMsgs.Msgs[stmt.Name] = Msg{
 				Fields:      fields,
-				ReservedIDs: stmt.ReservedIds,
+				ReservedIDs: stmt.ReservedIDs,
 			}
 		}
 	}
@@ -88,20 +88,20 @@ func (b *Bcd) buildMsgs(existingMsgs Msgs, force bool) Msgs {
 	return newMsgs
 }
 
-func (b *Bcd) checkForConflicts(existingMsg Msg, stmt *parser.CtrStmt, fields map[uint16]parser.Field) {
+func (b *Bcd) checkForConflicts(existingMsg Msg, stmt *parser.ContainerStmt, fields map[uint16]parser.Field) {
 	for _, existingField := range existingMsg.Fields {
-		currentField, exists := fields[existingField.Id]
-		if !exists && !slices.Contains(stmt.ReservedIds, existingField.Id) {
-			b.handleError(fmt.Sprintf("Field \"%s\" (id \"%d\") on msg \"%s\" was removed, but \"%d\" is not marked as reserved.", existingField.Name, existingField.Id, stmt.Name, existingField.Id))
+		currentField, exists := fields[existingField.ID]
+		if !exists && !slices.Contains(stmt.ReservedIDs, existingField.ID) {
+			b.handleError(fmt.Sprintf("Field '%s' (id '%d') on msg '%s' was removed, but '%d' is not marked as reserved.", existingField.Name, existingField.ID, stmt.Name, existingField.ID))
 		}
 
 		if exists {
-			if slices.Contains(stmt.ReservedIds, currentField.Id) {
-				b.handleError(fmt.Sprintf("Field \"%s\" (id \"%d\") on msg \"%s\" may not be marked as reserved.", currentField.Name, currentField.Id, stmt.Name))
+			if slices.Contains(stmt.ReservedIDs, currentField.ID) {
+				b.handleError(fmt.Sprintf("Field '%s' (id '%d') on msg '%s' may not be marked as reserved.", currentField.Name, currentField.ID, stmt.Name))
 			}
 
-			if existingField.Id == currentField.Id && !utils.CompareTypes(existingField.Type, currentField.Type) {
-				b.handleError(fmt.Sprintf("Field \"%s\" (id \"%d\") on msg \"%s\" changed type from \"%s\" to \"%s\".", currentField.Name, currentField.Id, stmt.Name, utils.FormatType(existingField.Type), utils.FormatType(currentField.Type)))
+			if existingField.ID == currentField.ID && !utils.CompareTypes(existingField.Type, currentField.Type) {
+				b.handleError(fmt.Sprintf("Field '%s' (id '%d') on msg '%s' changed type from '%s' to '%s'.", currentField.Name, currentField.ID, stmt.Name, utils.FormatType(existingField.Type), utils.FormatType(currentField.Type)))
 			}
 		}
 	}
