@@ -37,7 +37,7 @@ type OthersTest struct {
     ExampleEnum ExampleEnum
     ExampleEnum2 ExampleEnum2
     Person person.Person
-    Person2 person.Person2
+    Person2 [][][]person.Person2
 }
 
 // Reserved Ids - OthersTest
@@ -59,7 +59,7 @@ func (othersTest *OthersTest) NestedSize(id uint16) (s int) {
     s += bgenimpl.SizeEnum(othersTest.ExampleEnum) + 2
     s += bgenimpl.SizeEnum(othersTest.ExampleEnum2) + 2
     s += othersTest.Person.NestedSize(9)
-    s += othersTest.Person2.NestedSize(10)
+    s += bstd.SizeSlice(othersTest.Person2, func (s [][]person.Person2) int { return bstd.SizeSlice(s, func (s []person.Person2) int { return bstd.SizeSlice(s, func (s person.Person2) int { return s.SizePlain() }) }) }) + 2
 
     if id > 255 {
         s += 5
@@ -80,7 +80,7 @@ func (othersTest *OthersTest) SizePlain() (s int) {
     s += bgenimpl.SizeEnum(othersTest.ExampleEnum)
     s += bgenimpl.SizeEnum(othersTest.ExampleEnum2)
     s += othersTest.Person.SizePlain()
-    s += othersTest.Person2.SizePlain()
+    s += bstd.SizeSlice(othersTest.Person2, func (s [][]person.Person2) int { return bstd.SizeSlice(s, func (s []person.Person2) int { return bstd.SizeSlice(s, func (s person.Person2) int { return s.SizePlain() }) }) })
     return
 }
 
@@ -109,7 +109,8 @@ func (othersTest *OthersTest) NestedMarshal(tn int, b []byte, id uint16) (n int)
     n = bgenimpl.MarshalTag(n, b, bgenimpl.ArrayMap, 8)
     n = bgenimpl.MarshalEnum(n, b, othersTest.ExampleEnum2)
     n = othersTest.Person.NestedMarshal(n, b, 9)
-    n = othersTest.Person2.NestedMarshal(n, b, 10)
+    n = bgenimpl.MarshalTag(n, b, bgenimpl.ArrayMap, 10)
+    n = bstd.MarshalSlice(n, b, othersTest.Person2, func (n int, b []byte, s [][]person.Person2) int { return bstd.MarshalSlice(n, b, s, func (n int, b []byte, s []person.Person2) int { return bstd.MarshalSlice(n, b, s, func (n int, b []byte, s person.Person2) int { return s.MarshalPlain(n, b) }) }) })
 
     n += 2
     b[n-2] = 1
@@ -129,7 +130,7 @@ func (othersTest *OthersTest) MarshalPlain(tn int, b []byte) (n int) {
     n = bgenimpl.MarshalEnum(n, b, othersTest.ExampleEnum)
     n = bgenimpl.MarshalEnum(n, b, othersTest.ExampleEnum2)
     n = othersTest.Person.MarshalPlain(n, b)
-    n = othersTest.Person2.MarshalPlain(n, b)
+    n = bstd.MarshalSlice(n, b, othersTest.Person2, func (n int, b []byte, s [][]person.Person2) int { return bstd.MarshalSlice(n, b, s, func (n int, b []byte, s []person.Person2) int { return bstd.MarshalSlice(n, b, s, func (n int, b []byte, s person.Person2) int { return s.MarshalPlain(n, b) }) }) })
     return n
 }
 
@@ -239,8 +240,16 @@ func (othersTest *OthersTest) NestedUnmarshal(tn int, b []byte, r []uint16, id u
     if n, err = othersTest.Person.NestedUnmarshal(n, b, othersTestRIds, 9); err != nil {
         return
     }
-    if n, err = othersTest.Person2.NestedUnmarshal(n, b, othersTestRIds, 10); err != nil {
+    if n, ok, err = bgenimpl.HandleCompatibility(n, b, othersTestRIds, 10); err != nil {
+        if err == bgenimpl.ErrEof {
+            return n, nil
+        }
         return
+    }
+    if ok {
+        if n, othersTest.Person2, err = bstd.UnmarshalSlice[[][]person.Person2](n, b, func (n int, b []byte) (int, [][]person.Person2, error) { return bstd.UnmarshalSlice[[]person.Person2](n, b, func (n int, b []byte) (int, []person.Person2, error) { return bstd.UnmarshalSlice[person.Person2](n, b, func (n int, b []byte, s *person.Person2) (int, error) { return s.UnmarshalPlain(n, b) }) }) }); err != nil {
+            return
+        }
     }
     n += 2
     return
@@ -276,7 +285,7 @@ func (othersTest *OthersTest) UnmarshalPlain(tn int, b []byte) (n int, err error
     if n, err = othersTest.Person.UnmarshalPlain(n, b); err != nil {
         return
     }
-    if n, err = othersTest.Person2.UnmarshalPlain(n, b); err != nil {
+    if n, othersTest.Person2, err = bstd.UnmarshalSlice[[][]person.Person2](n, b, func (n int, b []byte) (int, [][]person.Person2, error) { return bstd.UnmarshalSlice[[]person.Person2](n, b, func (n int, b []byte) (int, []person.Person2, error) { return bstd.UnmarshalSlice[person.Person2](n, b, func (n int, b []byte, s *person.Person2) (int, error) { return s.UnmarshalPlain(n, b) }) }) }); err != nil {
         return
     }
     return

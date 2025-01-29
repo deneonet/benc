@@ -385,6 +385,13 @@ func (g *GoGen) getSizeFunc() string {
 	}
 }
 
+func makeExternalStructureUpperOrNot(externalStructure string) string {
+	if strings.Contains(externalStructure, ".") {
+		return externalStructure
+	}
+	return utils.ToUpper(externalStructure)
+}
+
 func (g *GoGen) getElemSizeFunc(t *parser.Type) string {
 	switch {
 	case t.IsArray:
@@ -399,7 +406,7 @@ func (g *GoGen) getElemSizeFunc(t *parser.Type) string {
 		}
 
 		return fmt.Sprintf("func (s %s) int { return s.SizePlain() }",
-			utils.ToUpper(t.ExternalStructure))
+			makeExternalStructureUpperOrNot(t.ExternalStructure))
 	default:
 		return "bstd.Size" + t.TokenType.String()
 	}
@@ -497,7 +504,7 @@ func (g *GoGen) getElemMarshalFunc(t *parser.Type) string {
 		}
 
 		return fmt.Sprintf("func (n int, b []byte, s %s) int { return s.MarshalPlain(n, b) }",
-			utils.ToUpper(t.ExternalStructure))
+			makeExternalStructureUpperOrNot(t.ExternalStructure))
 	default:
 		return "bstd.Marshal" + t.AppendUnsafeIfPresent() + t.TokenType.String()
 	}
@@ -601,7 +608,7 @@ func (g *GoGen) getElemUnmarshalFunc(t *parser.Type) string {
 			return "bgenimpl.UnmarshalEnum"
 		}
 		return fmt.Sprintf("func (n int, b []byte, s *%s) (int, error) { return s.UnmarshalPlain(n, b) }",
-			utils.ToUpper(t.ExternalStructure))
+			makeExternalStructureUpperOrNot(t.ExternalStructure))
 	default:
 		return "bstd.Unmarshal" + t.AppendUnsafeIfPresent() + t.TokenType.String()
 	}
