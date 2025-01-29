@@ -6,6 +6,8 @@ import (
 	"math/rand"
 	"reflect"
 	"testing"
+
+	"github.com/deneonet/benc/testing/person"
 )
 
 func TestUint(t *testing.T) {
