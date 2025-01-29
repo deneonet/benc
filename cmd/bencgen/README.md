@@ -347,7 +347,7 @@ Type attributes **must** precede the type. For arrays:
 
 ### Containers or Enums
 
-A container or enum name refers to another defined structure or container.
+A container or enum name refers to another defined structure.
 
 **Container Example:**
 
