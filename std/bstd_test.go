@@ -144,10 +144,11 @@ func TestDataTypes(t *testing.T) {
 		testStr,
 		testStr,
 		testBs,
+		testBs,
 	}
 
 	s := SizeAll(SizeBool, SizeByte, SizeFloat32, SizeFloat64, func() int { return SizeInt(math.MaxInt) }, SizeInt16, SizeInt32, SizeInt64, func() int { return SizeUint(math.MaxUint) }, SizeUint16, SizeUint32, SizeUint64,
-		sizeTestStr, sizeTestStr, sizeTestBs)
+		sizeTestStr, sizeTestStr, sizeTestBs, sizeTestBs)
 
 	b, err := MarshalAll(s, values,
 		func(n int, b []byte, v any) int { return MarshalBool(n, b, v.(bool)) },
@@ -165,13 +166,14 @@ func TestDataTypes(t *testing.T) {
 		func(n int, b []byte, v any) int { return MarshalString(n, b, v.(string)) },
 		func(n int, b []byte, v any) int { return MarshalUnsafeString(n, b, v.(string)) },
 		func(n int, b []byte, v any) int { return MarshalBytes(n, b, v.([]byte)) },
+		func(n int, b []byte, v any) int { return MarshalBytes(n, b, v.([]byte)) },
 	)
 
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	if err = SkipAll(b, SkipBool, SkipByte, SkipFloat32, SkipFloat64, SkipVarint, SkipInt16, SkipInt32, SkipInt64, SkipVarint, SkipUint16, SkipUint32, SkipUint64, SkipString, SkipString, SkipBytes); err != nil {
+	if err = SkipAll(b, SkipBool, SkipByte, SkipFloat32, SkipFloat64, SkipVarint, SkipInt16, SkipInt32, SkipInt64, SkipVarint, SkipUint16, SkipUint32, SkipUint64, SkipString, SkipString, SkipBytes, SkipBytes); err != nil {
 		t.Fatal(err.Error())
 	}
 
@@ -191,13 +193,14 @@ func TestDataTypes(t *testing.T) {
 		func(n int, b []byte) (int, any, error) { return UnmarshalString(n, b) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalUnsafeString(n, b) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalBytesCropped(n, b) },
+		func(n int, b []byte) (int, any, error) { return UnmarshalBytesCopied(n, b) },
 	); err != nil {
 		t.Fatal(err.Error())
 	}
 }
 
 func TestErrBufTooSmall(t *testing.T) {
-	buffers := [][]byte{{}, {}, {1, 2, 3}, {1, 2, 3, 4, 5, 6, 7}, {}, {1}, {1, 2, 3}, {1, 2, 3, 4, 5, 6, 7}, {}, {1}, {1, 2, 3}, {1, 2, 3, 4, 5, 6, 7}, {}, {2, 0}, {4, 1, 2, 3}, {8, 1, 2, 3, 4, 5, 6, 7}, {}, {2, 0}, {4, 1, 2, 3}, {8, 1, 2, 3, 4, 5, 6, 7}, {}, {2, 0}, {4, 1, 2, 3}, {8, 1, 2, 3, 4, 5, 6, 7}, {}, {2, 0}, {4, 1, 2, 3}, {8, 1, 2, 3, 4, 5, 6, 7}, {}, {2, 0}, {4, 1, 2, 3}, {8, 1, 2, 3, 4, 5, 6, 7}}
+	buffers := [][]byte{{}, {}, {1, 2, 3}, {1, 2, 3, 4, 5, 6, 7}, {}, {1}, {1, 2, 3}, {1, 2, 3, 4, 5, 6, 7}, {}, {1}, {1, 2, 3}, {1, 2, 3, 4, 5, 6, 7}, {}, {2, 0}, {4, 1, 2, 3}, {8, 1, 2, 3, 4, 5, 6, 7}, {}, {2, 0}, {4, 1, 2, 3}, {8, 1, 2, 3, 4, 5, 6, 7}, {}, {2, 0}, {4, 1, 2, 3}, {8, 1, 2, 3, 4, 5, 6, 7}, {}, {2, 0}, {4, 1, 2, 3}, {8, 1, 2, 3, 4, 5, 6, 7}, {}, {2, 0}, {4, 1, 2, 3}, {8, 1, 2, 3, 4, 5, 6, 7}, {}, {2, 0}, {4, 1, 2, 3}, {8, 1, 2, 3, 4, 5, 6, 7}}
 	if err := UnmarshalAll_VerifyError(benc.ErrBufTooSmall, buffers,
 		func(n int, b []byte) (int, any, error) { return UnmarshalBool(n, b) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalByte(n, b) },
@@ -223,6 +226,10 @@ func TestErrBufTooSmall(t *testing.T) {
 		func(n int, b []byte) (int, any, error) { return UnmarshalBytesCropped(n, b) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalBytesCropped(n, b) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalBytesCropped(n, b) },
+		func(n int, b []byte) (int, any, error) { return UnmarshalBytesCopied(n, b) },
+		func(n int, b []byte) (int, any, error) { return UnmarshalBytesCopied(n, b) },
+		func(n int, b []byte) (int, any, error) { return UnmarshalBytesCopied(n, b) },
+		func(n int, b []byte) (int, any, error) { return UnmarshalBytesCopied(n, b) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalSlice[byte](n, b, UnmarshalByte) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalSlice[byte](n, b, UnmarshalByte) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalSlice[byte](n, b, UnmarshalByte) },
@@ -251,7 +258,7 @@ func TestErrBufTooSmall(t *testing.T) {
 }
 
 func TestErrBufTooSmall_2(t *testing.T) {
-	buffers := [][]byte{{}, {2, 0}, {}, {2, 0}, {}, {2, 0}, {}, {10, 0, 0, 0, 1}, {}, {10, 0, 0, 0, 1}}
+	buffers := [][]byte{{}, {2, 0}, {}, {2, 0}, {}, {2, 0}, {}, {10, 0, 0, 0, 1}, {}, {10, 0, 0, 0, 1}, {}, {10, 0, 0, 0, 1}}
 	if err := UnmarshalAll_VerifyError(benc.ErrBufTooSmall, buffers,
 		func(n int, b []byte) (int, any, error) { return UnmarshalString(n, b) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalString(n, b) },
@@ -259,6 +266,8 @@ func TestErrBufTooSmall_2(t *testing.T) {
 		func(n int, b []byte) (int, any, error) { return UnmarshalUnsafeString(n, b) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalBytesCropped(n, b) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalBytesCropped(n, b) },
+		func(n int, b []byte) (int, any, error) { return UnmarshalBytesCopied(n, b) },
+		func(n int, b []byte) (int, any, error) { return UnmarshalBytesCopied(n, b) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalSlice[byte](n, b, UnmarshalByte) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalSlice[byte](n, b, UnmarshalByte) },
 		func(n int, b []byte) (int, any, error) {
@@ -427,5 +436,83 @@ func TestEmptyUnsafeString(t *testing.T) {
 	if !reflect.DeepEqual(retStr, str) {
 		t.Logf("org %v\ndec %v", str, retStr)
 		t.Fatal("no match!")
+	}
+}
+
+func TestSkipVarint(t *testing.T) {
+	tests := []struct {
+		name    string
+		buf     []byte
+		n       int
+		wantN   int
+		wantErr error
+	}{
+		{"Valid single-byte varint", []byte{0x05}, 0, 1, nil},
+		{"Valid multi-byte varint", []byte{0x80, 0x01}, 0, 2, nil},
+		{"Buffer too small", []byte{0x80}, 0, 0, benc.ErrBufTooSmall},
+		{"Varint overflow", []byte{0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80}, 0, 0, benc.ErrOverflow},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotN, gotErr := SkipVarint(tt.n, tt.buf)
+			if gotN != tt.wantN || !errors.Is(gotErr, tt.wantErr) {
+				t.Errorf("SkipVarint() = (%d, %v), want (%d, %v)", gotN, gotErr, tt.wantN, tt.wantErr)
+			}
+		})
+	}
+}
+
+// UnmarshalInt test cases
+func TestUnmarshalInt(t *testing.T) {
+	tests := []struct {
+		name    string
+		buf     []byte
+		n       int
+		wantN   int
+		wantVal int
+		wantErr error
+	}{
+		{"Valid small int", []byte{0x02}, 0, 1, 1, nil},        // 1 in zigzag encoding
+		{"Valid negative int", []byte{0x03}, 0, 1, -2, nil},    // -2 in zigzag
+		{"Valid multi-byte int", []byte{0xAC, 0x02}, 0, 2, 150, nil},
+		{"Buffer too small", []byte{0x80}, 0, 0, 0, benc.ErrBufTooSmall},
+		{"Varint overflow", []byte{0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80}, 0, 0, 0, benc.ErrOverflow},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotN, gotVal, gotErr := UnmarshalInt(tt.n, tt.buf)
+			if gotN != tt.wantN || gotVal != tt.wantVal || !errors.Is(gotErr, tt.wantErr) {
+				t.Errorf("UnmarshalInt() = (%d, %d, %v), want (%d, %d, %v)",
+					gotN, gotVal, gotErr, tt.wantN, tt.wantVal, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestUnmarshalUint(t *testing.T) {
+	tests := []struct {
+		name    string
+		buf     []byte
+		n       int
+		wantN   int
+		wantVal uint
+		wantErr error
+	}{
+		{"Valid small uint", []byte{0x07}, 0, 1, 7, nil},
+		{"Valid multi-byte uint", []byte{0xAC, 0x02}, 0, 2, 300, nil},
+		{"Buffer too small", []byte{0x80}, 0, 0, 0, benc.ErrBufTooSmall},
+		{"Varint overflow", []byte{0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80}, 0, 0, 0, benc.ErrOverflow},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotN, gotVal, gotErr := UnmarshalUint(tt.n, tt.buf)
+			if gotN != tt.wantN || gotVal != tt.wantVal || !errors.Is(gotErr, tt.wantErr) {
+				t.Errorf("UnmarshalUint() = (%d, %d, %v), want (%d, %d, %v)",
+					gotN, gotVal, gotErr, tt.wantN, tt.wantVal, tt.wantErr)
+			}
+		})
 	}
 }

@@ -26,6 +26,194 @@ const (
     ExampleEnum2Six
 )
 
+// Struct - Bank
+type Bank struct {
+    Name string
+}
+
+// Reserved Ids - Bank
+var bankRIds = []uint16{}
+
+// Size - Bank
+func (bank *Bank) Size() int {
+    return bank.NestedSize(0)
+}
+
+// Nested Size - Bank
+func (bank *Bank) NestedSize(id uint16) (s int) {
+    s += bstd.SizeString(bank.Name) + 2
+
+    if id > 255 {
+        s += 5
+        return
+    }
+    s += 4
+    return
+}
+
+// SizePlain - Bank
+func (bank *Bank) SizePlain() (s int) {
+    s += bstd.SizeString(bank.Name)
+    return
+}
+
+// Marshal - Bank
+func (bank *Bank) Marshal(b []byte) {
+    bank.NestedMarshal(0, b, 0)
+}
+
+// Nested Marshal - Bank
+func (bank *Bank) NestedMarshal(tn int, b []byte, id uint16) (n int) {
+    n = bgenimpl.MarshalTag(tn, b, bgenimpl.Container, id)
+    n = bgenimpl.MarshalTag(n, b, bgenimpl.Bytes, 1)
+    n = bstd.MarshalString(n, b, bank.Name)
+
+    n += 2
+    b[n-2] = 1
+    b[n-1] = 1
+    return
+}
+
+// MarshalPlain - Bank
+func (bank *Bank) MarshalPlain(tn int, b []byte) (n int) {
+    n = tn
+    n = bstd.MarshalString(n, b, bank.Name)
+    return n
+}
+
+// Unmarshal - Bank
+func (bank *Bank) Unmarshal(b []byte) (err error) {
+    _, err = bank.NestedUnmarshal(0, b, []uint16{}, 0)
+    return
+}
+
+// Nested Unmarshal - Bank
+func (bank *Bank) NestedUnmarshal(tn int, b []byte, r []uint16, id uint16) (n int, err error) {
+    var ok bool
+    if n, ok, err = bgenimpl.HandleCompatibility(tn, b, r, id); !ok {
+        if err == bgenimpl.ErrEof {
+            return n, nil
+        }
+        return
+    }
+    if n, ok, err = bgenimpl.HandleCompatibility(n, b, bankRIds, 1); err != nil {
+        if err == bgenimpl.ErrEof {
+            return n, nil
+        }
+        return
+    }
+    if ok {
+        if n, bank.Name, err = bstd.UnmarshalString(n, b); err != nil {
+            return
+        }
+    }
+    n += 2
+    return
+}
+
+// UnmarshalPlain - Bank
+func (bank *Bank) UnmarshalPlain(tn int, b []byte) (n int, err error) {
+    n = tn
+    if n, bank.Name, err = bstd.UnmarshalString(n, b); err != nil {
+        return
+    }
+    return
+}
+
+// Struct - Citizen
+type Citizen struct {
+    Name string
+}
+
+// Reserved Ids - Citizen
+var citizenRIds = []uint16{}
+
+// Size - Citizen
+func (citizen *Citizen) Size() int {
+    return citizen.NestedSize(0)
+}
+
+// Nested Size - Citizen
+func (citizen *Citizen) NestedSize(id uint16) (s int) {
+    s += bstd.SizeString(citizen.Name) + 2
+
+    if id > 255 {
+        s += 5
+        return
+    }
+    s += 4
+    return
+}
+
+// SizePlain - Citizen
+func (citizen *Citizen) SizePlain() (s int) {
+    s += bstd.SizeString(citizen.Name)
+    return
+}
+
+// Marshal - Citizen
+func (citizen *Citizen) Marshal(b []byte) {
+    citizen.NestedMarshal(0, b, 0)
+}
+
+// Nested Marshal - Citizen
+func (citizen *Citizen) NestedMarshal(tn int, b []byte, id uint16) (n int) {
+    n = bgenimpl.MarshalTag(tn, b, bgenimpl.Container, id)
+    n = bgenimpl.MarshalTag(n, b, bgenimpl.Bytes, 2)
+    n = bstd.MarshalString(n, b, citizen.Name)
+
+    n += 2
+    b[n-2] = 1
+    b[n-1] = 1
+    return
+}
+
+// MarshalPlain - Citizen
+func (citizen *Citizen) MarshalPlain(tn int, b []byte) (n int) {
+    n = tn
+    n = bstd.MarshalString(n, b, citizen.Name)
+    return n
+}
+
+// Unmarshal - Citizen
+func (citizen *Citizen) Unmarshal(b []byte) (err error) {
+    _, err = citizen.NestedUnmarshal(0, b, []uint16{}, 0)
+    return
+}
+
+// Nested Unmarshal - Citizen
+func (citizen *Citizen) NestedUnmarshal(tn int, b []byte, r []uint16, id uint16) (n int, err error) {
+    var ok bool
+    if n, ok, err = bgenimpl.HandleCompatibility(tn, b, r, id); !ok {
+        if err == bgenimpl.ErrEof {
+            return n, nil
+        }
+        return
+    }
+    if n, ok, err = bgenimpl.HandleCompatibility(n, b, citizenRIds, 2); err != nil {
+        if err == bgenimpl.ErrEof {
+            return n, nil
+        }
+        return
+    }
+    if ok {
+        if n, citizen.Name, err = bstd.UnmarshalString(n, b); err != nil {
+            return
+        }
+    }
+    n += 2
+    return
+}
+
+// UnmarshalPlain - Citizen
+func (citizen *Citizen) UnmarshalPlain(tn int, b []byte) (n int, err error) {
+    n = tn
+    if n, citizen.Name, err = bstd.UnmarshalString(n, b); err != nil {
+        return
+    }
+    return
+}
+
 // Struct - OthersTest
 type OthersTest struct {
     Ui uint
@@ -38,6 +226,7 @@ type OthersTest struct {
     ExampleEnum2 ExampleEnum2
     Person person.Person
     Person2 [][][]person.Person2
+    BankMap map[Bank]Citizen
 }
 
 // Reserved Ids - OthersTest
@@ -60,6 +249,7 @@ func (othersTest *OthersTest) NestedSize(id uint16) (s int) {
     s += bgenimpl.SizeEnum(othersTest.ExampleEnum2) + 2
     s += othersTest.Person.NestedSize(9)
     s += bstd.SizeSlice(othersTest.Person2, func (s [][]person.Person2) int { return bstd.SizeSlice(s, func (s []person.Person2) int { return bstd.SizeSlice(s, func (s person.Person2) int { return s.SizePlain() }) }) }) + 2
+    s += bstd.SizeMap(othersTest.BankMap, func (s Bank) int { return s.SizePlain() }, func (s Citizen) int { return s.SizePlain() }) + 2
 
     if id > 255 {
         s += 5
@@ -81,6 +271,7 @@ func (othersTest *OthersTest) SizePlain() (s int) {
     s += bgenimpl.SizeEnum(othersTest.ExampleEnum2)
     s += othersTest.Person.SizePlain()
     s += bstd.SizeSlice(othersTest.Person2, func (s [][]person.Person2) int { return bstd.SizeSlice(s, func (s []person.Person2) int { return bstd.SizeSlice(s, func (s person.Person2) int { return s.SizePlain() }) }) })
+    s += bstd.SizeMap(othersTest.BankMap, func (s Bank) int { return s.SizePlain() }, func (s Citizen) int { return s.SizePlain() })
     return
 }
 
@@ -111,6 +302,8 @@ func (othersTest *OthersTest) NestedMarshal(tn int, b []byte, id uint16) (n int)
     n = othersTest.Person.NestedMarshal(n, b, 9)
     n = bgenimpl.MarshalTag(n, b, bgenimpl.ArrayMap, 10)
     n = bstd.MarshalSlice(n, b, othersTest.Person2, func (n int, b []byte, s [][]person.Person2) int { return bstd.MarshalSlice(n, b, s, func (n int, b []byte, s []person.Person2) int { return bstd.MarshalSlice(n, b, s, func (n int, b []byte, s person.Person2) int { return s.MarshalPlain(n, b) }) }) })
+    n = bgenimpl.MarshalTag(n, b, bgenimpl.ArrayMap, 11)
+    n = bstd.MarshalMap(n, b, othersTest.BankMap, func (n int, b []byte, s Bank) int { return s.MarshalPlain(n, b) }, func (n int, b []byte, s Citizen) int { return s.MarshalPlain(n, b) })
 
     n += 2
     b[n-2] = 1
@@ -131,6 +324,7 @@ func (othersTest *OthersTest) MarshalPlain(tn int, b []byte) (n int) {
     n = bgenimpl.MarshalEnum(n, b, othersTest.ExampleEnum2)
     n = othersTest.Person.MarshalPlain(n, b)
     n = bstd.MarshalSlice(n, b, othersTest.Person2, func (n int, b []byte, s [][]person.Person2) int { return bstd.MarshalSlice(n, b, s, func (n int, b []byte, s []person.Person2) int { return bstd.MarshalSlice(n, b, s, func (n int, b []byte, s person.Person2) int { return s.MarshalPlain(n, b) }) }) })
+    n = bstd.MarshalMap(n, b, othersTest.BankMap, func (n int, b []byte, s Bank) int { return s.MarshalPlain(n, b) }, func (n int, b []byte, s Citizen) int { return s.MarshalPlain(n, b) })
     return n
 }
 
@@ -251,6 +445,17 @@ func (othersTest *OthersTest) NestedUnmarshal(tn int, b []byte, r []uint16, id u
             return
         }
     }
+    if n, ok, err = bgenimpl.HandleCompatibility(n, b, othersTestRIds, 11); err != nil {
+        if err == bgenimpl.ErrEof {
+            return n, nil
+        }
+        return
+    }
+    if ok {
+        if n, othersTest.BankMap, err = bstd.UnmarshalMap[Bank, Citizen](n, b, func (n int, b []byte, s *Bank) (int, error) { return s.UnmarshalPlain(n, b) }, func (n int, b []byte, s *Citizen) (int, error) { return s.UnmarshalPlain(n, b) }); err != nil {
+            return
+        }
+    }
     n += 2
     return
 }
@@ -286,6 +491,9 @@ func (othersTest *OthersTest) UnmarshalPlain(tn int, b []byte) (n int, err error
         return
     }
     if n, othersTest.Person2, err = bstd.UnmarshalSlice[[][]person.Person2](n, b, func (n int, b []byte) (int, [][]person.Person2, error) { return bstd.UnmarshalSlice[[]person.Person2](n, b, func (n int, b []byte) (int, []person.Person2, error) { return bstd.UnmarshalSlice[person.Person2](n, b, func (n int, b []byte, s *person.Person2) (int, error) { return s.UnmarshalPlain(n, b) }) }) }); err != nil {
+        return
+    }
+    if n, othersTest.BankMap, err = bstd.UnmarshalMap[Bank, Citizen](n, b, func (n int, b []byte, s *Bank) (int, error) { return s.UnmarshalPlain(n, b) }, func (n int, b []byte, s *Citizen) (int, error) { return s.UnmarshalPlain(n, b) }); err != nil {
         return
     }
     return

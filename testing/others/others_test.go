@@ -23,6 +23,10 @@ func TestUint(t *testing.T) {
 	ui64Map[rand.Uint64()] = rand.Uint32()
 	ui64Map[rand.Uint64()] = rand.Uint32()
 
+	bankMap := make(map[Bank]Citizen)
+	bankMap[Bank{Name: "VR Bank"}] = Citizen{Name: "John"}
+	bankMap[Bank{Name: "Sparkasse"}] = Citizen{Name: "John Jr."}
+
 	data := OthersTest{
 		Ui64: ui64,
 		Ui32: ui32,
@@ -36,6 +40,8 @@ func TestUint(t *testing.T) {
 		ExampleEnum2: ExampleEnum2Six,
 
 		Person2: [][][]person.Person2{{{{Age: 10}}}},
+
+		BankMap: bankMap,
 	}
 
 	buf := make([]byte, data.Size())
