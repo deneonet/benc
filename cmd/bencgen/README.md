@@ -18,6 +18,7 @@ A code generator for the **Benc** schema format, ensuring forward and backward c
 - [Schema Grammar](#schema-grammar)
   - [Define](#define)
   - [Fields](#fields)
+  - [Type Attributes](#type-attributes)
   - [Types](#types)
   - [Containers or Enums](#containers-or-enums)
 - [Languages](#languages)
@@ -304,25 +305,34 @@ or
 ```
 
 - **ID**: Must be no larger than `65535`.
-- **Type attributes** (e.g., `unsafe`) precede the type.
+- **Type attributes** (`unsafe`, `rcopy`) precede the type.
 
 Example of a simple field:
 
 ```plaintext
 string name = 1;
+bytes data = 2;
 ```
 
 Example of a field with type attributes:
 
 ```plaintext
 unsafe string name = 1;
+rcopy bytes data = 2;
 ```
 
 Type attributes **must** precede the type. For arrays:
 
 ```plaintext
 [] unsafe string names = 1;
+[] rcopy bytes data = 2;
 ```
+
+### Type Attributes
+
+- **`unsafe`**: Uses the Go `unsafe` package for faster string ↔ byte slice conversions.
+- **`rcopy`** (_Return Copy_): Allocates a **new buffer** and copies bytes from the source buffer instead of returning a reference (not cropped). ⚠️ **Includes memory allocations!**
+  - This ensures that modifications to the original buffer (passed to `Unmarshal` functions) do not affect the unmarshalled data.
 
 ### Types
 

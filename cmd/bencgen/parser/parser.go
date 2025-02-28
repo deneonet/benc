@@ -237,6 +237,16 @@ func (p *Parser) expectType() *Type {
 		}
 		return &Type{IsUnsafe: true, TokenType: tokenType}
 
+	case p.match(lexer.RCOPY):
+		p.nextToken()
+		tokenType := p.token
+		p.nextToken()
+		if tokenType != lexer.BYTES {
+			p.error("`rcopy` can only be applied to `bytes` types")
+		}
+		return &Type{IsReturnCopy: true, TokenType: tokenType}
+
+
 	default:
 		if p.matchAny(lexer.STRING, lexer.BYTES, lexer.INT, lexer.INT16, lexer.INT32, lexer.INT64, lexer.UINT, lexer.UINT16, lexer.UINT32, lexer.UINT64, lexer.FLOAT32, lexer.FLOAT64, lexer.BYTE, lexer.BOOL) {
 			tokenType := p.token
@@ -287,6 +297,7 @@ type (
 		ChildType         *Type
 		ExternalStructure string `json:"ctrName"`
 		IsUnsafe          bool
+		IsReturnCopy 	  bool
 		IsArray           bool
 		IsMap             bool
 	}
@@ -323,6 +334,16 @@ func (t *Type) IsAnExternalStructure() bool {
 func (t *Type) AppendUnsafeIfPresent() string {
 	if t.IsUnsafe {
 		return "Unsafe"
+	}
+	return ""
+}
+
+func (t *Type) AppendReturnCopyIfPresent() string {
+	if t.IsReturnCopy {
+		return "Copied"
+	}
+	if t.TokenType == lexer.BYTES {
+		return "Cropped"
 	}
 	return ""
 }

@@ -169,7 +169,7 @@ func (complexData *ComplexData) NestedUnmarshal(tn int, b []byte, r []uint16, id
         return
     }
     if ok {
-        if n, complexData.Large_binary_data, err = bstd.UnmarshalSlice[[]byte](n, b, bstd.UnmarshalBytes); err != nil {
+        if n, complexData.Large_binary_data, err = bstd.UnmarshalSlice[[]byte](n, b, bstd.UnmarshalBytesCropped); err != nil {
             return
         }
     }
@@ -206,7 +206,7 @@ func (complexData *ComplexData) UnmarshalPlain(tn int, b []byte) (n int, err err
     if n, err = complexData.Sub_data.UnmarshalPlain(n, b); err != nil {
         return
     }
-    if n, complexData.Large_binary_data, err = bstd.UnmarshalSlice[[]byte](n, b, bstd.UnmarshalBytes); err != nil {
+    if n, complexData.Large_binary_data, err = bstd.UnmarshalSlice[[]byte](n, b, bstd.UnmarshalBytesCropped); err != nil {
         return
     }
     if n, complexData.Huge_list, err = bstd.UnmarshalSlice[int64](n, b, bstd.UnmarshalInt64); err != nil {
@@ -392,7 +392,7 @@ func (subSubItem *SubSubItem) Marshal(b []byte) {
 func (subSubItem *SubSubItem) NestedMarshal(tn int, b []byte, id uint16) (n int) {
     n = bgenimpl.MarshalTag(tn, b, bgenimpl.Container, id)
     n = bgenimpl.MarshalTag(n, b, bgenimpl.Bytes, 1)
-    n = bstd.MarshalString(n, b, subSubItem.Sub_sub_id)
+    n = bstd.MarshalUnsafeString(n, b, subSubItem.Sub_sub_id)
     n = bgenimpl.MarshalTag(n, b, bgenimpl.Bytes, 2)
     n = bstd.MarshalBytes(n, b, subSubItem.Sub_sub_data)
 
@@ -405,7 +405,7 @@ func (subSubItem *SubSubItem) NestedMarshal(tn int, b []byte, id uint16) (n int)
 // MarshalPlain - SubSubItem
 func (subSubItem *SubSubItem) MarshalPlain(tn int, b []byte) (n int) {
     n = tn
-    n = bstd.MarshalString(n, b, subSubItem.Sub_sub_id)
+    n = bstd.MarshalUnsafeString(n, b, subSubItem.Sub_sub_id)
     n = bstd.MarshalBytes(n, b, subSubItem.Sub_sub_data)
     return n
 }
@@ -432,7 +432,7 @@ func (subSubItem *SubSubItem) NestedUnmarshal(tn int, b []byte, r []uint16, id u
         return
     }
     if ok {
-        if n, subSubItem.Sub_sub_id, err = bstd.UnmarshalString(n, b); err != nil {
+        if n, subSubItem.Sub_sub_id, err = bstd.UnmarshalUnsafeString(n, b); err != nil {
             return
         }
     }
@@ -443,7 +443,7 @@ func (subSubItem *SubSubItem) NestedUnmarshal(tn int, b []byte, r []uint16, id u
         return
     }
     if ok {
-        if n, subSubItem.Sub_sub_data, err = bstd.UnmarshalBytes(n, b); err != nil {
+        if n, subSubItem.Sub_sub_data, err = bstd.UnmarshalBytesCopied(n, b); err != nil {
             return
         }
     }
@@ -454,10 +454,10 @@ func (subSubItem *SubSubItem) NestedUnmarshal(tn int, b []byte, r []uint16, id u
 // UnmarshalPlain - SubSubItem
 func (subSubItem *SubSubItem) UnmarshalPlain(tn int, b []byte) (n int, err error) {
     n = tn
-    if n, subSubItem.Sub_sub_id, err = bstd.UnmarshalString(n, b); err != nil {
+    if n, subSubItem.Sub_sub_id, err = bstd.UnmarshalUnsafeString(n, b); err != nil {
         return
     }
-    if n, subSubItem.Sub_sub_data, err = bstd.UnmarshalBytes(n, b); err != nil {
+    if n, subSubItem.Sub_sub_data, err = bstd.UnmarshalBytesCopied(n, b); err != nil {
         return
     }
     return
@@ -586,7 +586,7 @@ func (subComplexData *SubComplexData) NestedUnmarshal(tn int, b []byte, r []uint
         return
     }
     if ok {
-        if n, subComplexData.Sub_binary_data, err = bstd.UnmarshalSlice[[]byte](n, b, bstd.UnmarshalBytes); err != nil {
+        if n, subComplexData.Sub_binary_data, err = bstd.UnmarshalSlice[[]byte](n, b, bstd.UnmarshalBytesCropped); err != nil {
             return
         }
     }
@@ -625,7 +625,7 @@ func (subComplexData *SubComplexData) UnmarshalPlain(tn int, b []byte) (n int, e
     if n, subComplexData.Sub_title, err = bstd.UnmarshalString(n, b); err != nil {
         return
     }
-    if n, subComplexData.Sub_binary_data, err = bstd.UnmarshalSlice[[]byte](n, b, bstd.UnmarshalBytes); err != nil {
+    if n, subComplexData.Sub_binary_data, err = bstd.UnmarshalSlice[[]byte](n, b, bstd.UnmarshalBytesCropped); err != nil {
         return
     }
     if n, subComplexData.Sub_items, err = bstd.UnmarshalSlice[SubItem](n, b, func (n int, b []byte, s *SubItem) (int, error) { return s.UnmarshalPlain(n, b) }); err != nil {

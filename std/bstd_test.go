@@ -190,7 +190,7 @@ func TestDataTypes(t *testing.T) {
 		func(n int, b []byte) (int, any, error) { return UnmarshalUint64(n, b) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalString(n, b) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalUnsafeString(n, b) },
-		func(n int, b []byte) (int, any, error) { return UnmarshalBytes(n, b) },
+		func(n int, b []byte) (int, any, error) { return UnmarshalBytesCropped(n, b) },
 	); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -219,10 +219,10 @@ func TestErrBufTooSmall(t *testing.T) {
 		func(n int, b []byte) (int, any, error) { return UnmarshalUnsafeString(n, b) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalUnsafeString(n, b) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalUnsafeString(n, b) },
-		func(n int, b []byte) (int, any, error) { return UnmarshalBytes(n, b) },
-		func(n int, b []byte) (int, any, error) { return UnmarshalBytes(n, b) },
-		func(n int, b []byte) (int, any, error) { return UnmarshalBytes(n, b) },
-		func(n int, b []byte) (int, any, error) { return UnmarshalBytes(n, b) },
+		func(n int, b []byte) (int, any, error) { return UnmarshalBytesCropped(n, b) },
+		func(n int, b []byte) (int, any, error) { return UnmarshalBytesCropped(n, b) },
+		func(n int, b []byte) (int, any, error) { return UnmarshalBytesCropped(n, b) },
+		func(n int, b []byte) (int, any, error) { return UnmarshalBytesCropped(n, b) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalSlice[byte](n, b, UnmarshalByte) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalSlice[byte](n, b, UnmarshalByte) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalSlice[byte](n, b, UnmarshalByte) },
@@ -257,8 +257,8 @@ func TestErrBufTooSmall_2(t *testing.T) {
 		func(n int, b []byte) (int, any, error) { return UnmarshalString(n, b) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalUnsafeString(n, b) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalUnsafeString(n, b) },
-		func(n int, b []byte) (int, any, error) { return UnmarshalBytes(n, b) },
-		func(n int, b []byte) (int, any, error) { return UnmarshalBytes(n, b) },
+		func(n int, b []byte) (int, any, error) { return UnmarshalBytesCropped(n, b) },
+		func(n int, b []byte) (int, any, error) { return UnmarshalBytesCropped(n, b) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalSlice[byte](n, b, UnmarshalByte) },
 		func(n int, b []byte) (int, any, error) { return UnmarshalSlice[byte](n, b, UnmarshalByte) },
 		func(n int, b []byte) (int, any, error) {

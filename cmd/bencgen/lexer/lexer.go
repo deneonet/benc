@@ -48,6 +48,7 @@ const (
 	// types
 
 	UNSAFE // unsafe
+	RCOPY // return copy
 	// type attributes
 
 	OPEN_BRACKET  // [
@@ -95,6 +96,7 @@ var tokens = []string{
 	BYTES:  "Bytes",
 	STRING: "String",
 
+	RCOPY: "ReturnCopy",
 	UNSAFE: "Unsafe",
 
 	OPEN_BRACKET:  "[",
@@ -138,6 +140,7 @@ var keywords = map[string]Token{
 	"string": STRING,
 
 	"unsafe": UNSAFE,
+	"rcopy": RCOPY,
 }
 
 func (t Token) String() string {

@@ -46,6 +46,10 @@ func (f *GoField) AppendUnsafeIfPresent() string {
 	return f.Type.AppendUnsafeIfPresent()
 }
 
+func (f *GoField) AppendReturnCopyIfPresent() string {
+	return f.Type.AppendReturnCopyIfPresent()
+}
+
 type GoGen struct {
 	file string
 
@@ -589,9 +593,9 @@ func (g *GoGen) getUnmarshalFunc() string {
 		if g.plainGen {
 			return fmt.Sprintf("%s.%s.UnmarshalPlain(n, b)", ctr.PrivateName, field.PublicName)
 		}
-		return fmt.Sprintf("bstd.Unmarshal%s%s(n, b)", field.AppendUnsafeIfPresent(), field.Type.TokenType.String())
+		return fmt.Sprintf("bstd.Unmarshal%s%s%s(n, b)", field.AppendUnsafeIfPresent(), field.Type.TokenType.String(), field.AppendReturnCopyIfPresent())
 	default:
-		return fmt.Sprintf("bstd.Unmarshal%s%s(n, b)", field.AppendUnsafeIfPresent(), field.Type.TokenType.String())
+		return fmt.Sprintf("bstd.Unmarshal%s%s%s(n, b)", field.AppendUnsafeIfPresent(), field.Type.TokenType.String(), field.AppendReturnCopyIfPresent())
 	}
 }
 
@@ -610,7 +614,7 @@ func (g *GoGen) getElemUnmarshalFunc(t *parser.Type) string {
 		return fmt.Sprintf("func (n int, b []byte, s *%s) (int, error) { return s.UnmarshalPlain(n, b) }",
 			makeExternalStructureUpperOrNot(t.ExternalStructure))
 	default:
-		return "bstd.Unmarshal" + t.AppendUnsafeIfPresent() + t.TokenType.String()
+		return "bstd.Unmarshal" + t.AppendUnsafeIfPresent() + t.TokenType.String() + t.AppendReturnCopyIfPresent()
 	}
 }
 

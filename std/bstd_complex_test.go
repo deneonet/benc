@@ -55,7 +55,7 @@ func (complexData *ComplexData) UnmarshalPlain(tn int, b []byte) (n int, err err
 	if n, err = complexData.Sub_data.UnmarshalPlain(n, b); err != nil {
 		return
 	}
-	if n, complexData.Large_binary_data, err = UnmarshalSlice[[]byte](n, b, UnmarshalBytes); err != nil {
+	if n, complexData.Large_binary_data, err = UnmarshalSlice[[]byte](n, b, UnmarshalBytesCropped); err != nil {
 		return
 	}
 	if n, complexData.Huge_list, err = UnmarshalSlice[int64](n, b, UnmarshalInt64); err != nil {
@@ -122,7 +122,7 @@ func (subSubItem *SubSubItem) UnmarshalPlain(tn int, b []byte) (n int, err error
 	if n, subSubItem.Sub_sub_id, err = UnmarshalString(n, b); err != nil {
 		return
 	}
-	if n, subSubItem.Sub_sub_data, err = UnmarshalBytes(n, b); err != nil {
+	if n, subSubItem.Sub_sub_data, err = UnmarshalBytesCropped(n, b); err != nil {
 		return
 	}
 	return
@@ -163,7 +163,7 @@ func (subComplexData *SubComplexData) UnmarshalPlain(tn int, b []byte) (n int, e
 	if n, subComplexData.Sub_title, err = UnmarshalString(n, b); err != nil {
 		return
 	}
-	if n, subComplexData.Sub_binary_data, err = UnmarshalSlice[[]byte](n, b, UnmarshalBytes); err != nil {
+	if n, subComplexData.Sub_binary_data, err = UnmarshalSlice[[]byte](n, b, UnmarshalBytesCropped); err != nil {
 		return
 	}
 	if n, subComplexData.Sub_items, err = UnmarshalSlice[SubItem](n, b, func(n int, b []byte, s *SubItem) (int, error) { return s.UnmarshalPlain(n, b) }); err != nil {

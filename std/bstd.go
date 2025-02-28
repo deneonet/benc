@@ -340,7 +340,27 @@ func MarshalBytes(n int, b []byte, bs []byte) int {
 	return n + copy(b[n:], bs)
 }
 
-func UnmarshalBytes(n int, b []byte) (int, []byte, error) {
+// UnmarshalBytesCopied returns a new allocated slice with a copy of the marshalled byte slice inside `b`
+//
+// It's slower than UnmarshalBytesCropped, but modifications to `b` won't affect the returned byte slice
+func UnmarshalBytesCopied(n int, b []byte) (int, []byte, error) {
+	n, us, err := UnmarshalUint(n, b)
+	if err != nil {
+		return 0, nil, err
+	}
+	s := int(us)
+	if len(b)-n < s {
+		return 0, nil, benc.ErrBufTooSmall
+	}
+	cb := make([]byte, s)
+	copy(cb, b[n : n+s])
+	return n + s, cb, nil
+}
+
+// UnmarshalBytesCropped returns a cropped slice of the marshalled byte slice inside `b`
+//
+// It's faster than UnmarshalBytesCopied, but modifications to `b` will affect the returned byte slice
+func UnmarshalBytesCropped(n int, b []byte) (int, []byte, error) {
 	n, us, err := UnmarshalUint(n, b)
 	if err != nil {
 		return 0, nil, err
