@@ -22,7 +22,7 @@ func (complexData *ComplexData) SizePlain() (s int) {
 	s += SizeMap(complexData.Metadata, SizeString, SizeInt32)
 	s += complexData.Sub_data.SizePlain()
 	s += SizeSlice(complexData.Large_binary_data, SizeBytes)
-	s += SizeSlice(complexData.Huge_list, SizeInt64)
+	s += SizeFixedSlice(complexData.Huge_list, SizeInt64())
 	return
 }
 

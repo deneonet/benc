@@ -360,7 +360,12 @@ func (g *GoGen) getSizeFunc() string {
 
 	switch {
 	case field.Type.IsArray:
-		return fmt.Sprintf("bstd.SizeSlice(%s.%s, %s)",
+		if field.Type.ChildType.TokenType == lexer.STRING || field.Type.ChildType.TokenType == lexer.BYTES || field.Type.ChildType.IsAnExternalStructure() || field.Type.ChildType.IsMap || field.Type.ChildType.IsArray {
+			return fmt.Sprintf("bstd.SizeSlice(%s.%s, %s)",
+				ctr.PrivateName, field.PublicName, g.getElemSizeFunc(field.Type.ChildType))
+		}
+
+		return fmt.Sprintf("bstd.SizeFixedSlice(%s.%s, %s())",
 			ctr.PrivateName, field.PublicName, g.getElemSizeFunc(field.Type.ChildType))
 	case field.Type.IsMap:
 		return fmt.Sprintf("bstd.SizeMap(%s.%s, %s, %s)",
@@ -399,7 +404,12 @@ func makeExternalStructureUpperOrNot(externalStructure string) string {
 func (g *GoGen) getElemSizeFunc(t *parser.Type) string {
 	switch {
 	case t.IsArray:
-		return fmt.Sprintf("func (s %s) int { return bstd.SizeSlice(s, %s) }",
+		if t.ChildType.TokenType == lexer.STRING || t.ChildType.TokenType == lexer.BYTES || t.ChildType.IsAnExternalStructure() || t.ChildType.IsMap || t.ChildType.IsArray {
+			return fmt.Sprintf("func (s %s) int { return bstd.SizeSlice(s, %s) }",
+				utils.BencTypeToGolang(t), g.getElemSizeFunc(t.ChildType))
+		}
+
+		return fmt.Sprintf("func (s %s) int { return bstd.SizeFixedSlice(s, %s()) }",
 			utils.BencTypeToGolang(t), g.getElemSizeFunc(t.ChildType))
 	case t.IsMap:
 		return fmt.Sprintf("func (s %s) int { return bstd.SizeMap(s, %s, %s) }",

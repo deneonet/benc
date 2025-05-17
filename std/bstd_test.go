@@ -134,7 +134,7 @@ func TestDataTypes(t *testing.T) {
 		rand.Float32(),
 		rand.Float64(),
 		int(math.MaxInt),
-		int16(16),
+		int16(-1),
 		rand.Int31(),
 		rand.Int63(),
 		uint(math.MaxUint),
@@ -473,8 +473,8 @@ func TestUnmarshalInt(t *testing.T) {
 		wantVal int
 		wantErr error
 	}{
-		{"Valid small int", []byte{0x02}, 0, 1, 1, nil},        // 1 in zigzag encoding
-		{"Valid negative int", []byte{0x03}, 0, 1, -2, nil},    // -2 in zigzag
+		{"Valid small int", []byte{0x02}, 0, 1, 1, nil},     // 1 in zigzag encoding
+		{"Valid negative int", []byte{0x03}, 0, 1, -2, nil}, // -2 in zigzag
 		{"Valid multi-byte int", []byte{0xAC, 0x02}, 0, 2, 150, nil},
 		{"Buffer too small", []byte{0x80}, 0, 0, 0, benc.ErrBufTooSmall},
 		{"Varint overflow", []byte{0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80}, 0, 0, 0, benc.ErrOverflow},

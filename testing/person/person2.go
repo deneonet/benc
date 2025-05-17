@@ -4,17 +4,15 @@
 package person
 
 import (
-    "github.com/deneonet/benc/std"
-    "github.com/deneonet/benc/impl/gen"
-
-
+	"github.com/deneonet/benc/impl/gen"
+	"github.com/deneonet/benc/std"
 )
 
 // Struct - Person2
 type Person2 struct {
-    Age byte
-    Name string
-    Child Child2
+	Age   byte
+	Name  string
+	Child Child2
 }
 
 // Reserved Ids - Person2
@@ -22,123 +20,123 @@ var person2RIds = []uint16{3}
 
 // Size - Person2
 func (person2 *Person2) Size() int {
-    return person2.NestedSize(0)
+	return person2.NestedSize(0)
 }
 
 // Nested Size - Person2
 func (person2 *Person2) NestedSize(id uint16) (s int) {
-    s += bstd.SizeByte() + 2
-    s += bstd.SizeString(person2.Name) + 2
-    s += person2.Child.NestedSize(4)
+	s += bstd.SizeByte() + 2
+	s += bstd.SizeString(person2.Name) + 2
+	s += person2.Child.NestedSize(4)
 
-    if id > 255 {
-        s += 5
-        return
-    }
-    s += 4
-    return
+	if id > 255 {
+		s += 5
+		return
+	}
+	s += 4
+	return
 }
 
 // SizePlain - Person2
 func (person2 *Person2) SizePlain() (s int) {
-    s += bstd.SizeByte()
-    s += bstd.SizeString(person2.Name)
-    s += person2.Child.SizePlain()
-    return
+	s += bstd.SizeByte()
+	s += bstd.SizeString(person2.Name)
+	s += person2.Child.SizePlain()
+	return
 }
 
 // Marshal - Person2
 func (person2 *Person2) Marshal(b []byte) {
-    person2.NestedMarshal(0, b, 0)
+	person2.NestedMarshal(0, b, 0)
 }
 
 // Nested Marshal - Person2
 func (person2 *Person2) NestedMarshal(tn int, b []byte, id uint16) (n int) {
-    n = bgenimpl.MarshalTag(tn, b, bgenimpl.Container, id)
-    n = bgenimpl.MarshalTag(n, b, bgenimpl.Fixed8, 1)
-    n = bstd.MarshalByte(n, b, person2.Age)
-    n = bgenimpl.MarshalTag(n, b, bgenimpl.Bytes, 2)
-    n = bstd.MarshalString(n, b, person2.Name)
-    n = person2.Child.NestedMarshal(n, b, 4)
+	n = bgenimpl.MarshalTag(tn, b, bgenimpl.Container, id)
+	n = bgenimpl.MarshalTag(n, b, bgenimpl.Fixed8, 1)
+	n = bstd.MarshalByte(n, b, person2.Age)
+	n = bgenimpl.MarshalTag(n, b, bgenimpl.Bytes, 2)
+	n = bstd.MarshalString(n, b, person2.Name)
+	n = person2.Child.NestedMarshal(n, b, 4)
 
-    n += 2
-    b[n-2] = 1
-    b[n-1] = 1
-    return
+	n += 2
+	b[n-2] = 1
+	b[n-1] = 1
+	return
 }
 
 // MarshalPlain - Person2
 func (person2 *Person2) MarshalPlain(tn int, b []byte) (n int) {
-    n = tn
-    n = bstd.MarshalByte(n, b, person2.Age)
-    n = bstd.MarshalString(n, b, person2.Name)
-    n = person2.Child.MarshalPlain(n, b)
-    return n
+	n = tn
+	n = bstd.MarshalByte(n, b, person2.Age)
+	n = bstd.MarshalString(n, b, person2.Name)
+	n = person2.Child.MarshalPlain(n, b)
+	return n
 }
 
 // Unmarshal - Person2
 func (person2 *Person2) Unmarshal(b []byte) (err error) {
-    _, err = person2.NestedUnmarshal(0, b, []uint16{}, 0)
-    return
+	_, err = person2.NestedUnmarshal(0, b, []uint16{}, 0)
+	return
 }
 
 // Nested Unmarshal - Person2
 func (person2 *Person2) NestedUnmarshal(tn int, b []byte, r []uint16, id uint16) (n int, err error) {
-    var ok bool
-    if n, ok, err = bgenimpl.HandleCompatibility(tn, b, r, id); !ok {
-        if err == bgenimpl.ErrEof {
-            return n, nil
-        }
-        return
-    }
-    if n, ok, err = bgenimpl.HandleCompatibility(n, b, person2RIds, 1); err != nil {
-        if err == bgenimpl.ErrEof {
-            return n, nil
-        }
-        return
-    }
-    if ok {
-        if n, person2.Age, err = bstd.UnmarshalByte(n, b); err != nil {
-            return
-        }
-    }
-    if n, ok, err = bgenimpl.HandleCompatibility(n, b, person2RIds, 2); err != nil {
-        if err == bgenimpl.ErrEof {
-            return n, nil
-        }
-        return
-    }
-    if ok {
-        if n, person2.Name, err = bstd.UnmarshalString(n, b); err != nil {
-            return
-        }
-    }
-    if n, err = person2.Child.NestedUnmarshal(n, b, person2RIds, 4); err != nil {
-        return
-    }
-    n += 2
-    return
+	var ok bool
+	if n, ok, err = bgenimpl.HandleCompatibility(tn, b, r, id); !ok {
+		if err == bgenimpl.ErrEof {
+			return n, nil
+		}
+		return
+	}
+	if n, ok, err = bgenimpl.HandleCompatibility(n, b, person2RIds, 1); err != nil {
+		if err == bgenimpl.ErrEof {
+			return n, nil
+		}
+		return
+	}
+	if ok {
+		if n, person2.Age, err = bstd.UnmarshalByte(n, b); err != nil {
+			return
+		}
+	}
+	if n, ok, err = bgenimpl.HandleCompatibility(n, b, person2RIds, 2); err != nil {
+		if err == bgenimpl.ErrEof {
+			return n, nil
+		}
+		return
+	}
+	if ok {
+		if n, person2.Name, err = bstd.UnmarshalString(n, b); err != nil {
+			return
+		}
+	}
+	if n, err = person2.Child.NestedUnmarshal(n, b, person2RIds, 4); err != nil {
+		return
+	}
+	n += 2
+	return
 }
 
 // UnmarshalPlain - Person2
 func (person2 *Person2) UnmarshalPlain(tn int, b []byte) (n int, err error) {
-    n = tn
-    if n, person2.Age, err = bstd.UnmarshalByte(n, b); err != nil {
-        return
-    }
-    if n, person2.Name, err = bstd.UnmarshalString(n, b); err != nil {
-        return
-    }
-    if n, err = person2.Child.UnmarshalPlain(n, b); err != nil {
-        return
-    }
-    return
+	n = tn
+	if n, person2.Age, err = bstd.UnmarshalByte(n, b); err != nil {
+		return
+	}
+	if n, person2.Name, err = bstd.UnmarshalString(n, b); err != nil {
+		return
+	}
+	if n, err = person2.Child.UnmarshalPlain(n, b); err != nil {
+		return
+	}
+	return
 }
 
 // Struct - Child2
 type Child2 struct {
-    Age byte
-    Parents Parents2
+	Age     byte
+	Parents Parents2
 }
 
 // Reserved Ids - Child2
@@ -146,104 +144,104 @@ var child2RIds = []uint16{2}
 
 // Size - Child2
 func (child2 *Child2) Size() int {
-    return child2.NestedSize(0)
+	return child2.NestedSize(0)
 }
 
 // Nested Size - Child2
 func (child2 *Child2) NestedSize(id uint16) (s int) {
-    s += bstd.SizeByte() + 2
-    s += child2.Parents.NestedSize(3)
+	s += bstd.SizeByte() + 2
+	s += child2.Parents.NestedSize(3)
 
-    if id > 255 {
-        s += 5
-        return
-    }
-    s += 4
-    return
+	if id > 255 {
+		s += 5
+		return
+	}
+	s += 4
+	return
 }
 
 // SizePlain - Child2
 func (child2 *Child2) SizePlain() (s int) {
-    s += bstd.SizeByte()
-    s += child2.Parents.SizePlain()
-    return
+	s += bstd.SizeByte()
+	s += child2.Parents.SizePlain()
+	return
 }
 
 // Marshal - Child2
 func (child2 *Child2) Marshal(b []byte) {
-    child2.NestedMarshal(0, b, 0)
+	child2.NestedMarshal(0, b, 0)
 }
 
 // Nested Marshal - Child2
 func (child2 *Child2) NestedMarshal(tn int, b []byte, id uint16) (n int) {
-    n = bgenimpl.MarshalTag(tn, b, bgenimpl.Container, id)
-    n = bgenimpl.MarshalTag(n, b, bgenimpl.Fixed8, 1)
-    n = bstd.MarshalByte(n, b, child2.Age)
-    n = child2.Parents.NestedMarshal(n, b, 3)
+	n = bgenimpl.MarshalTag(tn, b, bgenimpl.Container, id)
+	n = bgenimpl.MarshalTag(n, b, bgenimpl.Fixed8, 1)
+	n = bstd.MarshalByte(n, b, child2.Age)
+	n = child2.Parents.NestedMarshal(n, b, 3)
 
-    n += 2
-    b[n-2] = 1
-    b[n-1] = 1
-    return
+	n += 2
+	b[n-2] = 1
+	b[n-1] = 1
+	return
 }
 
 // MarshalPlain - Child2
 func (child2 *Child2) MarshalPlain(tn int, b []byte) (n int) {
-    n = tn
-    n = bstd.MarshalByte(n, b, child2.Age)
-    n = child2.Parents.MarshalPlain(n, b)
-    return n
+	n = tn
+	n = bstd.MarshalByte(n, b, child2.Age)
+	n = child2.Parents.MarshalPlain(n, b)
+	return n
 }
 
 // Unmarshal - Child2
 func (child2 *Child2) Unmarshal(b []byte) (err error) {
-    _, err = child2.NestedUnmarshal(0, b, []uint16{}, 0)
-    return
+	_, err = child2.NestedUnmarshal(0, b, []uint16{}, 0)
+	return
 }
 
 // Nested Unmarshal - Child2
 func (child2 *Child2) NestedUnmarshal(tn int, b []byte, r []uint16, id uint16) (n int, err error) {
-    var ok bool
-    if n, ok, err = bgenimpl.HandleCompatibility(tn, b, r, id); !ok {
-        if err == bgenimpl.ErrEof {
-            return n, nil
-        }
-        return
-    }
-    if n, ok, err = bgenimpl.HandleCompatibility(n, b, child2RIds, 1); err != nil {
-        if err == bgenimpl.ErrEof {
-            return n, nil
-        }
-        return
-    }
-    if ok {
-        if n, child2.Age, err = bstd.UnmarshalByte(n, b); err != nil {
-            return
-        }
-    }
-    if n, err = child2.Parents.NestedUnmarshal(n, b, child2RIds, 3); err != nil {
-        return
-    }
-    n += 2
-    return
+	var ok bool
+	if n, ok, err = bgenimpl.HandleCompatibility(tn, b, r, id); !ok {
+		if err == bgenimpl.ErrEof {
+			return n, nil
+		}
+		return
+	}
+	if n, ok, err = bgenimpl.HandleCompatibility(n, b, child2RIds, 1); err != nil {
+		if err == bgenimpl.ErrEof {
+			return n, nil
+		}
+		return
+	}
+	if ok {
+		if n, child2.Age, err = bstd.UnmarshalByte(n, b); err != nil {
+			return
+		}
+	}
+	if n, err = child2.Parents.NestedUnmarshal(n, b, child2RIds, 3); err != nil {
+		return
+	}
+	n += 2
+	return
 }
 
 // UnmarshalPlain - Child2
 func (child2 *Child2) UnmarshalPlain(tn int, b []byte) (n int, err error) {
-    n = tn
-    if n, child2.Age, err = bstd.UnmarshalByte(n, b); err != nil {
-        return
-    }
-    if n, err = child2.Parents.UnmarshalPlain(n, b); err != nil {
-        return
-    }
-    return
+	n = tn
+	if n, child2.Age, err = bstd.UnmarshalByte(n, b); err != nil {
+		return
+	}
+	if n, err = child2.Parents.UnmarshalPlain(n, b); err != nil {
+		return
+	}
+	return
 }
 
 // Struct - Parents2
 type Parents2 struct {
-    Mother string
-    Father string
+	Mother string
+	Father string
 }
 
 // Reserved Ids - Parents2
@@ -251,106 +249,105 @@ var parents2RIds = []uint16{}
 
 // Size - Parents2
 func (parents2 *Parents2) Size() int {
-    return parents2.NestedSize(0)
+	return parents2.NestedSize(0)
 }
 
 // Nested Size - Parents2
 func (parents2 *Parents2) NestedSize(id uint16) (s int) {
-    s += bstd.SizeString(parents2.Mother) + 2
-    s += bstd.SizeString(parents2.Father) + 2
+	s += bstd.SizeString(parents2.Mother) + 2
+	s += bstd.SizeString(parents2.Father) + 2
 
-    if id > 255 {
-        s += 5
-        return
-    }
-    s += 4
-    return
+	if id > 255 {
+		s += 5
+		return
+	}
+	s += 4
+	return
 }
 
 // SizePlain - Parents2
 func (parents2 *Parents2) SizePlain() (s int) {
-    s += bstd.SizeString(parents2.Mother)
-    s += bstd.SizeString(parents2.Father)
-    return
+	s += bstd.SizeString(parents2.Mother)
+	s += bstd.SizeString(parents2.Father)
+	return
 }
 
 // Marshal - Parents2
 func (parents2 *Parents2) Marshal(b []byte) {
-    parents2.NestedMarshal(0, b, 0)
+	parents2.NestedMarshal(0, b, 0)
 }
 
 // Nested Marshal - Parents2
 func (parents2 *Parents2) NestedMarshal(tn int, b []byte, id uint16) (n int) {
-    n = bgenimpl.MarshalTag(tn, b, bgenimpl.Container, id)
-    n = bgenimpl.MarshalTag(n, b, bgenimpl.Bytes, 1)
-    n = bstd.MarshalString(n, b, parents2.Mother)
-    n = bgenimpl.MarshalTag(n, b, bgenimpl.Bytes, 2)
-    n = bstd.MarshalString(n, b, parents2.Father)
+	n = bgenimpl.MarshalTag(tn, b, bgenimpl.Container, id)
+	n = bgenimpl.MarshalTag(n, b, bgenimpl.Bytes, 1)
+	n = bstd.MarshalString(n, b, parents2.Mother)
+	n = bgenimpl.MarshalTag(n, b, bgenimpl.Bytes, 2)
+	n = bstd.MarshalString(n, b, parents2.Father)
 
-    n += 2
-    b[n-2] = 1
-    b[n-1] = 1
-    return
+	n += 2
+	b[n-2] = 1
+	b[n-1] = 1
+	return
 }
 
 // MarshalPlain - Parents2
 func (parents2 *Parents2) MarshalPlain(tn int, b []byte) (n int) {
-    n = tn
-    n = bstd.MarshalString(n, b, parents2.Mother)
-    n = bstd.MarshalString(n, b, parents2.Father)
-    return n
+	n = tn
+	n = bstd.MarshalString(n, b, parents2.Mother)
+	n = bstd.MarshalString(n, b, parents2.Father)
+	return n
 }
 
 // Unmarshal - Parents2
 func (parents2 *Parents2) Unmarshal(b []byte) (err error) {
-    _, err = parents2.NestedUnmarshal(0, b, []uint16{}, 0)
-    return
+	_, err = parents2.NestedUnmarshal(0, b, []uint16{}, 0)
+	return
 }
 
 // Nested Unmarshal - Parents2
 func (parents2 *Parents2) NestedUnmarshal(tn int, b []byte, r []uint16, id uint16) (n int, err error) {
-    var ok bool
-    if n, ok, err = bgenimpl.HandleCompatibility(tn, b, r, id); !ok {
-        if err == bgenimpl.ErrEof {
-            return n, nil
-        }
-        return
-    }
-    if n, ok, err = bgenimpl.HandleCompatibility(n, b, parents2RIds, 1); err != nil {
-        if err == bgenimpl.ErrEof {
-            return n, nil
-        }
-        return
-    }
-    if ok {
-        if n, parents2.Mother, err = bstd.UnmarshalString(n, b); err != nil {
-            return
-        }
-    }
-    if n, ok, err = bgenimpl.HandleCompatibility(n, b, parents2RIds, 2); err != nil {
-        if err == bgenimpl.ErrEof {
-            return n, nil
-        }
-        return
-    }
-    if ok {
-        if n, parents2.Father, err = bstd.UnmarshalString(n, b); err != nil {
-            return
-        }
-    }
-    n += 2
-    return
+	var ok bool
+	if n, ok, err = bgenimpl.HandleCompatibility(tn, b, r, id); !ok {
+		if err == bgenimpl.ErrEof {
+			return n, nil
+		}
+		return
+	}
+	if n, ok, err = bgenimpl.HandleCompatibility(n, b, parents2RIds, 1); err != nil {
+		if err == bgenimpl.ErrEof {
+			return n, nil
+		}
+		return
+	}
+	if ok {
+		if n, parents2.Mother, err = bstd.UnmarshalString(n, b); err != nil {
+			return
+		}
+	}
+	if n, ok, err = bgenimpl.HandleCompatibility(n, b, parents2RIds, 2); err != nil {
+		if err == bgenimpl.ErrEof {
+			return n, nil
+		}
+		return
+	}
+	if ok {
+		if n, parents2.Father, err = bstd.UnmarshalString(n, b); err != nil {
+			return
+		}
+	}
+	n += 2
+	return
 }
 
 // UnmarshalPlain - Parents2
 func (parents2 *Parents2) UnmarshalPlain(tn int, b []byte) (n int, err error) {
-    n = tn
-    if n, parents2.Mother, err = bstd.UnmarshalString(n, b); err != nil {
-        return
-    }
-    if n, parents2.Father, err = bstd.UnmarshalString(n, b); err != nil {
-        return
-    }
-    return
+	n = tn
+	if n, parents2.Mother, err = bstd.UnmarshalString(n, b); err != nil {
+		return
+	}
+	if n, parents2.Father, err = bstd.UnmarshalString(n, b); err != nil {
+		return
+	}
+	return
 }
-

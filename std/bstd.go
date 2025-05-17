@@ -10,9 +10,17 @@ import (
 	"golang.org/x/exp/constraints"
 )
 
+type SizeFunc[T any] func(t T) int
 type MarshalFunc[T any] func(n int, b []byte, t T) int
 
-// For unsafe string too
+// Returns the new offset 'n' after skipping the marshalled string.
+// For unsafe string unmarshalling too.
+//
+// Possible errors returned:
+//   - benc.ErrOverflow          - varint overflowed a N-bit unsigned integer.
+//   - benc.ErrBufTooSmall       - 'buf' was too small to skip the marshalled string.
+//
+// If a error is returned, n (the int returned) equals zero ( 0 ).
 func SkipString(n int, b []byte) (int, error) {
 	n, us, err := UnmarshalUint(n, b)
 	if err != nil {
@@ -26,17 +34,28 @@ func SkipString(n int, b []byte) (int, error) {
 	return n + s, nil
 }
 
-// For unsafe string too
+// Returns the bytes needed to marshal a string.
+// For unsafe string marshalling too.
 func SizeString(str string) int {
 	v := len(str)
 	return v + SizeUint(uint(v))
 }
 
+// Returns the new offset 'n' after marshalling the string.
+//
+// !- Panics, if 'b' is too small.
 func MarshalString(n int, b []byte, str string) int {
 	n = MarshalUint(n, b, uint(len(str)))
 	return n + copy(b[n:], str)
 }
 
+// Returns the new offset 'n', as well as the string, that got unmarshalled.
+//
+// Possible errors returned:
+//   - benc.ErrOverflow          - varint overflowed a N-bit unsigned integer.
+//   - benc.ErrBufTooSmall       - 'buf' was too small to unmarshal the slice.
+//
+// If a error is returned, n (the int returned) equals zero ( 0 ).
 func UnmarshalString(n int, b []byte) (int, string, error) {
 	n, us, err := UnmarshalUint(n, b)
 	if err != nil {
@@ -50,8 +69,9 @@ func UnmarshalString(n int, b []byte) (int, string, error) {
 	return n + s, string(b[n : n+s]), nil
 }
 
+// https://github.com/golang/go/issues/53003#issuecomment-1145241692
 //
-
+// see s2b
 type StringHeader struct {
 	Data *byte
 	Len  int
@@ -81,11 +101,23 @@ func s2b(s string) []byte {
 	return bytes
 }
 
+// Returns the new offset 'n' after marshalling the string.
+// Uses unsafe operations to convert the string to bytes.
+//
+// !- Panics, if 'b' is too small.
 func MarshalUnsafeString(n int, b []byte, str string) int {
 	n = MarshalUint(n, b, uint(len(str)))
 	return n + copy(b[n:], s2b(str))
 }
 
+// Returns the new offset 'n', as well as the string, that got unmarshalled.
+// Uses unsafe operations to convert the bytes to a string.
+//
+// Possible errors returned:
+//   - benc.ErrOverflow          - varint overflowed a N-bit unsigned integer.
+//   - benc.ErrBufTooSmall       - 'buf' was too small to unmarshal the slice.
+//
+// If a error is returned, n (the int returned) equals zero ( 0 ).
 func UnmarshalUnsafeString(n int, b []byte) (int, string, error) {
 	n, us, err := UnmarshalUint(n, b)
 	if err != nil {
@@ -102,8 +134,12 @@ func UnmarshalUnsafeString(n int, b []byte) (int, string, error) {
 	return n + s, b2s(b[n : n+s]), nil
 }
 
+// Returns the new offset 'n' after skipping the marshalled slice.
 //
-
+// Possible errors returned:
+//   - benc.ErrBufTooSmall       - 'buf' was too small to skip the marshalled slice.
+//
+// If a error is returned, n (the int returned) equals zero ( 0 ).
 func SkipSlice(n int, b []byte) (int, error) {
 	lb := len(b)
 
@@ -119,25 +155,28 @@ func SkipSlice(n int, b []byte) (int, error) {
 	}
 }
 
-func SizeSlice[T any](slice []T, sizer interface{}) (s int) {
+// Returns the bytes needed to marshal a slice with a dynamic element size.
+func SizeSlice[T any](slice []T, sizer SizeFunc[T]) (s int) {
 	v := len(slice)
 	s += 4 + SizeUint(uint(v))
 
-	switch p := sizer.(type) {
-	case func() int:
-		for i := 0; i < v; i++ {
-			s += p()
-		}
-	case func(T) int:
-		for _, t := range slice {
-			s += p(t)
-		}
-	default:
-		panic("benc: invalid `sizer` provided in `SizeSlice`")
+	for _, t := range slice {
+		s += sizer(t)
 	}
+
 	return
 }
 
+// Returns the bytes needed to marshal a slice with a fixed element size.
+func SizeFixedSlice[T any](slice []T, elemSize int) (s int) {
+	v := len(slice)
+	s += 4 + SizeUint(uint(v)) + v*elemSize
+	return
+}
+
+// Returns the new offset 'n' after marshalling the slice.
+//
+// !- Panics, if 'b' is too small.
 func MarshalSlice[T any](n int, b []byte, slice []T, marshaler MarshalFunc[T]) int {
 	n = MarshalUint(n, b, uint(len(slice)))
 	for _, t := range slice {
@@ -153,6 +192,13 @@ func MarshalSlice[T any](n int, b []byte, slice []T, marshaler MarshalFunc[T]) i
 	return n + 4
 }
 
+// Returns the new offset 'n', as well as the slice, that got unmarshalled.
+//
+// Possible errors returned:
+//   - benc.ErrOverflow          - varint overflowed a N-bit unsigned integer.
+//   - benc.ErrBufTooSmall       - 'buf' was too small to unmarshal the slice.
+//
+// If a error is returned, n (the int returned) equals zero ( 0 ).
 func UnmarshalSlice[T any](n int, b []byte, unmarshaler interface{}) (int, []T, error) {
 	n, us, err := UnmarshalUint(n, b)
 	if err != nil {
@@ -187,7 +233,12 @@ func UnmarshalSlice[T any](n int, b []byte, unmarshaler interface{}) (int, []T, 
 	return n + 4, ts, nil
 }
 
-// SkipMap = SkipSlice
+// Returns the new offset 'n' after skipping the marshalled map.
+//
+// Possible errors returned:
+//   - benc.ErrBufTooSmall       - 'buf' was too small to skip the marshalled map.
+//
+// If a error is returned, n (the int returned) equals zero ( 0 ).
 func SkipMap(n int, b []byte) (int, error) {
 	lb := len(b)
 
@@ -203,6 +254,7 @@ func SkipMap(n int, b []byte) (int, error) {
 	}
 }
 
+// Returns the bytes needed to marshal a map.
 func SizeMap[K comparable, V any](m map[K]V, kSizer interface{}, vSizer interface{}) (s int) {
 	s += 4 + SizeUint(uint(len(m)))
 
@@ -228,6 +280,9 @@ func SizeMap[K comparable, V any](m map[K]V, kSizer interface{}, vSizer interfac
 	return
 }
 
+// Returns the new offset 'n' after marshalling the map.
+//
+// !- Panics, if 'b' is too small.
 func MarshalMap[K comparable, V any](n int, b []byte, m map[K]V, kMarshaler MarshalFunc[K], vMarshaler MarshalFunc[V]) int {
 	n = MarshalUint(n, b, uint(len(m)))
 	for k, v := range m {
@@ -244,6 +299,13 @@ func MarshalMap[K comparable, V any](n int, b []byte, m map[K]V, kMarshaler Mars
 	return n + 4
 }
 
+// Returns the new offset 'n', as well as the map, that got unmarshalled.
+//
+// Possible errors returned:
+//   - benc.ErrOverflow          - varint overflowed a N-bit unsigned integer.
+//   - benc.ErrBufTooSmall       - 'buf' was too small to unmarshal the map.
+//
+// If a error is returned, n (the int returned) equals zero ( 0 ).
 func UnmarshalMap[K comparable, V any](n int, b []byte, kUnmarshaler interface{}, vUnmarshaler interface{}) (int, map[K]V, error) {
 	n, us, err := UnmarshalUint(n, b)
 	if err != nil {
@@ -255,7 +317,7 @@ func UnmarshalMap[K comparable, V any](n int, b []byte, kUnmarshaler interface{}
 	var v V
 	ts := make(map[K]V, s)
 
-	for i := 0; i < s; i++ {
+	for range s {
 		switch p := kUnmarshaler.(type) {
 		case func(n int, b []byte) (int, K, error):
 			n, k, err = p(n, b)
@@ -292,8 +354,12 @@ func UnmarshalMap[K comparable, V any](n int, b []byte, kUnmarshaler interface{}
 	return n + 4, ts, nil
 }
 
+// Returns the new offset 'n' after skipping the marshalled byte.
 //
-
+// Possible errors returned:
+//   - benc.ErrBufTooSmall       - 'buf' was too small to skip the marshalled byte.
+//
+// If a error is returned, n (the int returned) equals zero ( 0 ).
 func SkipByte(n int, b []byte) (int, error) {
 	if len(b)-n < 1 {
 		return n, benc.ErrBufTooSmall
@@ -301,15 +367,25 @@ func SkipByte(n int, b []byte) (int, error) {
 	return n + 1, nil
 }
 
+// Returns the bytes needed to marshal a byte.
 func SizeByte() int {
 	return 1
 }
 
+// Returns the new offset 'n' after marshalling the byte.
+//
+// !- Panics, if 'b' is too small.
 func MarshalByte(n int, b []byte, byt byte) int {
 	b[n] = byt
 	return n + 1
 }
 
+// Returns the new offset 'n', as well as the byte, that got unmarshalled.
+//
+// Possible errors returned:
+//   - benc.ErrBufTooSmall       - 'buf' was too small to unmarshal the byte.
+//
+// If a error is returned, n (the int returned) equals zero ( 0 ).
 func UnmarshalByte(n int, b []byte) (int, byte, error) {
 	if len(b)-n < 1 {
 		return n, 0, benc.ErrBufTooSmall
@@ -317,7 +393,13 @@ func UnmarshalByte(n int, b []byte) (int, byte, error) {
 	return n + 1, b[n], nil
 }
 
-// SkipBytes = SkipString
+// Returns the new offset 'n' after skipping the marshalled byte slice.
+//
+// Possible errors returned:
+//   - benc.ErrOverflow          - varint overflowed a N-bit unsigned integer.
+//   - benc.ErrBufTooSmall       - 'buf' was too small to skip the marshalled byte slice.
+//
+// If a error is returned, n (the int returned) equals zero ( 0 ).
 func SkipBytes(n int, b []byte) (int, error) {
 	n, us, err := UnmarshalUint(n, b)
 	if err != nil {
@@ -330,19 +412,27 @@ func SkipBytes(n int, b []byte) (int, error) {
 	return n + s, nil
 }
 
+// Returns the bytes needed to marshal a byte slice.
 func SizeBytes(bs []byte) int {
 	v := len(bs)
 	return v + SizeUint(uint(v))
 }
 
+// Returns the new offset 'n' after marshalling the byte slice.
+//
+// !- Panics, if 'b' is too small.
 func MarshalBytes(n int, b []byte, bs []byte) int {
 	n = MarshalUint(n, b, uint(len(bs)))
 	return n + copy(b[n:], bs)
 }
 
-// UnmarshalBytesCopied returns a new allocated slice with a copy of the marshalled byte slice inside `b`
+// UnmarshalBytesCopied returns a new allocated slice with a copy of the marshalled byte slice inside `b`.
 //
-// It's slower than UnmarshalBytesCropped, but modifications to `b` won't affect the returned byte slice
+// Possible errors returned:
+//   - benc.ErrOverflow          - varint overflowed a N-bit unsigned integer.
+//   - benc.ErrBufTooSmall       - 'buf' was too small to unmarshal the unsigned integer.
+//
+// It's slower than UnmarshalBytesCropped, but modifications to `b` won't affect the returned byte slice.
 func UnmarshalBytesCopied(n int, b []byte) (int, []byte, error) {
 	n, us, err := UnmarshalUint(n, b)
 	if err != nil {
@@ -353,13 +443,17 @@ func UnmarshalBytesCopied(n int, b []byte) (int, []byte, error) {
 		return 0, nil, benc.ErrBufTooSmall
 	}
 	cb := make([]byte, s)
-	copy(cb, b[n : n+s])
+	copy(cb, b[n:n+s])
 	return n + s, cb, nil
 }
 
-// UnmarshalBytesCropped returns a cropped slice of the marshalled byte slice inside `b`
+// UnmarshalBytesCropped returns a cropped slice of the marshalled byte slice inside `b`.
 //
-// It's faster than UnmarshalBytesCopied, but modifications to `b` will affect the returned byte slice
+// Possible errors returned:
+//   - benc.ErrOverflow          - varint overflowed a N-bit unsigned integer.
+//   - benc.ErrBufTooSmall       - 'buf' was too small to unmarshal the unsigned integer.
+//
+// It's faster than UnmarshalBytesCopied, but modifications to `b` will affect the returned byte slice.
 func UnmarshalBytesCropped(n int, b []byte) (int, []byte, error) {
 	n, us, err := UnmarshalUint(n, b)
 	if err != nil {
@@ -431,7 +525,7 @@ func MarshalInt(n int, b []byte, sv int) int {
 //
 // Possible errors returned:
 //   - benc.ErrOverflow          - varint overflowed a N-bit integer.
-//   - benc.ErrBufTooSmall       - 'buf' was too small to skip the unmarshal the integer.
+//   - benc.ErrBufTooSmall       - 'buf' was too small to unmarshal the integer.
 //
 // If a error is returned, n (the int returned) equals zero ( 0 ).
 func UnmarshalInt(n int, buf []byte) (int, int, error) {
@@ -481,7 +575,7 @@ func MarshalUint(n int, b []byte, v uint) int {
 //
 // Possible errors returned:
 //   - benc.ErrOverflow          - varint overflowed a N-bit unsigned integer
-//   - benc.ErrBufTooSmall       - 'buf' was too small to skip the unmarshal the unsigned integer//
+//   - benc.ErrBufTooSmall       - 'buf' was too small to unmarshal the unsigned integer//
 //
 // If a error is returned, n (the int returned) equals zero ( 0 ).
 func UnmarshalUint(n int, buf []byte) (int, uint, error) {
@@ -661,17 +755,16 @@ func SizeInt64() int {
 
 // Returns the new offset 'n' after marshalling the 64-bit integer.
 func MarshalInt64(n int, b []byte, v int64) int {
-	v64 := uint64(encodeZigZag(v))
 	u := b[n : n+8]
 	_ = u[7]
-	u[0] = byte(v64)
-	u[1] = byte(v64 >> 8)
-	u[2] = byte(v64 >> 16)
-	u[3] = byte(v64 >> 24)
-	u[4] = byte(v64 >> 32)
-	u[5] = byte(v64 >> 40)
-	u[6] = byte(v64 >> 48)
-	u[7] = byte(v64 >> 56)
+	u[0] = byte(v)
+	u[1] = byte(v >> 8)
+	u[2] = byte(v >> 16)
+	u[3] = byte(v >> 24)
+	u[4] = byte(v >> 32)
+	u[5] = byte(v >> 40)
+	u[6] = byte(v >> 48)
+	u[7] = byte(v >> 56)
 	return n + 8
 }
 
@@ -687,9 +780,9 @@ func UnmarshalInt64(n int, b []byte) (int, int64, error) {
 	}
 	u := b[n : n+8]
 	_ = u[7]
-	v := uint64(u[0]) | uint64(u[1])<<8 | uint64(u[2])<<16 | uint64(u[3])<<24 |
-		uint64(u[4])<<32 | uint64(u[5])<<40 | uint64(u[6])<<48 | uint64(u[7])<<56
-	return n + 8, int64(decodeZigZag(v)), nil
+	v := int64(u[0]) | int64(u[1])<<8 | int64(u[2])<<16 | int64(u[3])<<24 |
+		int64(u[4])<<32 | int64(u[5])<<40 | int64(u[6])<<48 | int64(u[7])<<56
+	return n + 8, v, nil
 }
 
 // Returns the new offset 'n' after skipping the marshalled 32-bit integer.
@@ -712,13 +805,12 @@ func SizeInt32() int {
 
 // Returns the new offset 'n' after marshalling the 32-bit integer.
 func MarshalInt32(n int, b []byte, v int32) int {
-	v32 := uint32(encodeZigZag(v))
 	u := b[n : n+4]
 	_ = u[3]
-	u[0] = byte(v32)
-	u[1] = byte(v32 >> 8)
-	u[2] = byte(v32 >> 16)
-	u[3] = byte(v32 >> 24)
+	u[0] = byte(v)
+	u[1] = byte(v >> 8)
+	u[2] = byte(v >> 16)
+	u[3] = byte(v >> 24)
 	return n + 4
 }
 
@@ -734,8 +826,8 @@ func UnmarshalInt32(n int, b []byte) (int, int32, error) {
 	}
 	u := b[n : n+4]
 	_ = u[3]
-	v := uint32(u[0]) | uint32(u[1])<<8 | uint32(u[2])<<16 | uint32(u[3])<<24
-	return n + 4, int32(decodeZigZag(v)), nil
+	v := int32(u[0]) | int32(u[1])<<8 | int32(u[2])<<16 | int32(u[3])<<24
+	return n + 4, v, nil
 }
 
 // Returns the new offset 'n' after skipping the marshalled 16-bit integer.
@@ -758,11 +850,10 @@ func SizeInt16() int {
 
 // Returns the new offset 'n' after marshalling the 16-bit integer.
 func MarshalInt16(n int, b []byte, v int16) int {
-	v16 := uint16(encodeZigZag(v))
 	u := b[n : n+2]
 	_ = u[1]
-	u[0] = byte(v16)
-	u[1] = byte(v16 >> 8)
+	u[0] = byte(v)
+	u[1] = byte(v >> 8)
 	return n + 2
 }
 
@@ -778,8 +869,8 @@ func UnmarshalInt16(n int, b []byte) (int, int16, error) {
 	}
 	u := b[n : n+2]
 	_ = u[1]
-	v := uint16(u[0]) | uint16(u[1])<<8
-	return n + 2, int16(decodeZigZag(v)), nil
+	v := int16(u[0]) | int16(u[1])<<8
+	return n + 2, v, nil
 }
 
 // TODO: Int8

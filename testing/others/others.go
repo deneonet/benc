@@ -4,31 +4,33 @@
 package others
 
 import (
-    "github.com/deneonet/benc/std"
-    "github.com/deneonet/benc/impl/gen"
+	"github.com/deneonet/benc/impl/gen"
+	"github.com/deneonet/benc/std"
 
 	"github.com/deneonet/benc/testing/person"
 )
 
 // Enum - ExampleEnum
 type ExampleEnum int
+
 const (
-    ExampleEnumOne ExampleEnum = iota
-    ExampleEnumTwo
-    ExampleEnumThree
-    ExampleEnumFour
+	ExampleEnumOne ExampleEnum = iota
+	ExampleEnumTwo
+	ExampleEnumThree
+	ExampleEnumFour
 )
 
 // Enum - ExampleEnum2
 type ExampleEnum2 int
+
 const (
-    ExampleEnum2Five ExampleEnum2 = iota
-    ExampleEnum2Six
+	ExampleEnum2Five ExampleEnum2 = iota
+	ExampleEnum2Six
 )
 
 // Struct - Bank
 type Bank struct {
-    Name string
+	Name string
 }
 
 // Reserved Ids - Bank
@@ -36,93 +38,93 @@ var bankRIds = []uint16{}
 
 // Size - Bank
 func (bank *Bank) Size() int {
-    return bank.NestedSize(0)
+	return bank.NestedSize(0)
 }
 
 // Nested Size - Bank
 func (bank *Bank) NestedSize(id uint16) (s int) {
-    s += bstd.SizeString(bank.Name) + 2
+	s += bstd.SizeString(bank.Name) + 2
 
-    if id > 255 {
-        s += 5
-        return
-    }
-    s += 4
-    return
+	if id > 255 {
+		s += 5
+		return
+	}
+	s += 4
+	return
 }
 
 // SizePlain - Bank
 func (bank *Bank) SizePlain() (s int) {
-    s += bstd.SizeString(bank.Name)
-    return
+	s += bstd.SizeString(bank.Name)
+	return
 }
 
 // Marshal - Bank
 func (bank *Bank) Marshal(b []byte) {
-    bank.NestedMarshal(0, b, 0)
+	bank.NestedMarshal(0, b, 0)
 }
 
 // Nested Marshal - Bank
 func (bank *Bank) NestedMarshal(tn int, b []byte, id uint16) (n int) {
-    n = bgenimpl.MarshalTag(tn, b, bgenimpl.Container, id)
-    n = bgenimpl.MarshalTag(n, b, bgenimpl.Bytes, 1)
-    n = bstd.MarshalString(n, b, bank.Name)
+	n = bgenimpl.MarshalTag(tn, b, bgenimpl.Container, id)
+	n = bgenimpl.MarshalTag(n, b, bgenimpl.Bytes, 1)
+	n = bstd.MarshalString(n, b, bank.Name)
 
-    n += 2
-    b[n-2] = 1
-    b[n-1] = 1
-    return
+	n += 2
+	b[n-2] = 1
+	b[n-1] = 1
+	return
 }
 
 // MarshalPlain - Bank
 func (bank *Bank) MarshalPlain(tn int, b []byte) (n int) {
-    n = tn
-    n = bstd.MarshalString(n, b, bank.Name)
-    return n
+	n = tn
+	n = bstd.MarshalString(n, b, bank.Name)
+	return n
 }
 
 // Unmarshal - Bank
 func (bank *Bank) Unmarshal(b []byte) (err error) {
-    _, err = bank.NestedUnmarshal(0, b, []uint16{}, 0)
-    return
+	_, err = bank.NestedUnmarshal(0, b, []uint16{}, 0)
+	return
 }
 
 // Nested Unmarshal - Bank
 func (bank *Bank) NestedUnmarshal(tn int, b []byte, r []uint16, id uint16) (n int, err error) {
-    var ok bool
-    if n, ok, err = bgenimpl.HandleCompatibility(tn, b, r, id); !ok {
-        if err == bgenimpl.ErrEof {
-            return n, nil
-        }
-        return
-    }
-    if n, ok, err = bgenimpl.HandleCompatibility(n, b, bankRIds, 1); err != nil {
-        if err == bgenimpl.ErrEof {
-            return n, nil
-        }
-        return
-    }
-    if ok {
-        if n, bank.Name, err = bstd.UnmarshalString(n, b); err != nil {
-            return
-        }
-    }
-    n += 2
-    return
+	var ok bool
+	if n, ok, err = bgenimpl.HandleCompatibility(tn, b, r, id); !ok {
+		if err == bgenimpl.ErrEof {
+			return n, nil
+		}
+		return
+	}
+	if n, ok, err = bgenimpl.HandleCompatibility(n, b, bankRIds, 1); err != nil {
+		if err == bgenimpl.ErrEof {
+			return n, nil
+		}
+		return
+	}
+	if ok {
+		if n, bank.Name, err = bstd.UnmarshalString(n, b); err != nil {
+			return
+		}
+	}
+	n += 2
+	return
 }
 
 // UnmarshalPlain - Bank
 func (bank *Bank) UnmarshalPlain(tn int, b []byte) (n int, err error) {
-    n = tn
-    if n, bank.Name, err = bstd.UnmarshalString(n, b); err != nil {
-        return
-    }
-    return
+	n = tn
+	if n, bank.Name, err = bstd.UnmarshalString(n, b); err != nil {
+		return
+	}
+	return
 }
 
 // Struct - Citizen
 type Citizen struct {
-    Name string
+	Name string
 }
 
 // Reserved Ids - Citizen
@@ -130,103 +132,103 @@ var citizenRIds = []uint16{}
 
 // Size - Citizen
 func (citizen *Citizen) Size() int {
-    return citizen.NestedSize(0)
+	return citizen.NestedSize(0)
 }
 
 // Nested Size - Citizen
 func (citizen *Citizen) NestedSize(id uint16) (s int) {
-    s += bstd.SizeString(citizen.Name) + 2
+	s += bstd.SizeString(citizen.Name) + 2
 
-    if id > 255 {
-        s += 5
-        return
-    }
-    s += 4
-    return
+	if id > 255 {
+		s += 5
+		return
+	}
+	s += 4
+	return
 }
 
 // SizePlain - Citizen
 func (citizen *Citizen) SizePlain() (s int) {
-    s += bstd.SizeString(citizen.Name)
-    return
+	s += bstd.SizeString(citizen.Name)
+	return
 }
 
 // Marshal - Citizen
 func (citizen *Citizen) Marshal(b []byte) {
-    citizen.NestedMarshal(0, b, 0)
+	citizen.NestedMarshal(0, b, 0)
 }
 
 // Nested Marshal - Citizen
 func (citizen *Citizen) NestedMarshal(tn int, b []byte, id uint16) (n int) {
-    n = bgenimpl.MarshalTag(tn, b, bgenimpl.Container, id)
-    n = bgenimpl.MarshalTag(n, b, bgenimpl.Bytes, 2)
-    n = bstd.MarshalString(n, b, citizen.Name)
+	n = bgenimpl.MarshalTag(tn, b, bgenimpl.Container, id)
+	n = bgenimpl.MarshalTag(n, b, bgenimpl.Bytes, 2)
+	n = bstd.MarshalString(n, b, citizen.Name)
 
-    n += 2
-    b[n-2] = 1
-    b[n-1] = 1
-    return
+	n += 2
+	b[n-2] = 1
+	b[n-1] = 1
+	return
 }
 
 // MarshalPlain - Citizen
 func (citizen *Citizen) MarshalPlain(tn int, b []byte) (n int) {
-    n = tn
-    n = bstd.MarshalString(n, b, citizen.Name)
-    return n
+	n = tn
+	n = bstd.MarshalString(n, b, citizen.Name)
+	return n
 }
 
 // Unmarshal - Citizen
 func (citizen *Citizen) Unmarshal(b []byte) (err error) {
-    _, err = citizen.NestedUnmarshal(0, b, []uint16{}, 0)
-    return
+	_, err = citizen.NestedUnmarshal(0, b, []uint16{}, 0)
+	return
 }
 
 // Nested Unmarshal - Citizen
 func (citizen *Citizen) NestedUnmarshal(tn int, b []byte, r []uint16, id uint16) (n int, err error) {
-    var ok bool
-    if n, ok, err = bgenimpl.HandleCompatibility(tn, b, r, id); !ok {
-        if err == bgenimpl.ErrEof {
-            return n, nil
-        }
-        return
-    }
-    if n, ok, err = bgenimpl.HandleCompatibility(n, b, citizenRIds, 2); err != nil {
-        if err == bgenimpl.ErrEof {
-            return n, nil
-        }
-        return
-    }
-    if ok {
-        if n, citizen.Name, err = bstd.UnmarshalString(n, b); err != nil {
-            return
-        }
-    }
-    n += 2
-    return
+	var ok bool
+	if n, ok, err = bgenimpl.HandleCompatibility(tn, b, r, id); !ok {
+		if err == bgenimpl.ErrEof {
+			return n, nil
+		}
+		return
+	}
+	if n, ok, err = bgenimpl.HandleCompatibility(n, b, citizenRIds, 2); err != nil {
+		if err == bgenimpl.ErrEof {
+			return n, nil
+		}
+		return
+	}
+	if ok {
+		if n, citizen.Name, err = bstd.UnmarshalString(n, b); err != nil {
+			return
+		}
+	}
+	n += 2
+	return
 }
 
 // UnmarshalPlain - Citizen
 func (citizen *Citizen) UnmarshalPlain(tn int, b []byte) (n int, err error) {
-    n = tn
-    if n, citizen.Name, err = bstd.UnmarshalString(n, b); err != nil {
-        return
-    }
-    return
+	n = tn
+	if n, citizen.Name, err = bstd.UnmarshalString(n, b); err != nil {
+		return
+	}
+	return
 }
 
 // Struct - OthersTest
 type OthersTest struct {
-    Ui uint
-    Ui64 uint64
-    Ui64Arr []uint64
-    Ui64Map map[uint64]uint32
-    Ui32 uint32
-    Ui16 uint16
-    ExampleEnum ExampleEnum
-    ExampleEnum2 ExampleEnum2
-    Person person.Person
-    Person2 [][][]person.Person2
-    BankMap map[Bank]Citizen
+	Ui           uint
+	Ui64         uint64
+	Ui64Arr      []uint64
+	Ui64Map      map[uint64]uint32
+	Ui32         uint32
+	Ui16         uint16
+	ExampleEnum  ExampleEnum
+	ExampleEnum2 ExampleEnum2
+	Person       person.Person
+	Person2      [][][]person.Person2
+	BankMap      map[Bank]Citizen
 }
 
 // Reserved Ids - OthersTest
@@ -234,268 +236,291 @@ var othersTestRIds = []uint16{}
 
 // Size - OthersTest
 func (othersTest *OthersTest) Size() int {
-    return othersTest.NestedSize(0)
+	return othersTest.NestedSize(0)
 }
 
 // Nested Size - OthersTest
 func (othersTest *OthersTest) NestedSize(id uint16) (s int) {
-    s += bstd.SizeUint(othersTest.Ui) + 2
-    s += bstd.SizeUint64() + 2
-    s += bstd.SizeSlice(othersTest.Ui64Arr, bstd.SizeUint64) + 2
-    s += bstd.SizeMap(othersTest.Ui64Map, bstd.SizeUint64, bstd.SizeUint32) + 2
-    s += bstd.SizeUint32() + 2
-    s += bstd.SizeUint16() + 2
-    s += bgenimpl.SizeEnum(othersTest.ExampleEnum) + 2
-    s += bgenimpl.SizeEnum(othersTest.ExampleEnum2) + 2
-    s += othersTest.Person.NestedSize(9)
-    s += bstd.SizeSlice(othersTest.Person2, func (s [][]person.Person2) int { return bstd.SizeSlice(s, func (s []person.Person2) int { return bstd.SizeSlice(s, func (s person.Person2) int { return s.SizePlain() }) }) }) + 2
-    s += bstd.SizeMap(othersTest.BankMap, func (s Bank) int { return s.SizePlain() }, func (s Citizen) int { return s.SizePlain() }) + 2
+	s += bstd.SizeUint(othersTest.Ui) + 2
+	s += bstd.SizeUint64() + 2
+	s += bstd.SizeFixedSlice(othersTest.Ui64Arr, bstd.SizeUint64()) + 2
+	s += bstd.SizeMap(othersTest.Ui64Map, bstd.SizeUint64, bstd.SizeUint32) + 2
+	s += bstd.SizeUint32() + 2
+	s += bstd.SizeUint16() + 2
+	s += bgenimpl.SizeEnum(othersTest.ExampleEnum) + 2
+	s += bgenimpl.SizeEnum(othersTest.ExampleEnum2) + 2
+	s += othersTest.Person.NestedSize(9)
+	s += bstd.SizeSlice(othersTest.Person2, func(s [][]person.Person2) int {
+		return bstd.SizeSlice(s, func(s []person.Person2) int {
+			return bstd.SizeSlice(s, func(s person.Person2) int { return s.SizePlain() })
+		})
+	}) + 2
+	s += bstd.SizeMap(othersTest.BankMap, func(s Bank) int { return s.SizePlain() }, func(s Citizen) int { return s.SizePlain() }) + 2
 
-    if id > 255 {
-        s += 5
-        return
-    }
-    s += 4
-    return
+	if id > 255 {
+		s += 5
+		return
+	}
+	s += 4
+	return
 }
 
 // SizePlain - OthersTest
 func (othersTest *OthersTest) SizePlain() (s int) {
-    s += bstd.SizeUint(othersTest.Ui)
-    s += bstd.SizeUint64()
-    s += bstd.SizeSlice(othersTest.Ui64Arr, bstd.SizeUint64)
-    s += bstd.SizeMap(othersTest.Ui64Map, bstd.SizeUint64, bstd.SizeUint32)
-    s += bstd.SizeUint32()
-    s += bstd.SizeUint16()
-    s += bgenimpl.SizeEnum(othersTest.ExampleEnum)
-    s += bgenimpl.SizeEnum(othersTest.ExampleEnum2)
-    s += othersTest.Person.SizePlain()
-    s += bstd.SizeSlice(othersTest.Person2, func (s [][]person.Person2) int { return bstd.SizeSlice(s, func (s []person.Person2) int { return bstd.SizeSlice(s, func (s person.Person2) int { return s.SizePlain() }) }) })
-    s += bstd.SizeMap(othersTest.BankMap, func (s Bank) int { return s.SizePlain() }, func (s Citizen) int { return s.SizePlain() })
-    return
+	s += bstd.SizeUint(othersTest.Ui)
+	s += bstd.SizeUint64()
+	s += bstd.SizeFixedSlice(othersTest.Ui64Arr, bstd.SizeUint64())
+	s += bstd.SizeMap(othersTest.Ui64Map, bstd.SizeUint64, bstd.SizeUint32)
+	s += bstd.SizeUint32()
+	s += bstd.SizeUint16()
+	s += bgenimpl.SizeEnum(othersTest.ExampleEnum)
+	s += bgenimpl.SizeEnum(othersTest.ExampleEnum2)
+	s += othersTest.Person.SizePlain()
+	s += bstd.SizeSlice(othersTest.Person2, func(s [][]person.Person2) int {
+		return bstd.SizeSlice(s, func(s []person.Person2) int {
+			return bstd.SizeSlice(s, func(s person.Person2) int { return s.SizePlain() })
+		})
+	})
+	s += bstd.SizeMap(othersTest.BankMap, func(s Bank) int { return s.SizePlain() }, func(s Citizen) int { return s.SizePlain() })
+	return
 }
 
 // Marshal - OthersTest
 func (othersTest *OthersTest) Marshal(b []byte) {
-    othersTest.NestedMarshal(0, b, 0)
+	othersTest.NestedMarshal(0, b, 0)
 }
 
 // Nested Marshal - OthersTest
 func (othersTest *OthersTest) NestedMarshal(tn int, b []byte, id uint16) (n int) {
-    n = bgenimpl.MarshalTag(tn, b, bgenimpl.Container, id)
-    n = bgenimpl.MarshalTag(n, b, bgenimpl.Varint, 1)
-    n = bstd.MarshalUint(n, b, othersTest.Ui)
-    n = bgenimpl.MarshalTag(n, b, bgenimpl.Fixed64, 2)
-    n = bstd.MarshalUint64(n, b, othersTest.Ui64)
-    n = bgenimpl.MarshalTag(n, b, bgenimpl.ArrayMap, 3)
-    n = bstd.MarshalSlice(n, b, othersTest.Ui64Arr, bstd.MarshalUint64)
-    n = bgenimpl.MarshalTag(n, b, bgenimpl.ArrayMap, 4)
-    n = bstd.MarshalMap(n, b, othersTest.Ui64Map, bstd.MarshalUint64, bstd.MarshalUint32)
-    n = bgenimpl.MarshalTag(n, b, bgenimpl.Fixed32, 5)
-    n = bstd.MarshalUint32(n, b, othersTest.Ui32)
-    n = bgenimpl.MarshalTag(n, b, bgenimpl.Fixed16, 6)
-    n = bstd.MarshalUint16(n, b, othersTest.Ui16)
-    n = bgenimpl.MarshalTag(n, b, bgenimpl.ArrayMap, 7)
-    n = bgenimpl.MarshalEnum(n, b, othersTest.ExampleEnum)
-    n = bgenimpl.MarshalTag(n, b, bgenimpl.ArrayMap, 8)
-    n = bgenimpl.MarshalEnum(n, b, othersTest.ExampleEnum2)
-    n = othersTest.Person.NestedMarshal(n, b, 9)
-    n = bgenimpl.MarshalTag(n, b, bgenimpl.ArrayMap, 10)
-    n = bstd.MarshalSlice(n, b, othersTest.Person2, func (n int, b []byte, s [][]person.Person2) int { return bstd.MarshalSlice(n, b, s, func (n int, b []byte, s []person.Person2) int { return bstd.MarshalSlice(n, b, s, func (n int, b []byte, s person.Person2) int { return s.MarshalPlain(n, b) }) }) })
-    n = bgenimpl.MarshalTag(n, b, bgenimpl.ArrayMap, 11)
-    n = bstd.MarshalMap(n, b, othersTest.BankMap, func (n int, b []byte, s Bank) int { return s.MarshalPlain(n, b) }, func (n int, b []byte, s Citizen) int { return s.MarshalPlain(n, b) })
+	n = bgenimpl.MarshalTag(tn, b, bgenimpl.Container, id)
+	n = bgenimpl.MarshalTag(n, b, bgenimpl.Varint, 1)
+	n = bstd.MarshalUint(n, b, othersTest.Ui)
+	n = bgenimpl.MarshalTag(n, b, bgenimpl.Fixed64, 2)
+	n = bstd.MarshalUint64(n, b, othersTest.Ui64)
+	n = bgenimpl.MarshalTag(n, b, bgenimpl.ArrayMap, 3)
+	n = bstd.MarshalSlice(n, b, othersTest.Ui64Arr, bstd.MarshalUint64)
+	n = bgenimpl.MarshalTag(n, b, bgenimpl.ArrayMap, 4)
+	n = bstd.MarshalMap(n, b, othersTest.Ui64Map, bstd.MarshalUint64, bstd.MarshalUint32)
+	n = bgenimpl.MarshalTag(n, b, bgenimpl.Fixed32, 5)
+	n = bstd.MarshalUint32(n, b, othersTest.Ui32)
+	n = bgenimpl.MarshalTag(n, b, bgenimpl.Fixed16, 6)
+	n = bstd.MarshalUint16(n, b, othersTest.Ui16)
+	n = bgenimpl.MarshalTag(n, b, bgenimpl.ArrayMap, 7)
+	n = bgenimpl.MarshalEnum(n, b, othersTest.ExampleEnum)
+	n = bgenimpl.MarshalTag(n, b, bgenimpl.ArrayMap, 8)
+	n = bgenimpl.MarshalEnum(n, b, othersTest.ExampleEnum2)
+	n = othersTest.Person.NestedMarshal(n, b, 9)
+	n = bgenimpl.MarshalTag(n, b, bgenimpl.ArrayMap, 10)
+	n = bstd.MarshalSlice(n, b, othersTest.Person2, func(n int, b []byte, s [][]person.Person2) int {
+		return bstd.MarshalSlice(n, b, s, func(n int, b []byte, s []person.Person2) int {
+			return bstd.MarshalSlice(n, b, s, func(n int, b []byte, s person.Person2) int { return s.MarshalPlain(n, b) })
+		})
+	})
+	n = bgenimpl.MarshalTag(n, b, bgenimpl.ArrayMap, 11)
+	n = bstd.MarshalMap(n, b, othersTest.BankMap, func(n int, b []byte, s Bank) int { return s.MarshalPlain(n, b) }, func(n int, b []byte, s Citizen) int { return s.MarshalPlain(n, b) })
 
-    n += 2
-    b[n-2] = 1
-    b[n-1] = 1
-    return
+	n += 2
+	b[n-2] = 1
+	b[n-1] = 1
+	return
 }
 
 // MarshalPlain - OthersTest
 func (othersTest *OthersTest) MarshalPlain(tn int, b []byte) (n int) {
-    n = tn
-    n = bstd.MarshalUint(n, b, othersTest.Ui)
-    n = bstd.MarshalUint64(n, b, othersTest.Ui64)
-    n = bstd.MarshalSlice(n, b, othersTest.Ui64Arr, bstd.MarshalUint64)
-    n = bstd.MarshalMap(n, b, othersTest.Ui64Map, bstd.MarshalUint64, bstd.MarshalUint32)
-    n = bstd.MarshalUint32(n, b, othersTest.Ui32)
-    n = bstd.MarshalUint16(n, b, othersTest.Ui16)
-    n = bgenimpl.MarshalEnum(n, b, othersTest.ExampleEnum)
-    n = bgenimpl.MarshalEnum(n, b, othersTest.ExampleEnum2)
-    n = othersTest.Person.MarshalPlain(n, b)
-    n = bstd.MarshalSlice(n, b, othersTest.Person2, func (n int, b []byte, s [][]person.Person2) int { return bstd.MarshalSlice(n, b, s, func (n int, b []byte, s []person.Person2) int { return bstd.MarshalSlice(n, b, s, func (n int, b []byte, s person.Person2) int { return s.MarshalPlain(n, b) }) }) })
-    n = bstd.MarshalMap(n, b, othersTest.BankMap, func (n int, b []byte, s Bank) int { return s.MarshalPlain(n, b) }, func (n int, b []byte, s Citizen) int { return s.MarshalPlain(n, b) })
-    return n
+	n = tn
+	n = bstd.MarshalUint(n, b, othersTest.Ui)
+	n = bstd.MarshalUint64(n, b, othersTest.Ui64)
+	n = bstd.MarshalSlice(n, b, othersTest.Ui64Arr, bstd.MarshalUint64)
+	n = bstd.MarshalMap(n, b, othersTest.Ui64Map, bstd.MarshalUint64, bstd.MarshalUint32)
+	n = bstd.MarshalUint32(n, b, othersTest.Ui32)
+	n = bstd.MarshalUint16(n, b, othersTest.Ui16)
+	n = bgenimpl.MarshalEnum(n, b, othersTest.ExampleEnum)
+	n = bgenimpl.MarshalEnum(n, b, othersTest.ExampleEnum2)
+	n = othersTest.Person.MarshalPlain(n, b)
+	n = bstd.MarshalSlice(n, b, othersTest.Person2, func(n int, b []byte, s [][]person.Person2) int {
+		return bstd.MarshalSlice(n, b, s, func(n int, b []byte, s []person.Person2) int {
+			return bstd.MarshalSlice(n, b, s, func(n int, b []byte, s person.Person2) int { return s.MarshalPlain(n, b) })
+		})
+	})
+	n = bstd.MarshalMap(n, b, othersTest.BankMap, func(n int, b []byte, s Bank) int { return s.MarshalPlain(n, b) }, func(n int, b []byte, s Citizen) int { return s.MarshalPlain(n, b) })
+	return n
 }
 
 // Unmarshal - OthersTest
 func (othersTest *OthersTest) Unmarshal(b []byte) (err error) {
-    _, err = othersTest.NestedUnmarshal(0, b, []uint16{}, 0)
-    return
+	_, err = othersTest.NestedUnmarshal(0, b, []uint16{}, 0)
+	return
 }
 
 // Nested Unmarshal - OthersTest
 func (othersTest *OthersTest) NestedUnmarshal(tn int, b []byte, r []uint16, id uint16) (n int, err error) {
-    var ok bool
-    if n, ok, err = bgenimpl.HandleCompatibility(tn, b, r, id); !ok {
-        if err == bgenimpl.ErrEof {
-            return n, nil
-        }
-        return
-    }
-    if n, ok, err = bgenimpl.HandleCompatibility(n, b, othersTestRIds, 1); err != nil {
-        if err == bgenimpl.ErrEof {
-            return n, nil
-        }
-        return
-    }
-    if ok {
-        if n, othersTest.Ui, err = bstd.UnmarshalUint(n, b); err != nil {
-            return
-        }
-    }
-    if n, ok, err = bgenimpl.HandleCompatibility(n, b, othersTestRIds, 2); err != nil {
-        if err == bgenimpl.ErrEof {
-            return n, nil
-        }
-        return
-    }
-    if ok {
-        if n, othersTest.Ui64, err = bstd.UnmarshalUint64(n, b); err != nil {
-            return
-        }
-    }
-    if n, ok, err = bgenimpl.HandleCompatibility(n, b, othersTestRIds, 3); err != nil {
-        if err == bgenimpl.ErrEof {
-            return n, nil
-        }
-        return
-    }
-    if ok {
-        if n, othersTest.Ui64Arr, err = bstd.UnmarshalSlice[uint64](n, b, bstd.UnmarshalUint64); err != nil {
-            return
-        }
-    }
-    if n, ok, err = bgenimpl.HandleCompatibility(n, b, othersTestRIds, 4); err != nil {
-        if err == bgenimpl.ErrEof {
-            return n, nil
-        }
-        return
-    }
-    if ok {
-        if n, othersTest.Ui64Map, err = bstd.UnmarshalMap[uint64, uint32](n, b, bstd.UnmarshalUint64, bstd.UnmarshalUint32); err != nil {
-            return
-        }
-    }
-    if n, ok, err = bgenimpl.HandleCompatibility(n, b, othersTestRIds, 5); err != nil {
-        if err == bgenimpl.ErrEof {
-            return n, nil
-        }
-        return
-    }
-    if ok {
-        if n, othersTest.Ui32, err = bstd.UnmarshalUint32(n, b); err != nil {
-            return
-        }
-    }
-    if n, ok, err = bgenimpl.HandleCompatibility(n, b, othersTestRIds, 6); err != nil {
-        if err == bgenimpl.ErrEof {
-            return n, nil
-        }
-        return
-    }
-    if ok {
-        if n, othersTest.Ui16, err = bstd.UnmarshalUint16(n, b); err != nil {
-            return
-        }
-    }
-    if n, ok, err = bgenimpl.HandleCompatibility(n, b, othersTestRIds, 7); err != nil {
-        if err == bgenimpl.ErrEof {
-            return n, nil
-        }
-        return
-    }
-    if ok {
-        if n, othersTest.ExampleEnum, err = bgenimpl.UnmarshalEnum[ExampleEnum](n, b); err != nil {
-            return
-        }
-    }
-    if n, ok, err = bgenimpl.HandleCompatibility(n, b, othersTestRIds, 8); err != nil {
-        if err == bgenimpl.ErrEof {
-            return n, nil
-        }
-        return
-    }
-    if ok {
-        if n, othersTest.ExampleEnum2, err = bgenimpl.UnmarshalEnum[ExampleEnum2](n, b); err != nil {
-            return
-        }
-    }
-    if n, err = othersTest.Person.NestedUnmarshal(n, b, othersTestRIds, 9); err != nil {
-        return
-    }
-    if n, ok, err = bgenimpl.HandleCompatibility(n, b, othersTestRIds, 10); err != nil {
-        if err == bgenimpl.ErrEof {
-            return n, nil
-        }
-        return
-    }
-    if ok {
-        if n, othersTest.Person2, err = bstd.UnmarshalSlice[[][]person.Person2](n, b, func (n int, b []byte) (int, [][]person.Person2, error) { return bstd.UnmarshalSlice[[]person.Person2](n, b, func (n int, b []byte) (int, []person.Person2, error) { return bstd.UnmarshalSlice[person.Person2](n, b, func (n int, b []byte, s *person.Person2) (int, error) { return s.UnmarshalPlain(n, b) }) }) }); err != nil {
-            return
-        }
-    }
-    if n, ok, err = bgenimpl.HandleCompatibility(n, b, othersTestRIds, 11); err != nil {
-        if err == bgenimpl.ErrEof {
-            return n, nil
-        }
-        return
-    }
-    if ok {
-        if n, othersTest.BankMap, err = bstd.UnmarshalMap[Bank, Citizen](n, b, func (n int, b []byte, s *Bank) (int, error) { return s.UnmarshalPlain(n, b) }, func (n int, b []byte, s *Citizen) (int, error) { return s.UnmarshalPlain(n, b) }); err != nil {
-            return
-        }
-    }
-    n += 2
-    return
+	var ok bool
+	if n, ok, err = bgenimpl.HandleCompatibility(tn, b, r, id); !ok {
+		if err == bgenimpl.ErrEof {
+			return n, nil
+		}
+		return
+	}
+	if n, ok, err = bgenimpl.HandleCompatibility(n, b, othersTestRIds, 1); err != nil {
+		if err == bgenimpl.ErrEof {
+			return n, nil
+		}
+		return
+	}
+	if ok {
+		if n, othersTest.Ui, err = bstd.UnmarshalUint(n, b); err != nil {
+			return
+		}
+	}
+	if n, ok, err = bgenimpl.HandleCompatibility(n, b, othersTestRIds, 2); err != nil {
+		if err == bgenimpl.ErrEof {
+			return n, nil
+		}
+		return
+	}
+	if ok {
+		if n, othersTest.Ui64, err = bstd.UnmarshalUint64(n, b); err != nil {
+			return
+		}
+	}
+	if n, ok, err = bgenimpl.HandleCompatibility(n, b, othersTestRIds, 3); err != nil {
+		if err == bgenimpl.ErrEof {
+			return n, nil
+		}
+		return
+	}
+	if ok {
+		if n, othersTest.Ui64Arr, err = bstd.UnmarshalSlice[uint64](n, b, bstd.UnmarshalUint64); err != nil {
+			return
+		}
+	}
+	if n, ok, err = bgenimpl.HandleCompatibility(n, b, othersTestRIds, 4); err != nil {
+		if err == bgenimpl.ErrEof {
+			return n, nil
+		}
+		return
+	}
+	if ok {
+		if n, othersTest.Ui64Map, err = bstd.UnmarshalMap[uint64, uint32](n, b, bstd.UnmarshalUint64, bstd.UnmarshalUint32); err != nil {
+			return
+		}
+	}
+	if n, ok, err = bgenimpl.HandleCompatibility(n, b, othersTestRIds, 5); err != nil {
+		if err == bgenimpl.ErrEof {
+			return n, nil
+		}
+		return
+	}
+	if ok {
+		if n, othersTest.Ui32, err = bstd.UnmarshalUint32(n, b); err != nil {
+			return
+		}
+	}
+	if n, ok, err = bgenimpl.HandleCompatibility(n, b, othersTestRIds, 6); err != nil {
+		if err == bgenimpl.ErrEof {
+			return n, nil
+		}
+		return
+	}
+	if ok {
+		if n, othersTest.Ui16, err = bstd.UnmarshalUint16(n, b); err != nil {
+			return
+		}
+	}
+	if n, ok, err = bgenimpl.HandleCompatibility(n, b, othersTestRIds, 7); err != nil {
+		if err == bgenimpl.ErrEof {
+			return n, nil
+		}
+		return
+	}
+	if ok {
+		if n, othersTest.ExampleEnum, err = bgenimpl.UnmarshalEnum[ExampleEnum](n, b); err != nil {
+			return
+		}
+	}
+	if n, ok, err = bgenimpl.HandleCompatibility(n, b, othersTestRIds, 8); err != nil {
+		if err == bgenimpl.ErrEof {
+			return n, nil
+		}
+		return
+	}
+	if ok {
+		if n, othersTest.ExampleEnum2, err = bgenimpl.UnmarshalEnum[ExampleEnum2](n, b); err != nil {
+			return
+		}
+	}
+	if n, err = othersTest.Person.NestedUnmarshal(n, b, othersTestRIds, 9); err != nil {
+		return
+	}
+	if n, ok, err = bgenimpl.HandleCompatibility(n, b, othersTestRIds, 10); err != nil {
+		if err == bgenimpl.ErrEof {
+			return n, nil
+		}
+		return
+	}
+	if ok {
+		if n, othersTest.Person2, err = bstd.UnmarshalSlice[[][]person.Person2](n, b, func(n int, b []byte) (int, [][]person.Person2, error) {
+			return bstd.UnmarshalSlice[[]person.Person2](n, b, func(n int, b []byte) (int, []person.Person2, error) {
+				return bstd.UnmarshalSlice[person.Person2](n, b, func(n int, b []byte, s *person.Person2) (int, error) { return s.UnmarshalPlain(n, b) })
+			})
+		}); err != nil {
+			return
+		}
+	}
+	if n, ok, err = bgenimpl.HandleCompatibility(n, b, othersTestRIds, 11); err != nil {
+		if err == bgenimpl.ErrEof {
+			return n, nil
+		}
+		return
+	}
+	if ok {
+		if n, othersTest.BankMap, err = bstd.UnmarshalMap[Bank, Citizen](n, b, func(n int, b []byte, s *Bank) (int, error) { return s.UnmarshalPlain(n, b) }, func(n int, b []byte, s *Citizen) (int, error) { return s.UnmarshalPlain(n, b) }); err != nil {
+			return
+		}
+	}
+	n += 2
+	return
 }
 
 // UnmarshalPlain - OthersTest
 func (othersTest *OthersTest) UnmarshalPlain(tn int, b []byte) (n int, err error) {
-    n = tn
-    if n, othersTest.Ui, err = bstd.UnmarshalUint(n, b); err != nil {
-        return
-    }
-    if n, othersTest.Ui64, err = bstd.UnmarshalUint64(n, b); err != nil {
-        return
-    }
-    if n, othersTest.Ui64Arr, err = bstd.UnmarshalSlice[uint64](n, b, bstd.UnmarshalUint64); err != nil {
-        return
-    }
-    if n, othersTest.Ui64Map, err = bstd.UnmarshalMap[uint64, uint32](n, b, bstd.UnmarshalUint64, bstd.UnmarshalUint32); err != nil {
-        return
-    }
-    if n, othersTest.Ui32, err = bstd.UnmarshalUint32(n, b); err != nil {
-        return
-    }
-    if n, othersTest.Ui16, err = bstd.UnmarshalUint16(n, b); err != nil {
-        return
-    }
-    if n, othersTest.ExampleEnum, err = bgenimpl.UnmarshalEnum[ExampleEnum](n, b); err != nil {
-        return
-    }
-    if n, othersTest.ExampleEnum2, err = bgenimpl.UnmarshalEnum[ExampleEnum2](n, b); err != nil {
-        return
-    }
-    if n, err = othersTest.Person.UnmarshalPlain(n, b); err != nil {
-        return
-    }
-    if n, othersTest.Person2, err = bstd.UnmarshalSlice[[][]person.Person2](n, b, func (n int, b []byte) (int, [][]person.Person2, error) { return bstd.UnmarshalSlice[[]person.Person2](n, b, func (n int, b []byte) (int, []person.Person2, error) { return bstd.UnmarshalSlice[person.Person2](n, b, func (n int, b []byte, s *person.Person2) (int, error) { return s.UnmarshalPlain(n, b) }) }) }); err != nil {
-        return
-    }
-    if n, othersTest.BankMap, err = bstd.UnmarshalMap[Bank, Citizen](n, b, func (n int, b []byte, s *Bank) (int, error) { return s.UnmarshalPlain(n, b) }, func (n int, b []byte, s *Citizen) (int, error) { return s.UnmarshalPlain(n, b) }); err != nil {
-        return
-    }
-    return
+	n = tn
+	if n, othersTest.Ui, err = bstd.UnmarshalUint(n, b); err != nil {
+		return
+	}
+	if n, othersTest.Ui64, err = bstd.UnmarshalUint64(n, b); err != nil {
+		return
+	}
+	if n, othersTest.Ui64Arr, err = bstd.UnmarshalSlice[uint64](n, b, bstd.UnmarshalUint64); err != nil {
+		return
+	}
+	if n, othersTest.Ui64Map, err = bstd.UnmarshalMap[uint64, uint32](n, b, bstd.UnmarshalUint64, bstd.UnmarshalUint32); err != nil {
+		return
+	}
+	if n, othersTest.Ui32, err = bstd.UnmarshalUint32(n, b); err != nil {
+		return
+	}
+	if n, othersTest.Ui16, err = bstd.UnmarshalUint16(n, b); err != nil {
+		return
+	}
+	if n, othersTest.ExampleEnum, err = bgenimpl.UnmarshalEnum[ExampleEnum](n, b); err != nil {
+		return
+	}
+	if n, othersTest.ExampleEnum2, err = bgenimpl.UnmarshalEnum[ExampleEnum2](n, b); err != nil {
+		return
+	}
+	if n, err = othersTest.Person.UnmarshalPlain(n, b); err != nil {
+		return
+	}
+	if n, othersTest.Person2, err = bstd.UnmarshalSlice[[][]person.Person2](n, b, func(n int, b []byte) (int, [][]person.Person2, error) {
+		return bstd.UnmarshalSlice[[]person.Person2](n, b, func(n int, b []byte) (int, []person.Person2, error) {
+			return bstd.UnmarshalSlice[person.Person2](n, b, func(n int, b []byte, s *person.Person2) (int, error) { return s.UnmarshalPlain(n, b) })
+		})
+	}); err != nil {
+		return
+	}
+	if n, othersTest.BankMap, err = bstd.UnmarshalMap[Bank, Citizen](n, b, func(n int, b []byte, s *Bank) (int, error) { return s.UnmarshalPlain(n, b) }, func(n int, b []byte, s *Citizen) (int, error) { return s.UnmarshalPlain(n, b) }); err != nil {
+		return
+	}
+	return
 }
-

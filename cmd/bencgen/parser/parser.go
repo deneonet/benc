@@ -246,7 +246,6 @@ func (p *Parser) expectType() *Type {
 		}
 		return &Type{IsReturnCopy: true, TokenType: tokenType}
 
-
 	default:
 		if p.matchAny(lexer.STRING, lexer.BYTES, lexer.INT, lexer.INT16, lexer.INT32, lexer.INT64, lexer.UINT, lexer.UINT16, lexer.UINT32, lexer.UINT64, lexer.FLOAT32, lexer.FLOAT64, lexer.BYTE, lexer.BOOL) {
 			tokenType := p.token
@@ -288,7 +287,7 @@ func (p *Parser) errorIfContainsDot(ident string, context string) {
 	}
 }
 
-type Node interface{}
+type Node any
 
 type (
 	Type struct {
@@ -297,7 +296,7 @@ type (
 		ChildType         *Type
 		ExternalStructure string `json:"ctrName"`
 		IsUnsafe          bool
-		IsReturnCopy 	  bool
+		IsReturnCopy      bool
 		IsArray           bool
 		IsMap             bool
 	}
