@@ -1,26 +1,91 @@
-# Benc
+# Benc (Polyglot Fork)
 
-![go workflow](https://github.com/deneonet/benc/actions/workflows/go.yml/badge.svg)
-[![go report card](https://goreportcard.com/badge/github.com/deneonet/benc)](https://goreportcard.com/report/github.com/deneonet/benc)
-[![go reference](https://pkg.go.dev/badge/github.com/deneonet/benc.svg)](https://pkg.go.dev/github.com/deneonet/benc)
-[![codecov](https://codecov.io/gh/deneonet/benc/graph/badge.svg?token=gOyCwY04Uo)](https://codecov.io/gh/deneonet/benc)
+<!-- Update with your repo details -->
 
-The fastest serializer in pure Golang, with the option for backward/forward compatibile generated code.
+<!-- Update with your repo details -->
 
-This module is split into four main packages:
+  
 
-- **[cmd/bencgen](cmd/bencgen/README.md)** - the code-generator for benc
-- **[impl/gen](impl/gen/README.md)** - the implementation for bencgen, for handling backward and forward compatibility
-- **[std](std/README.md)** - the benc standard, raw serialization
-- **[idv](idv/README.md)** - the benc ID validation, raw serialization with ID prefixing
+**Benc** is a high-performance binary serialization format.
 
-### [Security](SECURITY.md)
+This project is a **major fork** of [deneonet/benc](https://github.com/deneonet/benc). While the original project focuses on Go efficient serialization, this fork introduces a comprehensive **Code Generator** and **Runtime Libraries (`std`)** for a wide variety of languages, turning Go structs into a universal Interface Definition Language (IDL).
 
-### [Benchmarks](https://github.com/alecthomas/go_serialization_benchmarks)
+Unlike the original implementation, this repository enables cross-language data exchange by generating native serialization code for Go, C, C++, C#, Java, Kotlin, Scala, Rust, Python, Swift, TypeScript, JavaScript.
 
-### benc.go
+## 🚀 Getting Started
 
-`benc.go` provides methods to do buffer reusing and to verify the marshal/unmarshal process.
+### 1. Installation
+
+Install the Benc CLI generator tool:
+
+```
+go install github.com/yourusername/benc/cmd@latest
+```
+
+### 2. Define your Schema (IDL)
+
+Benc uses **Go structs** as the schema definition. Create a simple `.go` file describing your data types.
+```
+package schema
+
+// MyData will be serialized across languages
+type MyData struct {
+    ID      uint64
+    Name    string
+    Tags    []string
+    Payload []byte
+}
+```
+
+### 3. Generate Code
+
+Use the CLI to generate serialization logic for your target languages.
+
+```
+# Generate C++ code
+benc --lang cpp --out ./cpp_client/generated.hpp --input ./schema/schema.go
+
+# Generate TypeScript code
+benc --lang ts --out ./web_client/generated.ts --input ./schema/schema.go
+```
+
+### 4. Integration
+Import the generated code and the Benc standard library (`std`) for your specific language.
+
+**Example (C++):**
+
+```
+#include "std/c++/benc.hpp"
+#include "generated.hpp"
+
+int main() {
+    MyData data;
+    data.id = 12345;
+    data.name = "Benc Fork";
+    
+    // Serialize
+    std::vector<uint8_t> buffer = benc::serialize(data);
+    
+    // Deserialize
+    MyData result = benc::deserialize<MyData>(buffer);
+}
+```
+
+##  Project Structure
+
+-   **`cmd/`**: Contains the CLI tool source code. This includes the parsers (for Go structs) and the generators for all supported target languages.
+-   **`std/`**: The runtime standard libraries required by the generated code. These are minimal, efficient implementations of the Benc encoding spec for every supported language.
+-   **`test/`**: Integration tests ensuring compatibility between the Go implementation and generated ports.
+    
+
+## Contributing
+
+We welcome contributions, especially for adding new language ports or optimizing existing generators.
+
+1.  Check the [CONTRIBUTING.md](CONTRIBUTING.md) file.
+2.  Ensure you run tests for the specific language `std` lib you are modifying.
+3.  If modifying the protocol, update the `cmd/generator` logic to reflect changes across all languages.
+    
 
 ## License
 
