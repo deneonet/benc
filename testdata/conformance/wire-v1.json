@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "valid": [
+    {"name":"uint_zero", "type":"uint", "value":"0", "hex":"00"},
+    {"name":"uint_127", "type":"uint", "value":"127", "hex":"7f"},
+    {"name":"uint_128", "type":"uint", "value":"128", "hex":"8001"},
+    {"name":"uint32_max_varint", "type":"uint", "value":"4294967295", "hex":"ffffffff0f"},
+    {"name":"uint64_max_varint_64bit", "type":"uint", "value":"18446744073709551615", "hex":"ffffffffffffffffff01"},
+    {"name":"uint64_max_fixed", "type":"uint64", "value":"18446744073709551615", "hex":"ffffffffffffffff"},
+    {"name":"int_minus_one", "type":"int", "value":"-1", "hex":"01"},
+    {"name":"int64_min_varint_64bit", "type":"int", "value":"-9223372036854775808", "hex":"ffffffffffffffffff01"},
+    {"name":"int64_max_varint_64bit", "type":"int", "value":"9223372036854775807", "hex":"feffffffffffffffff01"},
+    {"name":"int64_min_fixed", "type":"int64", "value":"-9223372036854775808", "hex":"0000000000000080"},
+    {"name":"int64_max_fixed", "type":"int64", "value":"9223372036854775807", "hex":"ffffffffffffff7f"},
+    {"name":"string_nul", "type":"string", "value":"A\u0000", "hex":"024100"},
+    {"name":"string_utf8", "type":"string", "value":"é", "hex":"02c3a9"},
+    {"name":"bytes", "type":"[]byte", "hex":"0200ff"},
+    {"name":"array", "type":"[2]int32", "hex":"01000000feffffff"},
+    {"name":"slice", "type":"[]int32", "hex":"0201000000feffffff01010101"},
+    {"name":"empty_slice", "type":"[]int32", "hex":"0001010101"},
+    {"name":"map_single", "type":"map[string]int32", "hex":"0101610200000001010101"},
+    {"name":"nested", "type":"struct{Child struct{N int32}; Flag bool}", "hex":"0700000001"},
+    {"name":"nil_pointer", "type":"*int32", "hex":"00"},
+    {"name":"present_pointer", "type":"*int32", "hex":"0107000000"},
+    {"name":"unix_nanosecond", "type":"time.Time", "value":"1", "hex":"0100000000000000"},
+    {"name":"negative_nanosecond", "type":"time.Time", "value":"-1", "hex":"ffffffffffffffff"}
+  ],
+  "invalid": [
+    {"name":"missing_slice_terminator", "type":"[]byte-element", "hex":"00", "error":"truncated"},
+    {"name":"wrong_slice_terminator", "type":"[]byte-element", "hex":"0000000000", "error":"invalid terminator"},
+    {"name":"overflowed_varint", "type":"uint", "hex":"ffffffffffffffffff02", "error":"overflow"},
+    {"name":"truncated_string", "type":"string", "hex":"0341", "error":"truncated"},
+    {"name":"truncated_map", "type":"map[byte]byte", "hex":"00", "error":"truncated"},
+    {"name":"invalid_bool", "type":"bool", "hex":"02", "error":"invalid data"},
+    {"name":"invalid_utf8", "type":"string", "hex":"01ff", "error":"invalid data"},
+    {"name":"wrong_map_terminator", "type":"map[byte]byte", "hex":"0000000000", "error":"invalid terminator"},
+    {"name":"duplicate_map_key", "type":"map[byte]byte", "hex":"020102010301010101", "error":"invalid data"},
+    {"name":"huge_string", "type":"string", "hex":"8080808010", "error":"limit"},
+    {"name":"huge_slice", "type":"[]byte-element", "hex":"8080808010", "error":"limit"}
+  ]
+}

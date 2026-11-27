@@ -1,0 +1,53 @@
+name: Generated language smoke
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '17 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [rust, kotlin, csharp, swift, scala, typescript]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-java@v4
+        if: matrix.language == 'kotlin' || matrix.language == 'scala'
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+        if: matrix.language == 'kotlin'
+        with:
+          gradle-version: '8.14'
+      - uses: sbt/setup-sbt@v1
+        if: matrix.language == 'scala'
+      - uses: actions/setup-dotnet@v4
+        if: matrix.language == 'csharp'
+        with:
+          dotnet-version: '9.0.x'
+      - uses: actions/setup-node@v4
+        if: matrix.language == 'typescript'
+        with:
+          node-version: '22'
+      - name: Generate and compile
+        shell: bash
+        run: |
+          for source in go c cpp js ts py rs java kt cs swift scala; do
+            echo "::group::${source} -> ${{ matrix.language }}"
+            bash testdata/conformance/generated-native.sh '${{ matrix.language }}' "$source"
+            echo '::endgroup::'
+          done

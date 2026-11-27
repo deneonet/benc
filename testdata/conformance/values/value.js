@@ -1,0 +1,10 @@
+const {Root,Child}=require('./model_benc.js');
+const Time=require('./std.js').Time;
+if(new Time(-1n).unixNano!==-1n || new Time(-1n).getTime()!==-1)throw Error('negative nanoseconds lost');
+const v=new Root();
+v.S='A\0B';v.I=-7n;v.U=300n;v.Count=201;v.Fixed=new Uint8Array([1,2,3]);v.Numbers=[-2,5];v.Raw=new Uint8Array([0,255]);
+const ch=new Child();ch.ID=-9n;ch.Text='x';ch.Scores=new Uint8Array([4,5]);v.Children=[ch];v.Groups=[new Uint8Array([0,1])];v.Named.set('n',-5);v.When=new Time(123456789000000123n);
+const pointed=new Child();pointed.ID=3n;pointed.Text='p';pointed.Scores=new Uint8Array([6]);v.P=pointed;
+const mapped=new Child();mapped.ID=4n;mapped.Text='z';mapped.Scores=new Uint8Array([7]);v.Dict.set('d',mapped);
+const b=new Uint8Array(v.size());if(v.marshal(0,b)!==b.length)throw Error('size mismatch');
+const copy=new Root();if(copy.unmarshal(0,b)[0]!==b.length)throw Error('decode mismatch');if(copy.When.unixNano!==v.When.unixNano)throw Error('nanoseconds lost');console.log(Buffer.from(b).toString('hex'));

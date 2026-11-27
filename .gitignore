@@ -1,0 +1,8 @@
+.metals
+.DS_Store
+.PVS-Studio
+.vscode
+__pycache__/
+*.egg-info/
+std/python/build/
+test

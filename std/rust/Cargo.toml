@@ -1,0 +1,12 @@
+[package]
+name = "benc"
+version = "2.0.0"
+edition = "2024"
+description = "Benc wire v1 Rust runtime"
+license = "MIT"
+repository = "https://github.com/banditmoscow1337/benc"
+
+[dependencies]
+chrono = "0.4.42"
+rand = "0.10.3"
+thiserror = "2.0.16"

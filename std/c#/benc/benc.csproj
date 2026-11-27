@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Version>2.0.0</Version>
+    <PackageId>Benc.Runtime</PackageId>
+    <Authors>Benc contributors</Authors>
+    <Description>Benc wire v1 C# runtime</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/banditmoscow1337/benc</RepositoryUrl>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,21 @@
+{
+  "name": "@banditmoscow1337/benc",
+  "version": "2.0.0",
+  "description": "Benc wire v1 runtime for JavaScript and TypeScript",
+  "main": "std.js",
+  "types": "std.d.ts",
+  "exports": {
+    ".": {
+      "types": "./std.d.ts",
+      "require": "./std.js"
+    }
+  },
+  "files": ["std.js", "std.d.ts", "LICENSE", "README.md"],
+  "scripts": {
+    "build": "node build.js",
+    "test": "node build.js --check && node --test conformance.test.cjs"
+  },
+  "repository": "https://github.com/banditmoscow1337/benc",
+  "license": "MIT",
+  "engines": {"node": ">=18"}
+}

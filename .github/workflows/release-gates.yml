@@ -1,0 +1,96 @@
+name: Release gates
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: '17 4 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  ast-and-generated:
+    name: AST and generated code (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {arch: amd64, runner: ubuntu-24.04}
+          - {arch: arm64, runner: ubuntu-24.04-arm}
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Confirm native architecture and toolchains
+        run: |
+          test "$(go env GOARCH)" = '${{ matrix.arch }}'
+          for tool in gcc g++ node python3 java; do command -v "$tool"; done
+      - run: go test ./...
+      - name: Mutate Go wire decoders
+        if: matrix.arch == 'amd64'
+        run: go test -run '^$' -fuzz '^FuzzWireDecode$' -fuzztime=10s -parallel=2 ./std/golang
+      - run: go vet ./...
+      - name: Execute clean-directory examples
+        if: matrix.arch == 'amd64'
+        run: |
+          for language in js py c cpp java; do
+            bash examples/quickstart.sh "$language"
+          done
+      - run: python3 testdata/conformance/check-release.py
+
+  runtimes:
+    name: Runtime and package (${{ matrix.language }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [python, javascript, java, rust, kotlin, csharp, swift, scala]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        if: matrix.language == 'python'
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        if: matrix.language == 'javascript'
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        if: matrix.language == 'java' || matrix.language == 'kotlin' || matrix.language == 'scala'
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+        if: matrix.language == 'kotlin'
+        with:
+          gradle-version: '8.14'
+      - uses: sbt/setup-sbt@v1
+        if: matrix.language == 'scala'
+      - uses: actions/setup-dotnet@v4
+        if: matrix.language == 'csharp'
+        with:
+          dotnet-version: '9.0.x'
+      - name: Run runtime tests and install/package
+        run: bash testdata/conformance/runtime-tests.sh '${{ matrix.language }}'
+
+  native-sanitizers:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: C and C++ tests under ASan and UBSan
+        run: bash testdata/conformance/native-sanitizers.sh
+      - name: C and C++ installable headers
+        run: bash testdata/conformance/native-packages.sh
